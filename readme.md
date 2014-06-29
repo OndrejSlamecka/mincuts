@@ -1,5 +1,8 @@
 
-INCLUDEPATH += <path to ogdf>/ogdf/include
-LIBS += -L<path to ogdf>/ogdf/_debug -lOGDF -lpthread
+Installation
+------------
 
-Build flags: -std=c++11 -pedantic -Wall -Wextra
+* Install OGDF Snapshot 2014-03-07 into `~/ogdf`
+* Run `make`
+
+
