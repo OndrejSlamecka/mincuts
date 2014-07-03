@@ -4,6 +4,7 @@
 #include <vector>
 #include <ogdf/basic/Graph.h>
 #include <ogdf/basic/graph_generators.h>
+#include <ogdf/layered/DfsAcyclicSubgraph.h>
 
 using namespace std;
 using namespace ogdf;
@@ -13,8 +14,8 @@ using namespace ogdf;
  * @param sEdgesFileName
  * @return Graph
  */
-Graph* csvToGraph(string sEdgesFileName) {
-    Graph *G = new Graph;
+Graph csvToGraph(string sEdgesFileName) { // This copies Graph on exit, to speed up, extend Graph and let this be a new method in our extended class
+    Graph G;
 
     ifstream fEdges(sEdgesFileName);
     if (!fEdges.is_open())
@@ -37,25 +38,31 @@ Graph* csvToGraph(string sEdgesFileName) {
         }
 
         if(nodes.at(u) == nullptr)
-            nodes[u] = G->newNode(u);
+            nodes[u] = G.newNode(u);
 
         if(nodes[v] == nullptr)
-            nodes[v] = G->newNode(v);
+            nodes[v] = G.newNode(v);
 
-        G->newEdge(nodes[u], nodes[v], id);
+        G.newEdge(nodes[u], nodes[v], id);
     }
 
     return G;
 }
 
-
 int main()
 {
+    DfsAcyclicSubgraph DfsAcyclicSubgraph;
+
     try {
-        Graph *g = csvToGraph("data/silnice.csv");
+        Graph g = csvToGraph("data/silnice.csv");
+        List<edge> base;
+
+        DfsAcyclicSubgraph.call(g, base); // Line 1
 
 
-        delete g;
+
+
+        //delete g;
     } catch (invalid_argument *e) {
         cerr << "Error: " << e->what() << endl;
         return 1;
