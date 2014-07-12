@@ -13,6 +13,12 @@ using namespace ogdf;
 
 int m = 3; // Cocircuit size bound
 
+
+template <template <class> class C, typename T>
+bool contains(C<T> container, T item) {
+    return std::find(container.begin(), container.end(), item) != container.end();
+}
+
 /**
  * @brief Takes a csv file with lines "<id>;<source>;<target>;<edge name>;..." and transforms it into graph
  * @param sEdgesFileName
@@ -55,16 +61,17 @@ Graph csvToGraph(string sEdgesFileName) { // This copies Graph on exit, to speed
 }
 
 /**
- * Performs BFS to find the shortest path from s to t without using any edge from forbidden edges.
+ * Performs BFS to find the shortest path from s to t in graph g without using any edge from the forbidden edges.
  * Returns empty set if no such path exists.
  */
-Array<edge> shortestPath(const Graph &g, node s, node t, List<edge> forbidden) {
-    Array<edge> path;
+List<edge> shortestPath(const Graph &g, node s, node t, List<edge> forbidden) {
+    List<edge> path;
     node v, u;
     edge e;
 
     Queue<node> Q;
 
+    NodeArray<node> predecessor(g);
     NodeArray<bool> visited(g);
     forall_nodes(v, g) visited[v] = false;
 
@@ -75,14 +82,19 @@ Array<edge> shortestPath(const Graph &g, node s, node t, List<edge> forbidden) {
         v = Q.pop();
 
         if (v == t) {
-            // presypej visited do path a vrat path
+            // traceback predecessors and reconstruct path
+            for (node n = t; t != s; n = predecessor[n]) {
+                path.pushBack(g.searchEdge(n, predecessor[n]));
+            }
+            break;
         }
 
         forall_adj_edges(e, v) {
-            if (e in forbidden) continue; // TODO: Use BST to represent forbidden (/sort forbidden and use binary search to look for e)
+            if (forbidden.search(e).valid()) continue; // TODO: Use BST or array (id -> bool) to represent forbidden?
 
             u = e->target();
             if (!visited[u]) {
+                predecessor[u] = v; // TODO: Unite predecessor and visited?
                 visited[u] = true;
                 Q.append(u);
             }
