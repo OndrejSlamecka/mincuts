@@ -1,3 +1,14 @@
+/**
+ *
+ * Terminology (Matroid - Graph):
+ *  Basis - Spanning tree
+ *  Independent set - Tree (i.e. subset of a basis)
+ *  Circuit - cycle
+ *  Cocircuit - minimal edge-cut
+ *  Hyperplane - maximal set not containing any basis
+ *
+ */
+
 #include <iostream>
 #include <string>
 #include <stdexcept>
@@ -13,11 +24,6 @@ using namespace ogdf;
 
 int m = 3; // Cocircuit size bound
 
-
-template <template <class> class C, typename T>
-bool contains(C<T> container, T item) {
-    return std::find(container.begin(), container.end(), item) != container.end();
-}
 
 /**
  * @brief Takes a csv file with lines "<id>;<source>;<target>;<edge name>;..." and transforms it into graph
@@ -110,7 +116,7 @@ set<edge> GenCocircuits(const Graph &g, set<edge> X, NodeArray<int> coloring) {
 
     // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X
     Array<edge> D = shortestPath(g, s, t, X);
-    if (D.size() > 0) { // can't use size
+    if (D.size() > 0) {
         // for each c ∈ D, recursively call GenCocircuits(X ∪ {c}).
     } else {
         // If there is no such circuit C above (line 4), then return ‘Cocircuit: X’.
