@@ -9,12 +9,14 @@
  *
  */
 
+#include "maybe.h"
+
 #include <iostream>
 #include <string>
 #include <stdexcept>
 #include <algorithm>
-#include <set>
 #include <ogdf/basic/Graph.h>
+#include <ogdf/basic/simple_graph_alg.h>
 #include <ogdf/basic/graph_generators.h>
 #include <ogdf/layered/DfsAcyclicSubgraph.h>
 #include <ogdf/basic/Queue.h>
@@ -24,6 +26,24 @@ using namespace ogdf;
 
 int m = 3; // Cocircuit size bound
 
+std::ostream & operator<<(std::ostream &os, const List<edge>& L)
+{
+    for(List<edge>::const_iterator i = L.begin(); i != L.end(); i++) {
+        os << "(" << (*i)->source() << "," << (*i)->target() << ")";
+        if (*i != L.back()) os << ", ";
+    }
+    return os;
+}
+
+
+std::ostream & operator<<(std::ostream &os, const Graph& G)
+{
+    edge e;
+    forall_edges(e, G) {
+        os << "(" << e->source() << "," << e->target() << "), ";
+    }
+    return os;
+}
 
 /**
  * @brief Takes a csv file with lines "<id>;<source>;<target>;<edge name>;..." and transforms it into graph
@@ -59,8 +79,7 @@ Graph csvToGraph(string sEdgesFileName) { // This copies Graph on exit, to speed
         if(nodes[v] == nullptr)
             nodes[v] = G.newNode(v);
 
-        G.newEdge(nodes[u], nodes[v], id);
-        G.newEdge(nodes[v], nodes[u], id);
+        G.newEdge(nodes[u], nodes[v], id);        
     }
 
     return G;
@@ -78,8 +97,7 @@ List<edge> shortestPath(const Graph &g, node s, node t, List<edge> forbidden) {
     Queue<node> Q;
 
     NodeArray<node> predecessor(g);
-    NodeArray<bool> visited(g);
-    forall_nodes(v, g) visited[v] = false;
+    NodeArray<bool> visited(g, false);
 
     Q.append(s);
     visited[s] = true;
@@ -89,8 +107,9 @@ List<edge> shortestPath(const Graph &g, node s, node t, List<edge> forbidden) {
 
         if (v == t) {
             // traceback predecessors and reconstruct path
-            for (node n = t; t != s; n = predecessor[n]) {
-                path.pushBack(g.searchEdge(n, predecessor[n]));
+            for (node n = t; n != s; n = predecessor[n]) {
+                cout << predecessor[n] << "," << n << ":" << g.searchEdge(predecessor[n], n)->source() << "," << g.searchEdge(predecessor[n], n)->target() << endl;
+                path.pushFront(g.searchEdge(predecessor[n], n));
             }
             break;
         }
@@ -105,42 +124,80 @@ List<edge> shortestPath(const Graph &g, node s, node t, List<edge> forbidden) {
                 Q.append(u);
             }
         }
-    }
+    }    
 
     return path;
 }
 
-set<edge> GenCocircuits(const Graph &g, set<edge> X, NodeArray<int> coloring) {
+Maybe<List<edge> > GenCocircuits(const Graph &g, List<edge> X, NodeArray<int> coloring, node red, node blue) {
     // if(E\X contains no hyperplane of M || X.size() > m)
-        // return NULL;
+     //   return return_<Nothing>;
 
     // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X
-    Array<edge> D = shortestPath(g, s, t, X);
+    List<edge> D = shortestPath(g, red, blue, X);
     if (D.size() > 0) {
+
+        cout << X << "a" << D << endl;
+        exit(1);
+
         // for each c ∈ D, recursively call GenCocircuits(X ∪ {c}).
+        for(List<edge>::iterator i = D.begin(); i != D.end(); i++) {
+            List<edge> newX = X;
+            newX.pushBack(*i); // add c
+
+            coloring[(*i)->source()] = 0;
+
+            // Color vertices of c = (u,v)
+            // the one closer to any RED vertex, say u, will be red (and so will be all vertices on the path from the first red to u)
+
+            // 
+
+
+            return GenCocircuits(g, newX, coloring, red, blue);
+        }
     } else {
         // If there is no such circuit C above (line 4), then return ‘Cocircuit: X’.
-    }
+        return return_<Maybe>(X);
+    }    
 }
 
+void printCocircuit(List<edge> cocircuit) {
+    cout << "Found a cocircuit: ";
+    for(List<edge>::iterator i = cocircuit.begin(); i != cocircuit.end(); i++) {
+        cout << "(" << (*i)->source()->index() << ", " << (*i)->target()->index() << "), ";
+    }
+    cout << endl;
+}
+
+Graph spanningTree(Graph G) {
+    List<edge> backedges;
+    isAcyclicUndirected(G, backedges);
+
+    for(List<edge>::iterator i = backedges.begin(); i != backedges.end(); i++) {
+        G.delEdge(*i);
+    }
+
+    return G;
+}
 
 int main()
 {
-    DfsAcyclicSubgraph DfsAcyclicSubgraph;
-
     try {
-        Graph g = csvToGraph("data/silnice.csv");
-        List<edge> base;
-        NodeArray<int> coloring(g);
+        Graph G = csvToGraph("data/spanning_tree.csv"),
+              base = spanningTree(G);
 
-        DfsAcyclicSubgraph.call(g, base); // Line 1        
+        NodeArray<int> coloring(G, 3);
 
-        for(List<edge>::iterator i = base.begin(); i != base.end(); i++) {
-            set<edge> X; // (Indexes might be sufficient? Check later)
-            X.insert(*i);
-            coloring[(*i)->source()] = 0;
-            coloring[(*i)->target()] = 1;
-            GenCocircuits(g, X, coloring);
+        edge e;
+        forall_edges(e, base) {
+            List<edge> X; // (Indexes might be sufficient? Check later)
+            X.pushBack(e);
+            coloring[e->source()] = 0;
+            coloring[e->target()] = 1;
+            Maybe<List<edge> > cocircuit = GenCocircuits(G, X, coloring, e->source(), e->target());
+            if(cocircuit.isJust()) {
+                printCocircuit(cocircuit.fromJust());
+            }
         }
 
 
