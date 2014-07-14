@@ -9,7 +9,7 @@
  *
  */
 
-#include "maybe.h"
+#include "maybe.hpp"
 
 #include <iostream>
 #include <string>
@@ -89,15 +89,15 @@ Graph csvToGraph(string sEdgesFileName) { // This copies Graph on exit, to speed
  * Performs BFS to find the shortest path from s to t in graph g without using any edge from the forbidden edges.
  * Returns empty set if no such path exists.
  */
-List<edge> shortestPath(const Graph &g, node s, node t, List<edge> forbidden) {
+List<edge> shortestPath(const Graph &G, node s, node t, List<edge> forbidden) {
     List<edge> path;
     node v, u;
     edge e;
 
     Queue<node> Q;
 
-    NodeArray<node> predecessor(g);
-    NodeArray<bool> visited(g, false);
+    NodeArray<node> predecessor(G);
+    NodeArray<bool> visited(G, false);
 
     Q.append(s);
     visited[s] = true;
@@ -107,9 +107,8 @@ List<edge> shortestPath(const Graph &g, node s, node t, List<edge> forbidden) {
 
         if (v == t) {
             // traceback predecessors and reconstruct path
-            for (node n = t; n != s; n = predecessor[n]) {
-                cout << predecessor[n] << "," << n << ":" << g.searchEdge(predecessor[n], n)->source() << "," << g.searchEdge(predecessor[n], n)->target() << endl;
-                path.pushFront(g.searchEdge(predecessor[n], n));
+            for (node n = t; n != s; n = predecessor[n]) {                
+                path.pushFront(G.searchEdge(predecessor[n], n));
             }
             break;
         }
@@ -117,7 +116,7 @@ List<edge> shortestPath(const Graph &g, node s, node t, List<edge> forbidden) {
         forall_adj_edges(e, v) {
             if (forbidden.search(e).valid()) continue; // TODO: Use BST or array (id -> bool) to represent forbidden?
 
-            u = e->target();
+            u = e->opposite(v);
             if (!visited[u]) {
                 predecessor[u] = v; // TODO: Unite predecessor and visited?
                 visited[u] = true;
@@ -129,16 +128,26 @@ List<edge> shortestPath(const Graph &g, node s, node t, List<edge> forbidden) {
     return path;
 }
 
-Maybe<List<edge> > GenCocircuits(const Graph &g, List<edge> X, NodeArray<int> coloring, node red, node blue) {
+int distanceToRed(List<edge> D, node v) {
+    int d = 0;
+
+    cout << D << endl;
+    exit(1);
+
+    for(;;) {
+
+    }
+
+    return d;
+}
+
+Maybe<List<edge> > GenCocircuits(const Graph &G, List<edge> X, NodeArray<int> coloring, node red, node blue) {
     // if(E\X contains no hyperplane of M || X.size() > m)
      //   return return_<Nothing>;
 
-    // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X
-    List<edge> D = shortestPath(g, red, blue, X);
+    // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X    
+    List<edge> D = shortestPath(G, red, blue, X);
     if (D.size() > 0) {
-
-        cout << X << "a" << D << endl;
-        exit(1);
 
         // for each c ∈ D, recursively call GenCocircuits(X ∪ {c}).
         for(List<edge>::iterator i = D.begin(); i != D.end(); i++) {
@@ -153,7 +162,7 @@ Maybe<List<edge> > GenCocircuits(const Graph &g, List<edge> X, NodeArray<int> co
             // 
 
 
-            return GenCocircuits(g, newX, coloring, red, blue);
+            return GenCocircuits(G, newX, coloring, red, blue);
         }
     } else {
         // If there is no such circuit C above (line 4), then return ‘Cocircuit: X’.
@@ -169,27 +178,39 @@ void printCocircuit(List<edge> cocircuit) {
     cout << endl;
 }
 
-Graph spanningTree(Graph G) {
+List<edge> spanningEdges(const Graph &G) {
+    EdgeArray<bool> isBackedge(G, false);
+
     List<edge> backedges;
     isAcyclicUndirected(G, backedges);
 
     for(List<edge>::iterator i = backedges.begin(); i != backedges.end(); i++) {
-        G.delEdge(*i);
+        isBackedge[*i] = true;
     }
 
-    return G;
+    List<edge> spanningEdges;
+    edge e;
+    forall_edges(e, G) {
+        if (!isBackedge[e])
+            spanningEdges.pushBack(e);
+    }
+
+    return spanningEdges;
 }
 
 int main()
 {
     try {
-        Graph G = csvToGraph("data/spanning_tree.csv"),
-              base = spanningTree(G);
+        Graph G = csvToGraph("data/spanning_tree.csv");
+
+        List<edge> base = spanningEdges(G);
 
         NodeArray<int> coloring(G, 3);
 
         edge e;
-        forall_edges(e, base) {
+        for(List<edge>::iterator i = base.begin(); i != base.end(); i++) {
+            e = *i;
+
             List<edge> X; // (Indexes might be sufficient? Check later)
             X.pushBack(e);
             coloring[e->source()] = 0;
