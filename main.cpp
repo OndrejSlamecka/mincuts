@@ -10,40 +10,18 @@
  */
 
 #include "maybe.hpp"
+#include "helpers.hpp"
 
 #include <iostream>
-#include <string>
 #include <stdexcept>
-#include <algorithm>
+#include <ogdf/basic/Queue.h>
 #include <ogdf/basic/Graph.h>
 #include <ogdf/basic/simple_graph_alg.h>
-#include <ogdf/basic/graph_generators.h>
-#include <ogdf/layered/DfsAcyclicSubgraph.h>
-#include <ogdf/basic/Queue.h>
 
 using namespace std;
 using namespace ogdf;
 
 int m = 3; // Cocircuit size bound
-
-std::ostream & operator<<(std::ostream &os, const List<edge>& L)
-{
-    for(List<edge>::const_iterator i = L.begin(); i != L.end(); i++) {
-        os << "(" << (*i)->source() << "," << (*i)->target() << ")";
-        if (*i != L.back()) os << ", ";
-    }
-    return os;
-}
-
-
-std::ostream & operator<<(std::ostream &os, const Graph& G)
-{
-    edge e;
-    forall_edges(e, G) {
-        os << "(" << e->source() << "," << e->target() << "), ";
-    }
-    return os;
-}
 
 /**
  * @brief Takes a csv file with lines "<id>;<source>;<target>;<edge name>;..." and transforms it into graph
@@ -147,6 +125,8 @@ Maybe<List<edge> > GenCocircuits(const Graph &G, List<edge> X, NodeArray<int> co
 
     // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X    
     List<edge> D = shortestPath(G, red, blue, X);
+    cout << X << D << endl;
+    exit(1);
     if (D.size() > 0) {
 
         // for each c ∈ D, recursively call GenCocircuits(X ∪ {c}).
@@ -168,14 +148,6 @@ Maybe<List<edge> > GenCocircuits(const Graph &G, List<edge> X, NodeArray<int> co
         // If there is no such circuit C above (line 4), then return ‘Cocircuit: X’.
         return return_<Maybe>(X);
     }    
-}
-
-void printCocircuit(List<edge> cocircuit) {
-    cout << "Found a cocircuit: ";
-    for(List<edge>::iterator i = cocircuit.begin(); i != cocircuit.end(); i++) {
-        cout << "(" << (*i)->source()->index() << ", " << (*i)->target()->index() << "), ";
-    }
-    cout << endl;
 }
 
 List<edge> spanningEdges(const Graph &G) {
@@ -217,7 +189,7 @@ int main()
             coloring[e->target()] = 1;
             Maybe<List<edge> > cocircuit = GenCocircuits(G, X, coloring, e->source(), e->target());
             if(cocircuit.isJust()) {
-                printCocircuit(cocircuit.fromJust());
+                cout << "Found a cocircuit: " << cocircuit.fromJust() << endl;
             }
         }
 

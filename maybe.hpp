@@ -2,6 +2,12 @@
 #define MAYBE_H
 
 /*
+ * I REMOVED SOME FUNCIONALITY TO INCLUDE LESS LIBRARIES
+ * -----------------------------------------------------
+ *
+ * Original: https://gist.github.com/brotchie/3134600
+ *
+ *
  * Minimal C++ implementation of Functor, Monad and Maybe.
  *
  * Requires c++0x variadic templates and lambda expressions:
@@ -18,33 +24,9 @@
  */
 
 #include <iostream>
-#include <vector>
-#include <iterator>
 #include <algorithm>
 
 using namespace std;
-
-/* Functor */
-template <template <typename...> class F>
-struct Functor {
-    template <typename A, typename B>
-    static function <F<B>(F<A>)> fmap(function <B(A)>);
-};
-
-template <template <typename...> class F, typename A, typename B>
-static function <F<B>(F<A>)> fmap(function <B(A)> f) {
-    return Functor<F>::fmap(f);
-}
-
-template <template <typename...> class F, typename A, typename B>
-static F<B> fmap_(function <B(A)> f, F<A> v) {
-    return Functor<F>::fmap(f)(v);
-}
-
-template <template <typename...> class F, typename A, typename B>
-static F<B> operator %(function <B(A)> f, F<A> v) {
-    return Functor<F>::fmap(f)(v);
-}
 
 /* Monad */
 template <template <typename...> class F>
@@ -112,20 +94,6 @@ ostream& operator<<(ostream& s, const Maybe<T> m)
     }
 }
 
-/* Functor Maybe */
-template <>
-struct Functor<Maybe> {
-    template <typename A, typename B>
-    static function <Maybe<B>(Maybe<A>)> fmap(function <B(A)> f) {
-        return [f](Maybe<A> m) -> Maybe<B> {
-            if (m.isNothing()) {
-                return Maybe<B>();
-            } else {
-                return Maybe<B>(f(m.fromJust()));
-            }
-        };
-    }
-};
 
 /* Monad Maybe */
 template <>
@@ -145,37 +113,6 @@ struct Monad<Maybe> {
     }
 };
 
-/* Functor vector */
-template <>
-struct Functor<vector> {
-    template <typename A, typename B>
-    static function <vector<B>(vector<A>)> fmap(function <B(A)> f) {
-        return [f](vector<A> v){
-            vector<B> result;
-            transform(v.begin(), v.end(), back_inserter(result), f);
-            return result;
-        };
-    }
-};
-
-/* Monad vector */
-template <>
-struct Monad<vector> {
-    template <typename A>
-    static vector<A> return_(A v){
-        return vector<A>{v};
-    }
-
-    template <typename A, typename B>
-    static vector<B> bind(vector<A> m, function<vector<B>(A)> f){
-        vector<B> v;
-        for_each(m.begin(), m.end(), [f, &v](A a){
-            vector<B> result = f(a);
-            copy(result.begin(), result.end(), back_inserter(v));
-        });
-        return v;
-    }
-};
 
 template <typename A, typename B, typename C>
 static function<C(A)> compose(function<B(A)> f1, function<C(B)> f2) {
