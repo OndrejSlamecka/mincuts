@@ -5,7 +5,9 @@
  *  Independent set - Tree (i.e. subset of a basis)
  *  Circuit - cycle
  *  Cocircuit - minimal edge-cut
- *  Hyperplane - maximal set not containing any basis
+ *  Hyperplane - maximal set not containing any basis (= complement of a min-cut)
+ *
+ *  Spanning forest - union of spanning trees of each component of an unconnected graph
  *
  */
 
@@ -57,7 +59,7 @@ Graph csvToGraph(string sEdgesFileName) { // This copies Graph on exit, to speed
         if(nodes[v] == nullptr)
             nodes[v] = G.newNode(v);
 
-        G.newEdge(nodes[u], nodes[v], id);        
+        G.newEdge(nodes[u], nodes[v], id);
     }
 
     return G;
@@ -124,17 +126,16 @@ Maybe<List<edge> > GenCocircuits(const Graph &G, List<edge> X, NodeArray<int> co
      //   return return_<Nothing>;
 
     // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X    
-    List<edge> D = shortestPath(G, red, blue, X);
-    cout << X << D << endl;
-    exit(1);
+    List<edge> D = shortestPath(G, red, blue, X);    
     if (D.size() > 0) {
 
         // for each c ∈ D, recursively call GenCocircuits(X ∪ {c}).
-        for(List<edge>::iterator i = D.begin(); i != D.end(); i++) {
+        for(List<edge>::iterator iterator = D.begin(); iterator != D.end(); iterator++) {
+            edge c = *iterator;
             List<edge> newX = X;
-            newX.pushBack(*i); // add c
+            newX.pushBack(c);
 
-            coloring[(*i)->source()] = 0;
+            coloring[c->source()] = 0;
 
             // Color vertices of c = (u,v)
             // the one closer to any RED vertex, say u, will be red (and so will be all vertices on the path from the first red to u)
@@ -173,7 +174,7 @@ List<edge> spanningEdges(const Graph &G) {
 int main()
 {
     try {
-        Graph G = csvToGraph("data/spanning_tree.csv");
+        Graph G = csvToGraph("data/graph2.csv");
 
         List<edge> base = spanningEdges(G);
 
