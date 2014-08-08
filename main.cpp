@@ -155,6 +155,10 @@ Maybe<List<edge> > GenCocircuits(const Graph &G, List<edge> X, NodeArray<int> co
     }    
 }
 
+/**
+ * Returns edges spanning forest of (possibly disconnected) graph G
+ * @param G
+ */
 List<edge> spanningEdges(const Graph &G) {
     EdgeArray<bool> isBackedge(G, false);
 
@@ -178,7 +182,7 @@ List<edge> spanningEdges(const Graph &G) {
 int main()
 {
     try {
-        Graph G = csvToGraph("data/graph2.csv");
+        Graph G = csvToGraph("data/graph3.csv");
 
         List<edge> base = spanningEdges(G);
 
