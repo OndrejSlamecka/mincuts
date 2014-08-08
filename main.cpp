@@ -18,6 +18,7 @@
 #include <stdexcept>
 #include <ogdf/basic/Queue.h>
 #include <ogdf/basic/Graph.h>
+#include <ogdf/basic/Stack.h>
 #include <ogdf/basic/simple_graph_alg.h>
 
 enum {
@@ -93,7 +94,7 @@ List<edge> shortestPath(const Graph &G, node s, node t, List<edge> forbidden) {
 
         if (v == t) {
             // traceback predecessors and reconstruct path
-            for (node n = t; n != s; n = predecessor[n]) {                
+            for (node n = t; n != s; n = predecessor[n]) {
                 path.pushFront(G.searchEdge(predecessor[n], n));
             }
             break;
@@ -109,17 +110,76 @@ List<edge> shortestPath(const Graph &G, node s, node t, List<edge> forbidden) {
                 Q.append(u);
             }
         }
-    }    
+    }
 
     return path;
 }
 
-Maybe<List<edge> > GenCocircuits(const Graph &G, List<edge> X, NodeArray<int> coloring, node red, node blue) {
-    // if(E\X contains no hyperplane of M || X.size() > m)
-     //   return return_<Nothing>;
+/**
+ * E(G)\X contains a k-way hyperplane of G\X iff G\V(R) contains a connected subgraph G_b spanning all the blue vertices of X
+ * @param G
+ * @param X
+ * @param coloring
+ * @param blue
+ * @return
+ */
+bool hasHyperplane(Graph &G, List<edge> X, NodeArray<int> &coloring) {
+    for(List<edge>::iterator iterator = X.begin(); iterator != X.end(); ++iterator) {
+        G.hideEdge(*iterator);
+    }
 
-    // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X    
-    List<edge> D = shortestPath(G, red, blue, X);    
+    // Make a list of all blue vertices of X
+    List<node> blues;
+
+    for(List<edge>::iterator iterator = X.begin(); iterator != X.end(); ++iterator) {
+        edge e = *iterator;
+        node u = e->source(), v = e->target();
+
+        if (coloring[u] == BLUE)
+            blues.pushBack(u);
+
+        if (coloring[v] == BLUE)
+            blues.pushBack(v);
+    }
+
+    // Pick one, call it s
+    node s = blues.front();
+
+    // Perform a DFS on G\X from s and see if all vertices are contained
+    NodeArray<bool> discovered(G, false);
+    Stack<node> S;
+    S.push(s);
+
+    node v, u;
+    adjEntry adj;
+    while(!S.empty()) {
+        v = S.pop();
+
+        if (!discovered[v]) {
+            discovered[v] = true;
+
+            if (coloring[v] == BLUE) // TODO: If blues were exactly those blues in X, all we would need would be simple count! (Currently the rest of the path D is painted blue)
+                blues.removeFirst(v);
+
+            forall_adj(adj, v) {
+                u = adj->twinNode();
+                S.push(u);
+            }
+        }
+    }
+
+    G.restoreAllEdges();
+
+    return blues.empty();
+}
+
+Maybe<List<edge> > GenCocircuits(Graph &G, List<edge> X, NodeArray<int> coloring, node red, node blue) {
+    if(!hasHyperplane(G, X, coloring) || X.size() > m) { // E\X contains no hyperplane of M
+        return Maybe<List<edge> >();
+    }
+
+    // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X
+    List<edge> D = shortestPath(G, red, blue, X);
     if (D.size() > 0) {
 
         // for each c ∈ D, recursively call GenCocircuits(X ∪ {c}).
@@ -131,7 +191,7 @@ Maybe<List<edge> > GenCocircuits(const Graph &G, List<edge> X, NodeArray<int> co
             node u = c->source(), v = c->target(); // c = (u,v)
             coloring[u] = RED;
 
-            // Color vertices of c = (u,v)            
+            // Color vertices of c = (u,v)
             // the one closer to any RED vertex, say u, will be red (and so will be all vertices on the path from the first red to u)
             for(List<edge>::iterator j = D.begin(); j != iterator; j++) {
                 edge e = *j;
@@ -149,10 +209,11 @@ Maybe<List<edge> > GenCocircuits(const Graph &G, List<edge> X, NodeArray<int> co
             return GenCocircuits(G, newX, coloring, u, v);
         }
 
+
     } else {
         // If there is no such circuit C above (line 4), then return ‘Cocircuit: X’.
         return return_<Maybe>(X);
-    }    
+    }
 }
 
 /**
@@ -182,7 +243,7 @@ List<edge> spanningEdges(const Graph &G) {
 int main()
 {
     try {
-        Graph G = csvToGraph("data/graph3.csv");
+        Graph G = csvToGraph("data/graph2.csv");
 
         List<edge> base = spanningEdges(G);
 
