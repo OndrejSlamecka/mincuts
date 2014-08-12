@@ -1,7 +1,7 @@
 /**
  *
- * Terminology (Matroid - Graph):
- *  Basis - Spanning tree
+ * Terminology (Matroid - Graph) for escalated version of algorithm:
+ *  Basis - Spanning forest
  *  Independent set - Tree (i.e. subset of a basis)
  *  Circuit - cycle
  *  Cocircuit - minimal edge-cut
@@ -11,7 +11,12 @@
  *
  */
 
-#include "maybe.hpp"
+enum {
+    BLACK,
+    RED,
+    BLUE
+};
+
 #include "helpers.hpp"
 
 #include <iostream>
@@ -20,12 +25,6 @@
 #include <ogdf/basic/Graph.h>
 #include <ogdf/basic/Stack.h>
 #include <ogdf/basic/simple_graph_alg.h>
-
-enum {
-    BLACK,
-    RED,
-    BLUE
-};
 
 using namespace std;
 using namespace ogdf;
@@ -158,8 +157,12 @@ bool hasHyperplane(Graph &G, List<edge> X, NodeArray<int> &coloring) {
         if (!discovered[v]) {
             discovered[v] = true;
 
-            if (coloring[v] == BLUE) // TODO: If blues were exactly those blues in X, all we would need would be simple count! (Currently the rest of the path D is painted blue)
+            if (coloring[v] == BLUE) { // TODO: If blues were exactly those blues in X, all we would need would be simple count! (Currently the rest of the path D is painted blue)
                 blues.removeFirst(v);
+                if (blues.empty()) {
+                    break; // Don't forget G.restoreAllEdges();!!
+                }
+            }
 
             forall_adj(adj, v) {
                 u = adj->twinNode();
@@ -173,9 +176,9 @@ bool hasHyperplane(Graph &G, List<edge> X, NodeArray<int> &coloring) {
     return blues.empty();
 }
 
-Maybe<List<edge> > GenCocircuits(Graph &G, List<edge> X, NodeArray<int> coloring, node red, node blue) {
+void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, List<edge> X, NodeArray<int> coloring, node red, node blue) {
     if(!hasHyperplane(G, X, coloring) || X.size() > m) { // E\X contains no hyperplane of M
-        return Maybe<List<edge> >();
+        return;
     }
 
     // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X
@@ -183,13 +186,12 @@ Maybe<List<edge> > GenCocircuits(Graph &G, List<edge> X, NodeArray<int> coloring
     if (D.size() > 0) {
 
         // for each c ∈ D, recursively call GenCocircuits(X ∪ {c}).
-        for(List<edge>::iterator iterator = D.begin(); iterator != D.end(); iterator++) {
-            edge c = *iterator;
+        for(List<edge>::iterator iterator = D.begin(); iterator != D.end(); iterator++) {            
+            edge c = *iterator;            
             List<edge> newX = X;
             newX.pushBack(c);
 
-            node u = c->source(), v = c->target(); // c = (u,v)
-            coloring[u] = RED;
+            node u = c->source(), v = c->target(); // c = (u,v)            
 
             // Color vertices of c = (u,v)
             // the one closer to any RED vertex, say u, will be red (and so will be all vertices on the path from the first red to u)
@@ -202,17 +204,20 @@ Maybe<List<edge> > GenCocircuits(Graph &G, List<edge> X, NodeArray<int> coloring
             // Color the rest of the path blue
             for(List<edge>::iterator j = iterator; j != D.end(); j++) {
                 edge e = *j;
-                coloring[e->source()] = BLUE;
-                coloring[e->target()] = BLUE;
+                if (coloring[e->source()] != RED)
+                    coloring[e->source()] = BLUE;
+
+                if (coloring[e->target()] != RED)
+                    coloring[e->target()] = BLUE;
             }
 
-            return GenCocircuits(G, newX, coloring, u, v);
+            GenCocircuits(Cocircuits, G, newX, coloring, u, v);
         }
 
 
     } else {
         // If there is no such circuit C above (line 4), then return ‘Cocircuit: X’.
-        return return_<Maybe>(X);
+        Cocircuits.pushBack(X);
     }
 }
 
@@ -241,11 +246,13 @@ List<edge> spanningEdges(const Graph &G) {
 }
 
 int main()
-{
+{       
     try {
-        Graph G = csvToGraph("data/graph2.csv");
+        List<List<edge> > Cocircuits;
+        Graph G = csvToGraph("data/graph5.csv");
 
         List<edge> base = spanningEdges(G);
+        cout << base << endl;
 
         NodeArray<int> coloring(G, BLACK);
 
@@ -257,9 +264,10 @@ int main()
             X.pushBack(e);
             coloring[e->source()] = RED;
             coloring[e->target()] = BLUE;
-            Maybe<List<edge> > cocircuit = GenCocircuits(G, X, coloring, e->source(), e->target());
-            if(cocircuit.isJust()) {
-                cout << "Found a cocircuit: " << cocircuit.fromJust() << endl;
+            GenCocircuits(Cocircuits, G, X, coloring, e->source(), e->target());
+
+            for(List<List<edge> >::iterator it = Cocircuits.begin(); it != Cocircuits.end(); ++it) {
+                cout << "Found a cocircuit: " << *it << endl;
             }
         }
 
