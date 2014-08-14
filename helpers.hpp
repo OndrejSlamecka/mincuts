@@ -18,7 +18,7 @@ string nameColor(int c) {
 std::ostream & operator<<(std::ostream &os, const List<edge>& L)
 {
     for(List<edge>::const_iterator i = L.begin(); i != L.end(); i++) {
-        os << "(" << (*i)->source() << "," << (*i)->target() << ")";
+        os << (*i)->index() << "(" << (*i)->source() << "," << (*i)->target() << ")";
         if (*i != L.back()) os << ", ";
     }
     return os;

@@ -99,7 +99,7 @@ List<edge> shortestPath(const Graph &G, node s, node t, List<edge> forbidden) {
             break;
         }
 
-        forall_adj_edges(e, v) {
+        forall_adj_edges(e, v) {            
             if (forbidden.search(e).valid()) continue; // TODO: Use BST or array (id -> bool) to represent forbidden?
 
             u = e->opposite(v);
@@ -139,6 +139,11 @@ bool hasHyperplane(Graph &G, List<edge> X, NodeArray<int> &coloring) {
 
         if (coloring[v] == BLUE)
             blues.pushBack(v);
+    }
+
+    if (blues.empty()) {
+        G.restoreAllEdges();
+        return false;
     }
 
     // Pick one, call it s
@@ -247,23 +252,23 @@ List<edge> spanningEdges(const Graph &G) {
 
 int main()
 {       
-    try {
-        List<List<edge> > Cocircuits;
+    try {        
         Graph G = csvToGraph("data/graph5.csv");
 
         List<edge> base = spanningEdges(G);
-        cout << base << endl;
-
-        NodeArray<int> coloring(G, BLACK);
+        // cout << base << endl;
 
         edge e;
         for(List<edge>::iterator i = base.begin(); i != base.end(); i++) {
-            e = *i;
+            List<List<edge> > Cocircuits;
+            NodeArray<int> coloring(G, BLACK);
 
+            e = *i;
             List<edge> X; // (Indexes might be sufficient? Check later)
             X.pushBack(e);
             coloring[e->source()] = RED;
             coloring[e->target()] = BLUE;
+
             GenCocircuits(Cocircuits, G, X, coloring, e->source(), e->target());
 
             for(List<List<edge> >::iterator it = Cocircuits.begin(); it != Cocircuits.end(); ++it) {
