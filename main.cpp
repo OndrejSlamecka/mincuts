@@ -29,7 +29,7 @@ enum {
 using namespace std;
 using namespace ogdf;
 
-int m = 3; // Cocircuit size bound
+int m = 5; // Cocircuit size bound
 
 /**
  * @brief Takes a csv file with lines "<id>;<source>;<target>;<edge name>;..." and transforms it into graph
@@ -115,41 +115,11 @@ List<edge> shortestPath(const Graph &G, node s, node t, List<edge> forbidden) {
 }
 
 /**
- * E(G)\X contains a k-way hyperplane of G\X iff G\V(R) contains a connected subgraph G_b spanning all the blue vertices of X
- * @param G
- * @param X
- * @param coloring
- * @param blue
- * @return
+ * Explores the component from node s and counts nodes colored blue, stops if nBluesInGraph is reached
  */
-bool hasHyperplane(Graph &G, List<edge> X, NodeArray<int> &coloring) {
-    for(List<edge>::iterator iterator = X.begin(); iterator != X.end(); ++iterator) {
-        G.hideEdge(*iterator);
-    }
+int countConnectedBlueNodes(const Graph &G, NodeArray<int> &coloring, const node &s, int nBluesInGraph) {
+    int nFoundBlues = 0;
 
-    // Make a list of all blue vertices of X
-    List<node> blues;
-
-    for(List<edge>::iterator iterator = X.begin(); iterator != X.end(); ++iterator) {
-        edge e = *iterator;
-        node u = e->source(), v = e->target();
-
-        if (coloring[u] == BLUE)
-            blues.pushBack(u);
-
-        if (coloring[v] == BLUE)
-            blues.pushBack(v);
-    }
-
-    if (blues.empty()) {
-        G.restoreAllEdges();
-        return false;
-    }
-
-    // Pick one, call it s
-    node s = blues.front();
-
-    // Perform a DFS on G\X from s and see if all vertices are contained
     NodeArray<bool> discovered(G, false);
     Stack<node> S;
     S.push(s);
@@ -162,11 +132,9 @@ bool hasHyperplane(Graph &G, List<edge> X, NodeArray<int> &coloring) {
         if (!discovered[v]) {
             discovered[v] = true;
 
-            if (coloring[v] == BLUE) { // TODO: If blues were exactly those blues in X, all we would need would be simple count! (Currently the rest of the path D is painted blue)
-                blues.removeFirst(v);
-                if (blues.empty()) {
-                    break; // Don't forget G.restoreAllEdges();!!
-                }
+            if (coloring[v] == BLUE) {
+                nFoundBlues++;
+                if (nFoundBlues == nBluesInGraph) break; // There can't be more blue vertices
             }
 
             forall_adj(adj, v) {
@@ -176,9 +144,46 @@ bool hasHyperplane(Graph &G, List<edge> X, NodeArray<int> &coloring) {
         }
     }
 
+    return nFoundBlues;
+}
+
+/**
+ * E(G)\X contains a k-way hyperplane of G\X iff G\V(R) contains a connected subgraph G_b spanning all the blue vertices of X
+ * @param G
+ * @param X
+ * @param coloring
+ * @param blue
+ * @return
+ */
+bool hasHyperplane(Graph &G, List<edge> X, NodeArray<int> &coloring) {
+    for(List<edge>::iterator iterator = X.begin(); iterator != X.end(); ++iterator) {
+        G.hideEdge(*iterator);
+    }
+
+    node v, s;
+    int nBlues = 0;
+
+    forall_nodes(v, G) {
+        if (coloring[v] == BLUE) {
+            nBlues++;
+            s = v;
+        }
+    }
+
+    int nBluesReached = 0;
+
+    if (nBlues == 0) { // TODO: THIS SHOULD NEVER HAPPEN (yet it does... how to fix? Never color red any blue node in X)
+        G.restoreAllEdges();
+        cout << "ups it happened" << endl;
+        return false;
+    } else {
+        // Perform a DFS on G\X from s and see if all vertices are contained
+        nBluesReached = countConnectedBlueNodes(G, coloring, s, nBlues);
+    }
+
     G.restoreAllEdges();
 
-    return blues.empty();
+    return nBluesReached == nBlues;
 }
 
 void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, List<edge> X, NodeArray<int> coloring, node red, node blue) {
@@ -204,6 +209,7 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, List<edge> X, NodeArr
                 edge e = *j;
                 coloring[e->source()] = RED;
                 coloring[e->target()] = RED;
+                // TODO:
             }
 
             // Color the rest of the path blue
