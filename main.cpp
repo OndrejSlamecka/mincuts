@@ -17,14 +17,14 @@ enum {
     BLUE
 };
 
-#include "helpers.hpp"
-
 #include <iostream>
 #include <stdexcept>
 #include <ogdf/basic/Queue.h>
 #include <ogdf/basic/Graph.h>
 #include <ogdf/basic/Stack.h>
 #include <ogdf/basic/simple_graph_alg.h>
+
+#include "helpers.hpp"
 
 using namespace std;
 using namespace ogdf;
@@ -191,6 +191,15 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, List<edge> X, NodeArr
         return;
     }
 
+    NodeArray<bool> vX(G, false);
+    ListConstIterator<List<edge> > it;
+    forall_listiterators(edge, it, X) {
+        edge e = *it;
+        node u = e->source(), v = e->target();
+        vX[u] = true;
+        vX[v] = true;
+    }
+
     // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X
     List<edge> D = shortestPath(G, red, blue, X);
     if (D.size() > 0) {
@@ -207,9 +216,16 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, List<edge> X, NodeArr
             // the one closer to any RED vertex, say u, will be red (and so will be all vertices on the path from the first red to u)
             for(List<edge>::iterator j = D.begin(); j != iterator; j++) {
                 edge e = *j;
+
+                if ((coloring[e->source()] == BLUE && vX[e->source()])
+                 || (coloring[e->target()] == BLUE && vX[e->target()])) {
+                    cout << "----" << endl << X << " : " << D << endl;
+                    cout << coloring << endl;
+                    cout << "recoloring " << e << " and " << (iterator == D.end()) << endl;
+                }
+
                 coloring[e->source()] = RED;
                 coloring[e->target()] = RED;
-                // TODO:
             }
 
             // Color the rest of the path blue
@@ -249,8 +265,9 @@ List<edge> spanningEdges(const Graph &G) {
     List<edge> spanningEdges;
     edge e;
     forall_edges(e, G) {
-        if (!isBackedge[e])
+        if (!isBackedge[e]) {
             spanningEdges.pushBack(e);
+        }
     }
 
     return spanningEdges;
@@ -260,9 +277,7 @@ int main()
 {       
     try {        
         Graph G = csvToGraph("data/graph5.csv");
-
         List<edge> base = spanningEdges(G);
-        // cout << base << endl;
 
         edge e;
         for(List<edge>::iterator i = base.begin(); i != base.end(); i++) {
@@ -281,7 +296,6 @@ int main()
                 cout << "Found a cocircuit: " << *it << endl;
             }
         }
-
 
 
     } catch (invalid_argument *e) {

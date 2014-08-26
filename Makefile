@@ -1,4 +1,4 @@
-ogdfPath = ~/ogdf
+ogdfPath = ~/libs/ogdf
 
 flags = -std=c++11 -pedantic -Wall -Wextra
 links = -lOGDF -lpthread
