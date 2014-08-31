@@ -4,7 +4,8 @@
 #include <ogdf/basic/Graph.h>
 #include <sstream>
 
-namespace ogdf {
+using namespace ogdf;
+using namespace std;
 
 string nameColor(int c) {
     switch(c) {
@@ -43,6 +44,5 @@ std::ostream & operator<<(std::ostream &os, const NodeArray<int> coloring) {
     return os;
 }
 
-}
 
 #endif // HELPERS_HPP
