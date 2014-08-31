@@ -44,5 +44,16 @@ std::ostream & operator<<(std::ostream &os, const NodeArray<int> coloring) {
     return os;
 }
 
+int cptoi(char *cp) {
+    std::istringstream iss(cp);
+    int val;
+
+    if (iss >> val) {
+        return val;
+    }
+
+    throw new invalid_argument("Invalid argument supplied to cptoi - not a number.");
+}
+
 
 #endif // HELPERS_HPP

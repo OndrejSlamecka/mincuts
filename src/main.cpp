@@ -273,10 +273,18 @@ List<edge> spanningEdges(const Graph &G) {
     return spanningEdges;
 }
 
-int main()
-{       
+int main(int argc, char* argv[])
+{
+    if (argc != 3 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
+        cout << "Usage: " << argv[0] << " <graph.csv> <cocircuit size bound>" << endl;
+        exit(1);
+    }
+
+    string graphFile(argv[1]);
+    m = cptoi(argv[2]);
+
     try {        
-        Graph G = csvToGraph("data/graph5.csv");
+        Graph G = csvToGraph(graphFile);
         List<edge> base = spanningEdges(G);
 
         edge e;
