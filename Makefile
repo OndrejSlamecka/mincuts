@@ -5,5 +5,5 @@ links = -lOGDF -lpthread
 ogdf = -L $(ogdfPath)/_debug -I $(ogdfPath)/include
 
 all:
-	g++ $(flags) $(ogdf) main.cpp -o mincuts $(links)
+	g++ $(flags) $(ogdf) src/main.cpp -o build/mincuts $(links)
 	
