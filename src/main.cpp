@@ -25,6 +25,7 @@ enum {
 #include <ogdf/basic/simple_graph_alg.h>
 
 #include "helpers.hpp"
+#include "coloredgraph.h"
 
 using namespace std;
 using namespace ogdf;
@@ -36,8 +37,8 @@ int m = 5; // Cocircuit size bound
  * @param sEdgesFileName
  * @return Graph
  */
-Graph csvToGraph(string sEdgesFileName) { // This copies Graph on exit, to speed up, extend Graph and let this be a new method in our extended class
-    Graph G;
+ColoredGraph csvToGraph(string sEdgesFileName) { // This copies Graph on exit, to speed up, extend Graph and let this be a new method in our extended class
+    ColoredGraph G;
 
     ifstream fEdges(sEdgesFileName);
     if (!fEdges.is_open())
@@ -75,7 +76,7 @@ Graph csvToGraph(string sEdgesFileName) { // This copies Graph on exit, to speed
  * Performs BFS to find the shortest path from s to t in graph g without using any edge from the forbidden edges.
  * Returns empty set if no such path exists.
  */
-List<edge> shortestPath(const Graph &G, node s, node t, List<edge> forbidden) {
+List<edge> shortestPath(const ColoredGraph &G, node s, node t, List<edge> forbidden) {
     List<edge> path;
     node v, u;
     edge e;
@@ -100,7 +101,7 @@ List<edge> shortestPath(const Graph &G, node s, node t, List<edge> forbidden) {
         }
 
         forall_adj_edges(e, v) {            
-            if (forbidden.search(e).valid()) continue; // TODO: Use BST or array (id -> bool) to represent forbidden?
+            if (forbidden.search(e).valid() || G[e] == Color::RED) continue; // TODO: Use BST or array (id -> bool) to represent forbidden?
 
             u = e->opposite(v);
             if (!visited[u]) {
@@ -117,7 +118,7 @@ List<edge> shortestPath(const Graph &G, node s, node t, List<edge> forbidden) {
 /**
  * Explores the component from node s and counts nodes colored blue, stops if nBluesInGraph is reached
  */
-int countConnectedBlueNodes(const Graph &G, NodeArray<int> &coloring, const node &s, int nBluesInGraph) {
+int countConnectedBlueNodes(const ColoredGraph &G, const node &s, int nBluesInGraph) {
     int nFoundBlues = 0;
 
     NodeArray<bool> discovered(G, false);
@@ -132,7 +133,7 @@ int countConnectedBlueNodes(const Graph &G, NodeArray<int> &coloring, const node
         if (!discovered[v]) {
             discovered[v] = true;
 
-            if (coloring[v] == BLUE) {
+            if (G[v] == Color::BLUE) {
                 nFoundBlues++;
                 if (nFoundBlues == nBluesInGraph) break; // There can't be more blue vertices
             }
@@ -155,7 +156,7 @@ int countConnectedBlueNodes(const Graph &G, NodeArray<int> &coloring, const node
  * @param blue
  * @return
  */
-bool hasHyperplane(Graph &G, List<edge> X, NodeArray<int> &coloring) {
+bool hasHyperplane(ColoredGraph &G, List<edge> X) {
     for(List<edge>::iterator iterator = X.begin(); iterator != X.end(); ++iterator) {
         G.hideEdge(*iterator);
     }
@@ -164,7 +165,7 @@ bool hasHyperplane(Graph &G, List<edge> X, NodeArray<int> &coloring) {
     int nBlues = 0;
 
     forall_nodes(v, G) {
-        if (coloring[v] == BLUE) {
+        if (G[v] == Color::BLUE) {
             nBlues++;
             s = v;
         }
@@ -174,11 +175,11 @@ bool hasHyperplane(Graph &G, List<edge> X, NodeArray<int> &coloring) {
 
     if (nBlues == 0) { // TODO: THIS SHOULD NEVER HAPPEN (yet it does... how to fix? Never color red any blue node in X)
         G.restoreAllEdges();
-        cout << "ups it happened" << endl;
+        //cout << "ups it happened" << endl;
         return false;
     } else {
         // Perform a DFS on G\X from s and see if all vertices are contained
-        nBluesReached = countConnectedBlueNodes(G, coloring, s, nBlues);
+        nBluesReached = countConnectedBlueNodes(G, s, nBlues);
     }
 
     G.restoreAllEdges();
@@ -186,8 +187,8 @@ bool hasHyperplane(Graph &G, List<edge> X, NodeArray<int> &coloring) {
     return nBluesReached == nBlues;
 }
 
-void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, List<edge> X, NodeArray<int> coloring, node red, node blue) {
-    if(!hasHyperplane(G, X, coloring) || X.size() > m) { // E\X contains no hyperplane of M
+void GenCocircuits(List<List<edge>> &Cocircuits, ColoredGraph &G, List<edge> X, node red, node blue) {
+    if(!hasHyperplane(G, X) || X.size() > m) { // E\X contains no hyperplane of M
         return;
     }
 
@@ -217,28 +218,28 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, List<edge> X, NodeArr
             for(List<edge>::iterator j = D.begin(); j != iterator; j++) {
                 edge e = *j;
 
-                if ((coloring[e->source()] == BLUE && vX[e->source()])
-                 || (coloring[e->target()] == BLUE && vX[e->target()])) {
+                /*if ((G[e->source()] == Color::BLUE && vX[e->source()])
+                 || (G[e->target()] == Color::BLUE && vX[e->target()])) {
                     cout << "----" << endl << X << " : " << D << endl;
-                    cout << coloring << endl;
+                    printColoring(G); cout << endl;
                     cout << "recoloring " << e << " and " << (iterator == D.end()) << endl;
-                }
+                }*/
 
-                coloring[e->source()] = RED;
-                coloring[e->target()] = RED;
+                G[e->source()] = Color::RED;
+                G[e->target()] = Color::RED;
             }
 
             // Color the rest of the path blue
             for(List<edge>::iterator j = iterator; j != D.end(); j++) {
                 edge e = *j;
-                if (coloring[e->source()] != RED)
-                    coloring[e->source()] = BLUE;
+                if (G[e->source()] != Color::RED)
+                    G[e->source()] = Color::BLUE;
 
-                if (coloring[e->target()] != RED)
-                    coloring[e->target()] = BLUE;
+                if (G[e->target()] != Color::RED)
+                    G[e->target()] = Color::BLUE;
             }
 
-            GenCocircuits(Cocircuits, G, newX, coloring, u, v);
+            GenCocircuits(Cocircuits, G, newX, u, v);
         }
 
 
@@ -284,24 +285,23 @@ int main(int argc, char* argv[])
     m = cptoi(argv[2]);
 
     try {        
-        Graph G = csvToGraph(graphFile);
+        ColoredGraph G = csvToGraph(graphFile);
         List<edge> base = spanningEdges(G);
 
         edge e;
         for(List<edge>::iterator i = base.begin(); i != base.end(); i++) {
             List<List<edge> > Cocircuits;
-            NodeArray<int> coloring(G, BLACK);
 
             e = *i;
             List<edge> X; // (Indexes might be sufficient? Check later)
             X.pushBack(e);
-            coloring[e->source()] = RED;
-            coloring[e->target()] = BLUE;
+            G[e->source()] = Color::RED;
+            G[e->target()] = Color::BLUE;
 
-            GenCocircuits(Cocircuits, G, X, coloring, e->source(), e->target());
+            GenCocircuits(Cocircuits, G, X, e->source(), e->target());
 
             for(List<List<edge> >::iterator it = Cocircuits.begin(); it != Cocircuits.end(); ++it) {
-                cout << "Found a cocircuit: " << *it << endl;
+                cout << "Cocircuit: " << *it << endl;
             }
         }
 
