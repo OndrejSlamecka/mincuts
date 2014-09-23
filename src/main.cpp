@@ -30,7 +30,7 @@ enum {
 using namespace std;
 using namespace ogdf;
 
-int m = 5; // Cocircuit size bound
+int m; // Cocircuit size bound
 
 /**
  * @brief Takes a csv file with lines "<id>;<source>;<target>;<edge name>;..." and transforms it into graph
@@ -100,7 +100,7 @@ List<edge> shortestPath(const ColoredGraph &G, node s, node t, List<edge> forbid
             break;
         }
 
-        forall_adj_edges(e, v) {            
+        forall_adj_edges(e, v) {
             if (forbidden.search(e).valid() || G[e] == Color::RED) continue; // TODO: Use BST or array (id -> bool) to represent forbidden?
 
             u = e->opposite(v);
@@ -206,12 +206,12 @@ void GenCocircuits(List<List<edge>> &Cocircuits, ColoredGraph &G, List<edge> X, 
     if (D.size() > 0) {
 
         // for each c ∈ D, recursively call GenCocircuits(X ∪ {c}).
-        for(List<edge>::iterator iterator = D.begin(); iterator != D.end(); iterator++) {            
-            edge c = *iterator;            
+        for(List<edge>::iterator iterator = D.begin(); iterator != D.end(); iterator++) {
+            edge c = *iterator;
             List<edge> newX = X;
             newX.pushBack(c);
 
-            node u = c->source(), v = c->target(); // c = (u,v)            
+            node u = c->source(), v = c->target(); // c = (u,v)
 
             // Color vertices of c = (u,v)
             // the one closer to any RED vertex, say u, will be red (and so will be all vertices on the path from the first red to u)
@@ -282,9 +282,13 @@ int main(int argc, char* argv[])
     }
 
     string graphFile(argv[1]);
-    m = cptoi(argv[2]);
+    m = stoi(argv[2]);
+    if (m < 1) {
+        cerr << "Cocircuit size bound lower than 1. Terminating." << endl;
+        exit(2);
+    }
 
-    try {        
+    try {
         ColoredGraph G = csvToGraph(graphFile);
         List<edge> base = spanningEdges(G);
 

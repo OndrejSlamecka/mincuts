@@ -45,16 +45,4 @@ void printColoring(ColoredGraph &G)
 }
 
 
-int cptoi(char *cp) {
-    std::istringstream iss(cp);
-    int val;
-
-    if (iss >> val) {
-        return val;
-    }
-
-    throw new invalid_argument("Invalid argument supplied to cptoi - not a number.");
-}
-
-
 #endif // HELPERS_HPP
