@@ -3,7 +3,7 @@
 
 #include <ogdf/basic/Graph.h>
 #include <sstream>
-#include "coloredgraph.h"
+#include "graphcoloring.h"
 
 using namespace ogdf;
 using namespace std;
@@ -36,13 +36,31 @@ string nameColor(Color c) {
     }
 }
 
-void printColoring(ColoredGraph &G)
+void printColoring(const Graph &G, const GraphColoring &c) {
+    node n;
+
+    cout << "Nodes: ";
+    forall_nodes(n, G) {
+        cout << n->index() << " is " << nameColor(c[n]) << "; ";
+    }
+    cout << endl;
+
+    edge e;
+
+    cout << "Edges: ";
+    forall_edges(e, G) {
+        cout << e->index() << " is " << nameColor(c[e]) << "; ";
+    }
+    cout << endl;
+}
+
+/*void printColoring(Graph &G)
 {
     node u;
     forall_nodes(u, G) {
         cout << u << " is " << nameColor(G[u]) << "; ";
     }
-}
+}*/
 
 
 #endif // HELPERS_HPP

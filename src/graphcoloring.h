@@ -11,13 +11,16 @@ enum class Color {
     BLUE
 };
 
-class ColoredGraph : public Graph
+class GraphColoring
 {
     NodeArray<Color> vertices;
     EdgeArray<Color> edges;
 
+    GraphColoring();
 public:
-    ColoredGraph();
+    GraphColoring(const Graph &G);
+
+    void printColoring();
 
     Color& operator[](edge e) { return edges[e]; }
     Color& operator[](node v) { return vertices[v]; }
