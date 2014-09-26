@@ -188,19 +188,12 @@ bool hasHyperplane(Graph &G, const GraphColoring &coloring, const List<edge> &X)
 }
 
 void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring coloring, List<edge> X, node red, node blue) {
-    if(!hasHyperplane(G, coloring, X) || X.size() > m) { // E\X contains no hyperplane of M
+    if (X.size() > m) return;
+
+    if(!hasHyperplane(G, coloring, X) ) { // E\X contains no hyperplane of M
+        //cout << "NO HYPERPLANE END" << endl; // TODO: This should not happen
         return;
     }
-
-
-    /*NodeArray<bool> vX(G, false);
-    ListConstIterator<List<edge> > it;
-    forall_listiterators(edge, it, X) {
-        edge e = *it;
-        node u = e->source(), v = e->target();
-        vX[u] = true;
-        vX[v] = true;
-    }*/
 
     // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X
     List<edge> D = shortestPath(G, coloring, red, blue, X);
@@ -218,6 +211,8 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
             List<edge> newX = X;
             newX.pushBack(c);
 
+            //TODO: If c = (u, v) is blue, reconnect blue subgraph (find the shortest path from u to v using only nonred edges)
+
             node n1 = red, n2 = blue, // after the first of the following for cycles these are the
                                       // nodes of the last red edge (one of them has to be incident with c)
                                       // initialized to red and blue since the first for can have 0 iterations
@@ -226,20 +221,13 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
             for(List<edge>::iterator j = D.begin(); j != iterator; j++) {
                 edge e = *j;
 
-                /*if ((G[e->source()] == Color::BLUE && vX[e->source()])
-                 || (G[e->target()] == Color::BLUE && vX[e->target()])) {
-                    cout << "----" << endl << X << " : " << D << endl;
-                    printColoring(G); cout << endl;
-                    cout << "recoloring " << e << " and " << (iterator == D.end()) << endl;
-                }*/
-
                 n1 = e->source();
                 n2 = e->target();
 
                 coloring[n1] = Color::RED;
                 coloring[n2] = Color::RED;
 
-                // TODO: Color edges red
+                coloring[e] = Color::RED;
             }
 
             if (c->source() == n1 || c->target() == n1) { // if n1 is in c then n1 == u
@@ -253,13 +241,11 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
             // Color the rest of the path blue
             for(List<edge>::iterator j = iterator.succ(); j != D.end(); j++) {
                 edge e = *j;
-                if (coloring[e->source()] != Color::RED)
-                    coloring[e->source()] = Color::BLUE;
 
-                if (coloring[e->target()] == Color::RED)
-                    cout << "weird " << e->target()->index() << endl;
+                coloring[e->source()] = Color::BLUE;
+                coloring[e->target()] = Color::BLUE;
 
-                    coloring[e->target()] = Color::BLUE;
+                coloring[e] = Color::BLUE;
             }
 
             GenCocircuits(Cocircuits, G, coloring, newX, u, v);
@@ -267,8 +253,8 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
 
     } else {
         // If there is no such circuit C above (line 4), then return ‘Cocircuit: X’.
+        //cout << "Cocircuit: " << X << endl;
         Cocircuits.pushBack(X);
-        cout << "Cocircuit: " << X << endl;
     }
 }
 
@@ -311,15 +297,13 @@ int main(int argc, char* argv[])
         exit(2);
     }
 
-    cout << "START" << endl;
-
     try {
         Graph G = csvToGraph(graphFile);
         List<edge> base = spanningEdges(G);
+        List<List<edge> > Cocircuits;
 
         edge e;
         for(List<edge>::iterator i = base.begin(); i != base.end(); i++) {
-            List<List<edge> > Cocircuits;
 
             e = *i;
             List<edge> X; // (Indexes might be sufficient? Check later)
@@ -328,15 +312,14 @@ int main(int argc, char* argv[])
             coloring[e->source()] = Color::RED;
             coloring[e->target()] = Color::BLUE;
 
-            cout << "STARTing with edge " << e->index() << " (vertex " << e->source()->index() << " is red)" << endl;
+            //cout << "STARTing with edge " << e->index() << " (vertex " << e->source()->index() << " is red)" << endl;
 
             GenCocircuits(Cocircuits, G, coloring, X, e->source(), e->target());
-
-            /*for(List<List<edge> >::iterator it = Cocircuits.begin(); it != Cocircuits.end(); ++it) {
-                cout << "Cocircuit: " << *it << endl;
-            }*/
         }
 
+        for(List<List<edge> >::iterator it = Cocircuits.begin(); it != Cocircuits.end(); ++it) {
+            cout << "Cocircuit: " << *it << endl;
+        }
 
     } catch (invalid_argument *e) {
         cerr << "Error: " << e->what() << endl;
