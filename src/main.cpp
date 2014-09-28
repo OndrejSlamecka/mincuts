@@ -60,6 +60,11 @@ Graph csvToGraph(string sEdgesFileName) { // This copies Graph on exit, to speed
             nSize = v;
         }
 
+        // Skip if there already is an edge between these two nodes
+        if (nodes.at(u) && nodes.at(v) &&
+            (G.searchEdge(nodes.at(u), nodes.at(v)) || G.searchEdge(nodes.at(v), nodes.at(u))))
+            continue;
+
         if(nodes.at(u) == nullptr)
             nodes[u] = G.newNode(u);
 
@@ -73,7 +78,7 @@ Graph csvToGraph(string sEdgesFileName) { // This copies Graph on exit, to speed
 }
 
 /**
- * Performs BFS to find the shortest path from s to t in graph g without using any edge from the forbidden edges.
+ * Performs BFS to find the shortest path from s to t in graph g without using any red edges and any edge from the forbidden edges.
  * Returns empty set if no such path exists.
  */
 List<edge> shortestPath(const Graph &G, const GraphColoring &coloring, node s, node t, const List<edge> &forbidden) {
@@ -83,8 +88,8 @@ List<edge> shortestPath(const Graph &G, const GraphColoring &coloring, node s, n
 
     Queue<node> Q;
 
-    NodeArray<node> predecessor(G);
     NodeArray<bool> visited(G, false);
+    NodeArray<node> predecessor(G);
 
     Q.append(s);
     visited[s] = true;
@@ -95,17 +100,21 @@ List<edge> shortestPath(const Graph &G, const GraphColoring &coloring, node s, n
         if (v == t) {
             // traceback predecessors and reconstruct path
             for (node n = t; n != s; n = predecessor[n]) {
-                path.pushFront(G.searchEdge(predecessor[n], n));
+                e = G.searchEdge(n, predecessor[n]); // Takes O(min(deg(v), deg(w))) (that's fast on sparse graphs)
+                if (coloring[e] != Color::RED)
+                    path.pushFront(e);
             }
             break;
         }
 
         forall_adj_edges(e, v) {
-            if (forbidden.search(e).valid() || coloring[e] == Color::RED) continue; // TODO: Use BST or array (id -> bool) to represent forbidden?
+            // TODO: Use BST or array (id -> bool) to represent forbidden and fasten the following search? (Probably not
+            // necessary as forbidden size is bound by the constant m)
+            if (forbidden.search(e).valid()) continue;
 
             u = e->opposite(v);
             if (!visited[u]) {
-                predecessor[u] = v; // TODO: Unite predecessor and visited?
+                predecessor[u] = v;
                 visited[u] = true;
                 Q.append(u);
             }
@@ -116,89 +125,84 @@ List<edge> shortestPath(const Graph &G, const GraphColoring &coloring, node s, n
 }
 
 /**
- * Explores the component from node s and counts nodes colored blue, stops if nBluesInGraph is reached
+ * @brief hideConnectedBlueSubgraph
+ * @param G
+ * @param coloring
+ * @param u
  */
-int countConnectedBlueNodes(const Graph &G, const GraphColoring &coloring, const node &s, int nBluesInGraph) {
-    int nFoundBlues = 0;
+void hideConnectedBlueSubgraph(Graph &G, const GraphColoring &coloring, node start) {
+    Queue<node> Q;
+    Q.append(start);
 
-    NodeArray<bool> discovered(G, false);
-    Stack<node> S;
-    S.push(s);
+    NodeArray<bool> visited(G, false);
 
-    node v, u;
-    adjEntry adj;
-    while(!S.empty()) {
-        v = S.pop();
-
-        if (!discovered[v]) {
-            discovered[v] = true;
-
-            if (coloring[v] == Color::BLUE) {
-                nFoundBlues++;
-                if (nFoundBlues == nBluesInGraph) break; // There can't be more blue vertices
-            }
-
-            forall_adj(adj, v) {
-                u = adj->twinNode();
-                S.push(u);
+    node u, v;
+    edge e;
+    while(!Q.empty()) {
+        u = Q.pop();
+        forall_adj_edges(e, u) {
+            if (coloring[e] == Color::BLUE) {
+                v = e->opposite(u);
+                if (!visited[v]) {
+                    visited[v] = true;
+                    Q.append(v);
+                }
+                G.hideEdge(e);
             }
         }
     }
-
-    return nFoundBlues;
 }
 
-/**
- * E(G)\X contains a k-way hyperplane of G\X iff G\V(R) contains a connected subgraph G_b spanning all the blue vertices of X
- * @param G
- * @param X
- * @param coloring
- * @param blue
- * @return
- */
-bool hasHyperplane(Graph &G, const GraphColoring &coloring, const List<edge> &X) {
-    for(List<edge>::const_iterator iterator = X.begin(); iterator != X.end(); ++iterator) {
-        G.hideEdge(*iterator);
-    }
+bool findPathToAnyBlueAndColorItBlue(const Graph &G, GraphColoring &coloring, node start) {
+    Queue<node> Q;
+    Q.append(start);
 
-    node v, s;
-    int nBlues = 0;
+    NodeArray<bool> visited(G, false);
+    NodeArray<edge> accessEdge(G);
 
-    forall_nodes(v, G) {
-        if (coloring[v] == Color::BLUE) {
-            nBlues++;
-            s = v;
+    node u, n;
+    edge e;
+    while(!Q.empty()) {
+        u = Q.pop();
+
+        if (coloring[u] == Color::BLUE && u != start) {
+            // reconstruct path and go on
+            edge ae;
+            node n1, n2;
+            for (n1 = u; n1 != start;) {
+                // TODO: Use search edge instead?
+                ae = accessEdge[n1];
+                n2 = ae->opposite(n1);
+
+                coloring[n1] = Color::BLUE;
+                coloring[n2] = Color::BLUE;
+                coloring[ae] = Color::BLUE;
+                n1 = n2;
+            }
+            return true;
+        }
+
+        forall_adj_edges(e, u) {
+            n = e->opposite(u);
+            if (!visited[n]) {
+                visited[n] = true;
+                accessEdge[n] = e;
+                Q.append(n);
+            }
         }
     }
 
-    int nBluesReached = 0;
-
-    if (nBlues == 0) { // TODO: THIS SHOULD NEVER HAPPEN (yet it does... how to fix? Never color red any blue node in X)
-        G.restoreAllEdges();
-        //cout << "ups it happened" << endl;
-        return false;
-    } else {
-        // Perform a DFS on G\X from s and see if all vertices are contained
-        nBluesReached = countConnectedBlueNodes(G, coloring, s, nBlues);
-    }
-
-    G.restoreAllEdges();
-
-    return nBluesReached == nBlues;
+    return false;
 }
 
 void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring coloring, List<edge> X, node red, node blue) {
     if (X.size() > m) return;
 
-    if(!hasHyperplane(G, coloring, X) ) { // E\X contains no hyperplane of M
-        //cout << "NO HYPERPLANE END" << endl; // TODO: This should not happen
-        return;
-    }
-
     // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X
     List<edge> D = shortestPath(G, coloring, red, blue, X);
     //cout << "now in x: " << X << endl;
     //cout << "r(" << red->index() << ")-b(" << blue->index() << ") path: " << D << endl;
+    //printColoring(G, coloring); cout << endl;
     if (D.size() > 0) {
 
         // for each c ∈ D, recursively call GenCocircuits(X ∪ {c}).
@@ -211,8 +215,8 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
             List<edge> newX = X;
             newX.pushBack(c);
 
-            //TODO: If c = (u, v) is blue, reconnect blue subgraph (find the shortest path from u to v using only nonred edges)
 
+            // Coloring red-c path red, determining u and v, coloring the rest blue
             node n1 = red, n2 = blue, // after the first of the following for cycles these are the
                                       // nodes of the last red edge (one of them has to be incident with c)
                                       // initialized to red and blue since the first for can have 0 iterations
@@ -230,6 +234,7 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
                 coloring[e] = Color::RED;
             }
 
+            // Determine u, v, s.t. u is really red and v blue
             if (c->source() == n1 || c->target() == n1) { // if n1 is in c then n1 == u
                 u = n1;
             } else { // n2 is in c so n2 == u
@@ -246,6 +251,62 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
                 coloring[e->target()] = Color::BLUE;
 
                 coloring[e] = Color::BLUE;
+            }
+
+
+            // If c = (u, v) is blue, reconnect blue subgraph (find the shortest path from u to v using only nonred edges)
+
+            // if c = (u,v) is blue
+            //    if u has blue adjacent edges (except of c) AND v has blue adjacent edges (exc. of c) then
+            //       enumerate one blue subgraph, call it G_b1
+            //       create graph G_rest = G \ X \ G_r \ G_b1 and BFS in it to until blue is found (use hideEdge!)
+            //       (or BFS (avoid red and X) from u to first blue edge not in G_b1)
+            //       -> path found, color it blue and continue
+            //       -> path not found, fail here (return;)
+
+            if (coloring[c] == Color::BLUE) {
+                G.hideEdge(c); // Don't consider c
+
+                bool uaIsEmpty = true, vaIsEmpty = true;
+                edge e;
+
+                forall_adj_edges(e, u) {
+                    if (coloring[e] == Color::BLUE) {
+                        uaIsEmpty = false;
+                        break;
+                    }
+                }
+
+                forall_adj_edges(e, v) {
+                    if (coloring[e] == Color::BLUE) {
+                        vaIsEmpty = false;
+                        break;
+                    }
+                }
+
+                if (!uaIsEmpty && !vaIsEmpty) {
+                    //cout << "X: " << X << "; D: " << D << "; c = " << c->index() << " --- ";
+                    //printColoring(G, coloring);
+                    //cout<< endl;
+
+                    // G_b has been disconnected, hide X, G_r and one component of blue subgraph (TODO: Maintain G_rest through the whole algorithm and not recompute here every time?)
+                    for(List<edge>::iterator it = X.begin(); it != X.end(); it++) G.hideEdge(*it);
+                    forall_edges(e, G) { if(coloring[e] == Color::RED) G.hideEdge(e); }
+                    hideConnectedBlueSubgraph(G, coloring, u);
+
+                    // BFS in G from u to the first found blue edge
+                    //  -> not found => fail here
+                    //  -> path found => color it blue and continue
+
+                    if (!findPathToAnyBlueAndColorItBlue(G, coloring, u)) {
+                        G.restoreAllEdges();
+                        return;
+                    }
+
+
+                } // else c is just a branch with a single leaf, nothing happened G_b stays connected
+
+                G.restoreAllEdges();
             }
 
             GenCocircuits(Cocircuits, G, coloring, newX, u, v);
@@ -284,7 +345,7 @@ List<edge> spanningEdges(const Graph &G) {
 }
 
 int main(int argc, char* argv[])
-{
+{    
     if (argc != 3 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
         cout << "Usage: " << argv[0] << " <graph.csv> <cocircuit size bound>" << endl;
         exit(1);
@@ -297,6 +358,8 @@ int main(int argc, char* argv[])
         exit(2);
     }
 
+    int size[7] = {0};
+
     try {
         Graph G = csvToGraph(graphFile);
         List<edge> base = spanningEdges(G);
@@ -304,7 +367,6 @@ int main(int argc, char* argv[])
 
         edge e;
         for(List<edge>::iterator i = base.begin(); i != base.end(); i++) {
-
             e = *i;
             List<edge> X; // (Indexes might be sufficient? Check later)
             GraphColoring coloring(G);
@@ -317,14 +379,19 @@ int main(int argc, char* argv[])
             GenCocircuits(Cocircuits, G, coloring, X, e->source(), e->target());
         }
 
-        for(List<List<edge> >::iterator it = Cocircuits.begin(); it != Cocircuits.end(); ++it) {
-            cout << "Cocircuit: " << *it << endl;
+        for(List<List<edge> >::iterator it = Cocircuits.begin(); it != Cocircuits.end(); ++it) {            
+            //cout << "Cocircuit: " << *it << endl;
+            size[(*it).size()]++;
         }
 
     } catch (invalid_argument *e) {
         cerr << "Error: " << e->what() << endl;
         return 1;
     }
+
+    cout << endl;
+    for(int i = 1; i <= 6; i++)
+        cout << "Size " << i << ": " << size[i] << endl;
 
     return 0;
 }
