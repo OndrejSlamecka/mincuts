@@ -362,7 +362,14 @@ void CircuitCocircuit(Graph &G, List<List<edge>> &cocircuits) {
  * Helper function todetermine whether given set of edges really is a cut
  */
 bool isCut(Graph &G, const List<edge> &cut) {
-    // run BFS in G\cut and count found vertices, return |G| != |vertices in BFS tree of G\cut|
+    for (auto e : cut) {
+        G.hideEdge(e);
+    }
+
+    bool r = isConnected(G);
+
+    G.restoreAllEdges();
+    return r;
 }
 
 /**
@@ -370,6 +377,23 @@ bool isCut(Graph &G, const List<edge> &cut) {
  */
 bool isMinCut(Graph &G, const List<edge> &cut) {
     // try to subtract each edge from the cut and test the rest with isCut
+
+    for(auto e : cut) {
+        List<edge> smallerCut = cut;
+        ListIterator<edge> it = smallerCut.search(e);
+        smallerCut.del(it);
+        if(isCut(G, smallerCut))
+            return false;
+    }
+
+
+    return true;
+}
+
+edge edgeByIndex(const List<edge> &edges, int index) {
+    edge e;
+    for(auto it = edges.begin(); it != edges.end(); ++it) if((*it)->index() == index) e = *it;
+    return e;
 }
 
 // TODO: Read from stdin?
@@ -390,6 +414,17 @@ int main(int argc, char* argv[])
     try {        
         Graph G;
         csvToGraph(graphFile, G);
+
+        List<edge> edges;
+        G.allEdges(edges);
+        edge e1 = edgeByIndex(edges, 1);
+        edge e2 = edgeByIndex(edges, 4);
+
+        List<edge> c;
+        c.pushBack(e1);
+        c.pushBack(e2);
+
+        cout << (isCut(G, c) ? "Yes" : "No") << endl;
 
         /*
         List<List<edge>> cocircuits;

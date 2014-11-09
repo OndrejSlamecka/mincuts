@@ -18,6 +18,13 @@ Converts from `ClosureSim` output format to `mincuts` format.
 
 Splits `mincuts` results file by cut size.
 
+**order & rm_permutations**
+
+Work only with cuts of size 2.
+
+	./tools/rm_permutations.py < temp/myop/zlin_2bySize/2 | ./tools/order.py 
+
+
 -----------------------
 
 http://www.fi.muni.cz/~xsvobo38/closuresim/
