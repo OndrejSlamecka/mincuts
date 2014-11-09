@@ -34,12 +34,9 @@ int m; // Cocircuit size bound
 
 /**
  * @brief Takes a csv file with lines "<id>;<source>;<target>;<edge name>;..." and transforms it into graph
- * @param sEdgesFileName
- * @return Graph
+ * @param sEdgesFileName 
  */
-Graph csvToGraph(string sEdgesFileName) { // This copies Graph on exit, to speed up, extend Graph and let this be a new method in our extended class
-    Graph G;
-
+void csvToGraph(string sEdgesFileName, Graph &G) {
     ifstream fEdges(sEdgesFileName);
     if (!fEdges.is_open())
         throw new invalid_argument("Edges file doesn't exist or could not be accessed");
@@ -73,8 +70,6 @@ Graph csvToGraph(string sEdgesFileName) { // This copies Graph on exit, to speed
 
         G.newEdge(nodes[u], nodes[v], id);
     }
-
-    return G;
 }
 
 /**
@@ -344,8 +339,42 @@ List<edge> spanningEdges(const Graph &G) {
     return spanningEdges;
 }
 
+void CircuitCocircuit(Graph &G, List<List<edge>> &cocircuits) {
+    List<edge> base = spanningEdges(G);
+
+    edge e;
+    for(List<edge>::iterator i = base.begin(); i != base.end(); i++) {
+        e = *i;
+        List<edge> X; // (Indexes might be sufficient? Check later)
+        GraphColoring coloring(G);
+        X.pushBack(e);
+        coloring[e->source()] = Color::RED;
+        coloring[e->target()] = Color::BLUE;
+
+        //cout << "STARTing with edge " << e->index() << " (vertex " << e->source()->index() << " is red)" << endl;
+
+        GenCocircuits(cocircuits, G, coloring, X, e->source(), e->target());
+    }
+}
+
+
+/**
+ * Helper function todetermine whether given set of edges really is a cut
+ */
+bool isCut(Graph &G, const List<edge> &cut) {
+    // run BFS in G\cut and count found vertices, return |G| != |vertices in BFS tree of G\cut|
+}
+
+/**
+ * Helper function todetermine whether given set of edges really is a minimal cut
+ */
+bool isMinCut(Graph &G, const List<edge> &cut) {
+    // try to subtract each edge from the cut and test the rest with isCut
+}
+
+// TODO: Read from stdin?
 int main(int argc, char* argv[])
-{    
+{
     if (argc != 3 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
         cout << "Usage: " << argv[0] << " <graph.csv> <cocircuit size bound>" << endl;
         exit(1);
@@ -358,40 +387,22 @@ int main(int argc, char* argv[])
         exit(2);
     }
 
-    int size[7] = {0};
+    try {        
+        Graph G;
+        csvToGraph(graphFile, G);
 
-    try {
-        Graph G = csvToGraph(graphFile);
-        List<edge> base = spanningEdges(G);
-        List<List<edge> > Cocircuits;
+        /*
+        List<List<edge>> cocircuits;
+        CircuitCocircuit(G, cocircuits);
+        for(List<List<edge> >::iterator it = cocircuits.begin(); it != cocircuits.end(); ++it) {
+            cout << *it << endl;
+        }*/
 
-        edge e;
-        for(List<edge>::iterator i = base.begin(); i != base.end(); i++) {
-            e = *i;
-            List<edge> X; // (Indexes might be sufficient? Check later)
-            GraphColoring coloring(G);
-            X.pushBack(e);
-            coloring[e->source()] = Color::RED;
-            coloring[e->target()] = Color::BLUE;
-
-            //cout << "STARTing with edge " << e->index() << " (vertex " << e->source()->index() << " is red)" << endl;
-
-            GenCocircuits(Cocircuits, G, coloring, X, e->source(), e->target());
-        }
-
-        for(List<List<edge> >::iterator it = Cocircuits.begin(); it != Cocircuits.end(); ++it) {            
-            //cout << "Cocircuit: " << *it << endl;
-            size[(*it).size()]++;
-        }
 
     } catch (invalid_argument *e) {
         cerr << "Error: " << e->what() << endl;
         return 1;
     }
-
-    cout << endl;
-    for(int i = 1; i <= 6; i++)
-        cout << "Size " << i << ": " << size[i] << endl;
 
     return 0;
 }

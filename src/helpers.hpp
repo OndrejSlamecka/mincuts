@@ -12,7 +12,7 @@ std::ostream & operator<<(std::ostream &os, const List<edge>& L)
 {
     for(List<edge>::const_iterator i = L.begin(); i != L.end(); i++) {
         os << (*i)->index() << "(" << (*i)->source() << "," << (*i)->target() << ")";
-        if (*i != L.back()) os << ", ";
+        if (*i != L.back()) os << ",";
     }
     return os;
 }
@@ -29,10 +29,10 @@ std::ostream & operator<<(std::ostream &os, const Graph& G)
 
 string nameColor(Color c) {
     switch(c) {
-    case Color::BLACK: return "black";
-    case Color::RED: return "red";
-    case Color::BLUE: return "blue";
-    default: return "ERROR";
+        case Color::BLACK: return "black";
+        case Color::RED: return "red";
+        case Color::BLUE: return "blue";
+        default: return "ERROR";
     }
 }
 
