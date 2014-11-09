@@ -63,4 +63,37 @@ void printColoring(const Graph &G, const GraphColoring &c) {
 }*/
 
 
+/**
+ * Helper function todetermine whether given set of edges really is a cut
+ */
+bool isCut(Graph &G, const List<edge> &cut) {
+    for (auto e : cut) {
+        G.hideEdge(e);
+    }
+
+    bool r = isConnected(G);
+
+    G.restoreAllEdges();
+    return r;
+}
+
+/**
+ * Helper function todetermine whether given set of edges really is a minimal cut
+ */
+bool isMinCut(Graph &G, const List<edge> &cut) {
+    // try to subtract each edge from the cut and test the rest with isCut
+
+    for(auto e : cut) {
+        List<edge> smallerCut = cut;
+        ListIterator<edge> it = smallerCut.search(e);
+        smallerCut.del(it);
+        if(isCut(G, smallerCut))
+            return false;
+    }
+
+    return true;
+}
+
+
+
 #endif // HELPERS_HPP

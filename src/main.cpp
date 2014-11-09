@@ -73,7 +73,7 @@ void csvToGraph(string sEdgesFileName, Graph &G) {
 }
 
 /**
- * Performs BFS to find the shortest path from s to t in graph g without using any red edges and any edge from the forbidden edges.
+ * Performs BFS to find the shortest path from s to t in graph G without using any edge from the forbidden edges.
  * Returns empty set if no such path exists.
  */
 List<edge> shortestPath(const Graph &G, const GraphColoring &coloring, node s, node t, const List<edge> &forbidden) {
@@ -190,10 +190,11 @@ bool findPathToAnyBlueAndColorItBlue(const Graph &G, GraphColoring &coloring, no
     return false;
 }
 
+int ccc = 0;
 void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring coloring, List<edge> X, node red, node blue) {
     if (X.size() > m) return;
 
-    // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X
+    // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X    
     List<edge> D = shortestPath(G, coloring, red, blue, X);
     //cout << "now in x: " << X << endl;
     //cout << "r(" << red->index() << ")-b(" << blue->index() << ") path: " << D << endl;
@@ -309,8 +310,11 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
 
     } else {
         // If there is no such circuit C above (line 4), then return ‘Cocircuit: X’.
-        //cout << "Cocircuit: " << X << endl;
-        Cocircuits.pushBack(X);
+        cout << X << (isCut(G,X) ? "True" : "False") << endl;
+        //Cocircuits.pushBack(X);
+        ccc++;
+        if (ccc == 3) exit(1);
+
     }
 }
 
@@ -357,39 +361,6 @@ void CircuitCocircuit(Graph &G, List<List<edge>> &cocircuits) {
     }
 }
 
-
-/**
- * Helper function todetermine whether given set of edges really is a cut
- */
-bool isCut(Graph &G, const List<edge> &cut) {
-    for (auto e : cut) {
-        G.hideEdge(e);
-    }
-
-    bool r = isConnected(G);
-
-    G.restoreAllEdges();
-    return r;
-}
-
-/**
- * Helper function todetermine whether given set of edges really is a minimal cut
- */
-bool isMinCut(Graph &G, const List<edge> &cut) {
-    // try to subtract each edge from the cut and test the rest with isCut
-
-    for(auto e : cut) {
-        List<edge> smallerCut = cut;
-        ListIterator<edge> it = smallerCut.search(e);
-        smallerCut.del(it);
-        if(isCut(G, smallerCut))
-            return false;
-    }
-
-
-    return true;
-}
-
 edge edgeByIndex(const List<edge> &edges, int index) {
     edge e;
     for(auto it = edges.begin(); it != edges.end(); ++it) if((*it)->index() == index) e = *it;
@@ -415,7 +386,7 @@ int main(int argc, char* argv[])
         Graph G;
         csvToGraph(graphFile, G);
 
-        List<edge> edges;
+        /*List<edge> edges;
         G.allEdges(edges);
         edge e1 = edgeByIndex(edges, 1);
         edge e2 = edgeByIndex(edges, 4);
@@ -424,14 +395,16 @@ int main(int argc, char* argv[])
         c.pushBack(e1);
         c.pushBack(e2);
 
-        cout << (isCut(G, c) ? "Yes" : "No") << endl;
+        cout << (isCut(G, c) ? "Yes" : "No") << endl;*/
 
-        /*
+
         List<List<edge>> cocircuits;
         CircuitCocircuit(G, cocircuits);
+        int i = 0;
         for(List<List<edge> >::iterator it = cocircuits.begin(); it != cocircuits.end(); ++it) {
+            i++;
             cout << *it << endl;
-        }*/
+        }
 
 
     } catch (invalid_argument *e) {
