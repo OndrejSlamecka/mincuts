@@ -186,22 +186,70 @@ bool findPathToAnyBlueAndColorItBlue(const Graph &G, GraphColoring &coloring, no
     return false;
 }
 
+/**
+ * @return bool True for successful reconnection, false otherwise
+ */
+bool reconnectBlueSubgraph(Graph &G, const List<edge> &X, GraphColoring &coloring, node u, node v, edge c) {
+    //  if u has blue adjacent edges (except of c) AND v has blue adjacent edges (exc. of c) then
+    //     enumerate one blue subgraph, call it G_b1
+    //     create graph G_rest = G \ X \ G_r \ G_b1 and BFS in it until blue is found (use hideEdge!)
+    //     (or BFS (avoid red and X) from u to first blue edge not in G_b1)
+    //     -> path found, color it blue and continue
+    //     -> path not found, fail here (return;)
+
+    G.hideEdge(c); // Don't consider c
+
+    bool uaIsEmpty = true, vaIsEmpty = true;
+    edge e;
+
+    forall_adj_edges(e, u) {
+        if (coloring[e] == Color::BLUE) {
+            uaIsEmpty = false;
+            break;
+        }
+    }
+
+    forall_adj_edges(e, v) {
+        if (coloring[e] == Color::BLUE) {
+            vaIsEmpty = false;
+            break;
+        }
+    }
+
+    if (!uaIsEmpty && !vaIsEmpty) {
+        // G_b has been disconnected, hide X, G_r and one component of blue subgraph (TODO: Maintain G_rest through the whole algorithm and not recompute here every time?)
+        for(List<edge>::const_iterator it = X.begin(); it != X.end(); it++) G.hideEdge(*it);
+        forall_edges(e, G) { if(coloring[e] == Color::RED) G.hideEdge(e); }
+        hideConnectedBlueSubgraph(G, coloring, u);
+
+        // BFS in G from u to the first found blue edge
+        //  -> not found => fail here
+        //  -> path found => color it blue and continue
+
+        if (!findPathToAnyBlueAndColorItBlue(G, coloring, u)) {
+            G.restoreAllEdges();
+            return false;
+        }
+
+
+    } // else c is just a branch with a single leaf, nothing happened G_b stays connected
+
+    G.restoreAllEdges();
+    return true;
+}
+
+
 void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring coloring, List<edge> X, node red, node blue) {
     if (X.size() > m) return;
 
     // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X
     List<edge> D = shortestPath(G, coloring, red, blue, X);
-    //cout << "now in x: " << X << endl;
-    //cout << "r(" << red->index() << ")-b(" << blue->index() << ") path: " << D << endl;
-    //printColoring(G, coloring); cout << endl;
+
     if (D.size() > 0) {
 
         // for each c ∈ D, recursively call GenCocircuits(X ∪ {c}).
         for(List<edge>::iterator iterator = D.begin(); iterator != D.end(); iterator++) {
             edge c = *iterator;
-
-            //cout << "PROcessing " << c->index() << "(" << c->source()->index() << "," << c->target()->index() << ")" << endl;
-            //printColoring(G, coloring);
 
             List<edge> newX = X;
             newX.pushBack(c);
@@ -221,8 +269,6 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
 
                 coloring[n1] = Color::RED;
                 coloring[n2] = Color::RED;
-
-                coloring[e] = Color::RED;
             }
 
             // Determine u, v, s.t. u is really red and v blue
@@ -240,64 +286,12 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
 
                 coloring[e->source()] = Color::BLUE;
                 coloring[e->target()] = Color::BLUE;
-
-                coloring[e] = Color::BLUE;
             }
 
 
             // If c = (u, v) is blue, reconnect blue subgraph (find the shortest path from u to v using only nonred edges)
-
-            // if c = (u,v) is blue
-            //    if u has blue adjacent edges (except of c) AND v has blue adjacent edges (exc. of c) then
-            //       enumerate one blue subgraph, call it G_b1
-            //       create graph G_rest = G \ X \ G_r \ G_b1 and BFS in it to until blue is found (use hideEdge!)
-            //       (or BFS (avoid red and X) from u to first blue edge not in G_b1)
-            //       -> path found, color it blue and continue
-            //       -> path not found, fail here (return;)
-
             if (coloring[c] == Color::BLUE) {
-                G.hideEdge(c); // Don't consider c
-
-                bool uaIsEmpty = true, vaIsEmpty = true;
-                edge e;
-
-                forall_adj_edges(e, u) {
-                    if (coloring[e] == Color::BLUE) {
-                        uaIsEmpty = false;
-                        break;
-                    }
-                }
-
-                forall_adj_edges(e, v) {
-                    if (coloring[e] == Color::BLUE) {
-                        vaIsEmpty = false;
-                        break;
-                    }
-                }
-
-                if (!uaIsEmpty && !vaIsEmpty) {
-                    //cout << "X: " << X << "; D: " << D << "; c = " << c->index() << " --- ";
-                    //printColoring(G, coloring);
-                    //cout<< endl;
-
-                    // G_b has been disconnected, hide X, G_r and one component of blue subgraph (TODO: Maintain G_rest through the whole algorithm and not recompute here every time?)
-                    for(List<edge>::iterator it = X.begin(); it != X.end(); it++) G.hideEdge(*it);
-                    forall_edges(e, G) { if(coloring[e] == Color::RED) G.hideEdge(e); }
-                    hideConnectedBlueSubgraph(G, coloring, u);
-
-                    // BFS in G from u to the first found blue edge
-                    //  -> not found => fail here
-                    //  -> path found => color it blue and continue
-
-                    if (!findPathToAnyBlueAndColorItBlue(G, coloring, u)) {
-                        G.restoreAllEdges();
-                        return;
-                    }
-
-
-                } // else c is just a branch with a single leaf, nothing happened G_b stays connected
-
-                G.restoreAllEdges();
+                reconnectBlueSubgraph(G, X, coloring, u, v, c);
             }
 
             GenCocircuits(Cocircuits, G, coloring, newX, u, v);
@@ -346,15 +340,8 @@ void CircuitCocircuit(Graph &G, List<List<edge>> &cocircuits) {
         coloring[e->source()] = Color::RED;
         coloring[e->target()] = Color::BLUE;
 
-        //cout << "STARTing with edge " << e->index() << " (vertex " << e->source()->index() << " is red)" << endl;
-
         GenCocircuits(cocircuits, G, coloring, X, e->source(), e->target());
     }
-}
-
-edge edgeByIndex(const List<edge> &edges, int index) {
-    for(auto it = edges.begin(); it != edges.end(); ++it) if((*it)->index() == index) return *it;
-    return nullptr;
 }
 
 // TODO: Read from stdin?

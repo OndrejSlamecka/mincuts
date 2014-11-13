@@ -62,6 +62,11 @@ void printColoring(const Graph &G, const GraphColoring &c) {
     }
 }*/
 
+edge edgeByIndex(const List<edge> &edges, int index) {
+    for(auto it = edges.begin(); it != edges.end(); ++it) if((*it)->index() == index) return *it;
+    return nullptr;
+}
+
 
 /**
  * Helper function to determine whether given set of edges really is a cut
