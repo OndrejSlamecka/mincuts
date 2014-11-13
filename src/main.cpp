@@ -11,12 +11,6 @@
  *
  */
 
-enum {
-    BLACK,
-    RED,
-    BLUE
-};
-
 #include <iostream>
 #include <stdexcept>
 #include <ogdf/basic/Queue.h>
@@ -34,7 +28,7 @@ int m; // Cocircuit size bound
 
 /**
  * @brief Takes a csv file with lines "<id>;<source>;<target>;<edge name>;..." and transforms it into graph
- * @param sEdgesFileName 
+ * @param sEdgesFileName
  */
 void csvToGraph(string sEdgesFileName, Graph &G) {
     ifstream fEdges(sEdgesFileName);
@@ -58,15 +52,17 @@ void csvToGraph(string sEdgesFileName, Graph &G) {
         }
 
         // Skip if there already is an edge between these two nodes
-        if (nodes.at(u) && nodes.at(v) &&
-            (G.searchEdge(nodes.at(u), nodes.at(v)) || G.searchEdge(nodes.at(v), nodes.at(u))))
+        /*if (nodes.at(u) && nodes.at(v) &&
+            (G.searchEdge(nodes.at(u), nodes.at(v)) || G.searchEdge(nodes.at(v), nodes.at(u)))) {
             continue;
+        }*/
 
         if(nodes.at(u) == nullptr)
             nodes[u] = G.newNode(u);
 
         if(nodes[v] == nullptr)
             nodes[v] = G.newNode(v);
+
 
         G.newEdge(nodes[u], nodes[v], id);
     }
@@ -190,11 +186,10 @@ bool findPathToAnyBlueAndColorItBlue(const Graph &G, GraphColoring &coloring, no
     return false;
 }
 
-int ccc = 0;
 void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring coloring, List<edge> X, node red, node blue) {
     if (X.size() > m) return;
 
-    // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X    
+    // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X
     List<edge> D = shortestPath(G, coloring, red, blue, X);
     //cout << "now in x: " << X << endl;
     //cout << "r(" << red->index() << ")-b(" << blue->index() << ") path: " << D << endl;
@@ -310,11 +305,7 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
 
     } else {
         // If there is no such circuit C above (line 4), then return ‘Cocircuit: X’.
-        cout << X << (isCut(G,X) ? "True" : "False") << endl;
-        //Cocircuits.pushBack(X);
-        ccc++;
-        if (ccc == 3) exit(1);
-
+        Cocircuits.pushBack(X);
     }
 }
 
@@ -362,9 +353,8 @@ void CircuitCocircuit(Graph &G, List<List<edge>> &cocircuits) {
 }
 
 edge edgeByIndex(const List<edge> &edges, int index) {
-    edge e;
-    for(auto it = edges.begin(); it != edges.end(); ++it) if((*it)->index() == index) e = *it;
-    return e;
+    for(auto it = edges.begin(); it != edges.end(); ++it) if((*it)->index() == index) return *it;
+    return nullptr;
 }
 
 // TODO: Read from stdin?
@@ -382,27 +372,15 @@ int main(int argc, char* argv[])
         exit(2);
     }
 
-    try {        
+    try {
         Graph G;
         csvToGraph(graphFile, G);
-
-        /*List<edge> edges;
-        G.allEdges(edges);
-        edge e1 = edgeByIndex(edges, 1);
-        edge e2 = edgeByIndex(edges, 4);
-
-        List<edge> c;
-        c.pushBack(e1);
-        c.pushBack(e2);
-
-        cout << (isCut(G, c) ? "Yes" : "No") << endl;*/
 
 
         List<List<edge>> cocircuits;
         CircuitCocircuit(G, cocircuits);
-        int i = 0;
+
         for(List<List<edge> >::iterator it = cocircuits.begin(); it != cocircuits.end(); ++it) {
-            i++;
             cout << *it << endl;
         }
 
