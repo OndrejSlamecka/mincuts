@@ -269,6 +269,7 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
 
                 coloring[n1] = Color::RED;
                 coloring[n2] = Color::RED;
+                coloring[e] = Color::RED;
             }
 
             // Determine u, v, s.t. u is really red and v blue
@@ -286,6 +287,7 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
 
                 coloring[e->source()] = Color::BLUE;
                 coloring[e->target()] = Color::BLUE;
+                coloring[e] = Color::BLUE;
             }
 
 
