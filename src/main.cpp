@@ -269,7 +269,9 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
 
             // If c = (u, v) is blue, reconnect blue subgraph (find the shortest path from u to v using only nonred edges)
             if (coloring[c] == Color::BLUE) {
-                reconnectBlueSubgraph(G, X, coloring, u, v, c);
+                if(!reconnectBlueSubgraph(G, X, coloring, u, v, c)) { // can't reconnect: fail
+                    return;
+                }
             }
 
             GenCocircuits(Cocircuits, G, coloring, newX, u, v);
