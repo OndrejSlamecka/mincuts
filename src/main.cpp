@@ -24,38 +24,21 @@
 using namespace std;
 using namespace ogdf;
 
-int m; // Cocircuit size bound
+int cutSizeBound; // Global variables are evil but this never changes...
 
 /**
- * @brief Takes a csv file with lines "<id>;<source>;<target>;<edge name>;..." and transforms it into graph
- * @param sEdgesFileName
+ * Reads a csv file with lines "<id>;<source>;<target>;..." and transforms it into a graph
  */
-void csvToGraph(string sEdgesFileName, Graph &G) {
-    ifstream fEdges(sEdgesFileName);
-    if (!fEdges.is_open())
-        throw new invalid_argument("Edges file doesn't exist or could not be accessed");
-
+void csvToGraph(ifstream &fEdges, Graph &G) {
     vector<node> nodes;
-    int id, u, v, nSize = 0;
+    unsigned int id, u, v;
 
     for (string line; getline(fEdges, line);) {
-        sscanf(line.c_str(), "%d;%d;%d;", &id, &u, &v);
+        sscanf(line.c_str(), "%u;%u;%u;", &id, &u, &v);
 
-        if (u > nSize) {
-            nodes.resize(u + 1);
-            nSize = u;
+        if (u > nodes.size() || v > nodes.size()) {
+            nodes.resize(max(u, v) + 1); // TODO: How to make this smarter?
         }
-
-        if (v > nSize) {
-            nodes.resize(v + 1);
-            nSize = v;
-        }
-
-        // Skip if there already is an edge between these two nodes
-        /*if (nodes.at(u) && nodes.at(v) &&
-            (G.searchEdge(nodes.at(u), nodes.at(v)) || G.searchEdge(nodes.at(v), nodes.at(u)))) {
-            continue;
-        }*/
 
         if(nodes.at(u) == nullptr)
             nodes[u] = G.newNode(u);
@@ -63,10 +46,10 @@ void csvToGraph(string sEdgesFileName, Graph &G) {
         if(nodes[v] == nullptr)
             nodes[v] = G.newNode(v);
 
-
         G.newEdge(nodes[u], nodes[v], id);
     }
 }
+
 
 /**
  * Performs BFS to find the shortest path from s to t in graph G without using any edge from the forbidden edges.
@@ -89,7 +72,7 @@ List<edge> shortestPath(const Graph &G, const GraphColoring &coloring, node s, n
         v = Q.pop();
 
         if (v == t) {
-            // traceback predecessors and reconstruct path
+            // Traceback predecessors and reconstruct path
             for (node n = t; n != s; n = predecessor[n]) {
                 e = G.searchEdge(n, predecessor[n]); // Takes O(min(deg(v), deg(w))) (that's fast on sparse graphs)
                 if (coloring[e] != Color::RED)
@@ -99,9 +82,7 @@ List<edge> shortestPath(const Graph &G, const GraphColoring &coloring, node s, n
         }
 
         forall_adj_edges(e, v) {
-            // TODO: Use BST or array (id -> bool) to represent forbidden and fasten the following search? (Probably not
-            // necessary as forbidden size is bound by the constant m)
-            if (forbidden.search(e).valid()) continue;
+            if (forbidden.search(e).valid()) continue; // This is fast because m is a small constant
 
             u = e->opposite(v);
             if (!visited[u]) {
@@ -115,14 +96,9 @@ List<edge> shortestPath(const Graph &G, const GraphColoring &coloring, node s, n
     return path;
 }
 
-/**
- * @brief hideConnectedBlueSubgraph
- * @param G
- * @param coloring
- * @param u
- */
+
 void hideConnectedBlueSubgraph(Graph &G, const GraphColoring &coloring, node start) {
-    Queue<node> Q;
+    Queue<node> Q; // TODO: Use DFS to reduce memory needs?
     Q.append(start);
 
     NodeArray<bool> visited(G, false);
@@ -186,13 +162,14 @@ bool findPathToAnyBlueAndColorItBlue(const Graph &G, GraphColoring &coloring, no
     return false;
 }
 
+
 /**
  * @return bool True for successful reconnection, false otherwise
  */
 bool reconnectBlueSubgraph(Graph &G, const List<edge> &X, GraphColoring &coloring, node u, node v, edge c) {
     //  if u has blue adjacent edges (except of c) AND v has blue adjacent edges (exc. of c) then
     //     enumerate one blue subgraph, call it G_b1
-    //     create graph G_rest = G \ X \ G_r \ G_b1 and BFS in it until blue is found (use hideEdge!)
+    //     create graph G_rest = G \ X \ G_r \ G_b1 and BFS in it until blue is found
     //     (or BFS (avoid red and X) from u to first blue edge not in G_b1)
     //     -> path found, color it blue and continue
     //     -> path not found, fail here (return;)
@@ -240,7 +217,7 @@ bool reconnectBlueSubgraph(Graph &G, const List<edge> &X, GraphColoring &colorin
 
 
 void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring coloring, List<edge> X, node red, node blue) {
-    if (X.size() > m) return;
+    if (X.size() > cutSizeBound) return;
 
     // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X
     List<edge> D = shortestPath(G, coloring, red, blue, X);
@@ -253,7 +230,6 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
 
             List<edge> newX = X;
             newX.pushBack(c);
-
 
             // Coloring red-c path red, determining u and v, coloring the rest blue
             node n1 = red, n2 = blue, // after the first of the following for cycles these are the
@@ -305,6 +281,7 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
     }
 }
 
+
 /**
  * Returns edges spanning forest of (possibly disconnected) graph G
  * @param G
@@ -346,25 +323,29 @@ void CircuitCocircuit(Graph &G, List<List<edge>> &cocircuits) {
     }
 }
 
-// TODO: Read from stdin?
 int main(int argc, char* argv[])
 {
     if (argc != 3 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
         cout << "Usage: " << argv[0] << " <graph.csv> <cocircuit size bound>" << endl;
-        exit(1);
+        exit(2);
     }
 
-    string graphFile(argv[1]);
-    m = stoi(argv[2]);
-    if (m < 1) {
+    // TODO: Read from stdin
+    ifstream fEdges(argv[1]);
+    if (!fEdges.is_open()) {
+        cerr << "Edges file doesn't exist or could not be accessed. Terminating." << endl;
+        exit(3);
+    }
+
+    cutSizeBound = stoi(argv[2]);
+    if (cutSizeBound < 1) {
         cerr << "Cocircuit size bound lower than 1. Terminating." << endl;
-        exit(2);
+        exit(4);
     }
 
     try {
         Graph G;
-        csvToGraph(graphFile, G);
-
+        csvToGraph(fEdges, G);
 
         List<List<edge>> cocircuits;
         CircuitCocircuit(G, cocircuits);
@@ -372,7 +353,6 @@ int main(int argc, char* argv[])
         for(List<List<edge> >::iterator it = cocircuits.begin(); it != cocircuits.end(); ++it) {
             cout << *it << endl;
         }
-
 
     } catch (invalid_argument *e) {
         cerr << "Error: " << e->what() << endl;
