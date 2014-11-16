@@ -98,8 +98,8 @@ List<edge> shortestPath(const Graph &G, const GraphColoring &coloring, node s, n
 
 
 void hideConnectedBlueSubgraph(Graph &G, const GraphColoring &coloring, node start) {
-    Queue<node> Q; // TODO: Use DFS to reduce memory needs?
-    Q.append(start);
+    Stack<node> Q;
+    Q.push(start);
 
     NodeArray<bool> visited(G, false);
 
@@ -112,13 +112,14 @@ void hideConnectedBlueSubgraph(Graph &G, const GraphColoring &coloring, node sta
                 v = e->opposite(u);
                 if (!visited[v]) {
                     visited[v] = true;
-                    Q.append(v);
+                    Q.push(v);
                 }
                 G.hideEdge(e);
             }
         }
     }
 }
+
 
 bool findPathToAnyBlueAndColorItBlue(const Graph &G, GraphColoring &coloring, node start) {
     Queue<node> Q;
@@ -167,12 +168,13 @@ bool findPathToAnyBlueAndColorItBlue(const Graph &G, GraphColoring &coloring, no
  * @return bool True for successful reconnection, false otherwise
  */
 bool reconnectBlueSubgraph(Graph &G, const List<edge> &X, GraphColoring &coloring, node u, node v, edge c) {
-    //  if u has blue adjacent edges (except of c) AND v has blue adjacent edges (exc. of c) then
+    // if u has blue adjacent edges (except of c) AND v has blue adjacent edges (exc. of c) then
     //     enumerate one blue subgraph, call it G_b1
     //     create graph G_rest = G \ X \ G_r \ G_b1 and BFS in it until blue is found
     //     (or BFS (avoid red and X) from u to first blue edge not in G_b1)
     //     -> path found, color it blue and continue
     //     -> path not found, fail here (return;)
+    // else c is not a bridge, no disconnection happened, G_b stays connected
 
     G.hideEdge(c); // Don't consider c
 
@@ -208,8 +210,7 @@ bool reconnectBlueSubgraph(Graph &G, const List<edge> &X, GraphColoring &colorin
             return false;
         }
 
-
-    } // else c is just a branch with a single leaf, nothing happened G_b stays connected
+    }
 
     G.restoreAllEdges();
     return true;
@@ -267,7 +268,8 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
             }
 
 
-            // If c = (u, v) is blue, reconnect blue subgraph (find the shortest path from u to v using only nonred edges)
+            // If c = (u, v) is blue, reconnect blue subgraph if needed
+            // (if u and v are both blue then find the shortest path between them using only nonred edges)
             if (coloring[c] == Color::BLUE) {
                 if(!reconnectBlueSubgraph(G, X, coloring, u, v, c)) { // can't reconnect: fail
                     return;
