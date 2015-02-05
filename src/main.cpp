@@ -97,6 +97,12 @@ List<edge> shortestPath(const Graph &G, const GraphColoring &coloring, node s, n
 }
 
 
+/**
+ * @brief Runs DFS and hides everything which can be reached from start node and is blue
+ * @param G
+ * @param coloring
+ * @param start
+ */
 void hideConnectedBlueSubgraph(Graph &G, const GraphColoring &coloring, node start) {
     Stack<node> Q;
     Q.push(start);
@@ -217,6 +223,7 @@ bool reconnectBlueSubgraph(Graph &G, const List<edge> &X, GraphColoring &colorin
 }
 
 
+// TODO: pass graph coloring as reference (first colour whole D with blue and then recolor red one edge at a time)
 void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring coloring, List<edge> X, node red, node blue) {
     if (X.size() > cutSizeBound) return;
 
