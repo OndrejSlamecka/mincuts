@@ -24,7 +24,7 @@
 using namespace std;
 using namespace ogdf;
 
-int cutSizeBound; // Global variables are evil but this never changes...
+int cutSizeBound; // Global variables are evil but this one never changes...
 
 /**
  * Reads a csv file with lines "<id>;<source>;<target>;..." and transforms it into a graph
@@ -57,7 +57,7 @@ void csvToGraph(ifstream &fEdges, Graph &G) {
  */
 List<edge> shortestPath(const Graph &G, const GraphColoring &coloring, node s, node t, const List<edge> &forbidden) {
     List<edge> path;
-    node v, u;
+    node u, v;
     edge e;
 
     Queue<node> Q;
@@ -74,7 +74,7 @@ List<edge> shortestPath(const Graph &G, const GraphColoring &coloring, node s, n
         if (v == t) {
             // Traceback predecessors and reconstruct path
             for (node n = t; n != s; n = predecessor[n]) {
-                e = G.searchEdge(n, predecessor[n]); // Takes O(min(deg(v), deg(w))) (that's fast on sparse graphs)
+                e = G.searchEdge(n, predecessor[n]); // Takes O(min(deg(v), deg(w))) (that's fast on sparse graphs), but TODO: Use access edge vector
                 if (coloring[e] != Color::RED)
                     path.pushFront(e);
             }
@@ -134,34 +134,29 @@ bool findPathToAnyBlueAndColorItBlue(const Graph &G, GraphColoring &coloring, no
     NodeArray<bool> visited(G, false);
     NodeArray<edge> accessEdge(G);
 
-    node u, n;
+    node u, v;
     edge e;
     while(!Q.empty()) {
         u = Q.pop();
 
         if (coloring[u] == Color::BLUE && u != start) {
-            // reconstruct path and go on
-            edge ae;
-            node n1, n2;
-            for (n1 = u; n1 != start;) {
-                // TODO: Use search edge instead?
-                ae = accessEdge[n1];
-                n2 = ae->opposite(n1);
+            for (node n = u; n != start; n = v) {
+                e = accessEdge[n];
+                v = e->opposite(n);
 
-                coloring[n1] = Color::BLUE;
-                coloring[n2] = Color::BLUE;
-                coloring[ae] = Color::BLUE;
-                n1 = n2;
+                coloring[n] = Color::BLUE;
+                coloring[v] = Color::BLUE;
+                coloring[e] = Color::BLUE;
             }
             return true;
         }
 
         forall_adj_edges(e, u) {
-            n = e->opposite(u);
-            if (!visited[n]) {
-                visited[n] = true;
-                accessEdge[n] = e;
-                Q.append(n);
+            v = e->opposite(u);
+            if (!visited[v]) {
+                visited[v] = true;
+                accessEdge[v] = e;
+                Q.append(v);
             }
         }
     }
