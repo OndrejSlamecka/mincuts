@@ -24,30 +24,41 @@
 using namespace std;
 using namespace ogdf;
 
-int cutSizeBound; // Global variables are evil but this one never changes...
+// Global variables are evil but these two never change...
+int cutSizeBound;
+int components;
 
 /**
  * Reads a csv file with lines "<id>;<source>;<target>;..." and transforms it into a graph
  */
-void csvToGraph(ifstream &fEdges, Graph &G) {
-    vector<node> nodes;
-    unsigned int id, u, v;
+void csvToGraph(Graph &G, ifstream &fEdges) {
+    string line;
 
-    for (string line; getline(fEdges, line);) {
-        sscanf(line.c_str(), "%u;%u;%u;", &id, &u, &v);
+    int id, u, v;
+    int maxNodeId = 0;
+    for (; getline(fEdges, line);) {
+        sscanf(line.c_str(), "%d;%d;%d;", &id, &u, &v);
+        if (u > maxNodeId) maxNodeId = u;
+        if (v > maxNodeId) maxNodeId = v;
+    }
 
-        if (u > nodes.size() || v > nodes.size()) {
-            nodes.resize(max(u, v) + 1); // TODO: How to make this smarter?
-        }
+    fEdges.clear(); // This should not be needed in C++11 but as it seems it actually is needed
+    fEdges.seekg(0);
 
-        if(nodes.at(u) == nullptr)
+    vector<node> nodes(maxNodeId + 1);
+
+    for (; getline(fEdges, line);) {
+        sscanf(line.c_str(), "%d;%d;%d;", &id, &u, &v);
+
+        if(nodes[u] == nullptr)
             nodes[u] = G.newNode(u);
 
         if(nodes[v] == nullptr)
             nodes[v] = G.newNode(v);
 
         G.newEdge(nodes[u], nodes[v], id);
-    }
+    }        
+
 }
 
 
@@ -97,6 +108,12 @@ List<edge> shortestPath(const Graph &G, const GraphColoring &coloring, node s, n
 }
 
 
+/**
+ * @brief Runs DFS and hides everything which can be reached from start node and is blue
+ * @param G
+ * @param coloring
+ * @param start
+ */
 void hideConnectedBlueSubgraph(Graph &G, const GraphColoring &coloring, node start) {
     Stack<node> Q;
     Q.push(start);
@@ -212,16 +229,17 @@ bool reconnectBlueSubgraph(Graph &G, const List<edge> &X, GraphColoring &colorin
 }
 
 
-void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring coloring, List<edge> X, node red, node blue) {
-    if (X.size() > cutSizeBound) return;
+// TODO: pass graph coloring as reference (first colour whole D with blue and then recolor red one edge at a time)
+void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G, GraphColoring coloring, List<edge> X, node red, node blue) {
+    if (Y.size() + X.size() > cutSizeBound - components + j + 1) return;
 
-    // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X
-    List<edge> D = shortestPath(G, coloring, red, blue, X);
+    // Find set P = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X
+    List<edge> P = shortestPath(G, coloring, red, blue, X);
 
-    if (D.size() > 0) {
+    if (P.size() > 0) {
 
         // for each c ∈ D, recursively call GenCocircuits(X ∪ {c}).
-        for(List<edge>::iterator iterator = D.begin(); iterator != D.end(); iterator++) {
+        for(List<edge>::iterator iterator = P.begin(); iterator != P.end(); iterator++) {
             edge c = *iterator;
 
             List<edge> newX = X;
@@ -233,7 +251,7 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
                                       // initialized to red and blue since the first for can have 0 iterations
                  u, v; // c = (u,v), say u is red (and so will be all vertices on the path from the first red to u)
 
-            for(List<edge>::iterator j = D.begin(); j != iterator; j++) {
+            for(List<edge>::iterator j = P.begin(); j != iterator; j++) {
                 edge e = *j;
 
                 n1 = e->source();
@@ -254,7 +272,7 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
             v = c->opposite(u);
 
             // Color the rest of the path blue
-            for(List<edge>::iterator j = iterator.succ(); j != D.end(); j++) {
+            for(List<edge>::iterator j = iterator.succ(); j != P.end(); j++) {
                 edge e = *j;
 
                 coloring[e->source()] = Color::BLUE;
@@ -271,16 +289,19 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
                 }
             }
 
-            GenCocircuits(Cocircuits, G, coloring, newX, u, v);
+            GenStage(Y, j, bonds, G, coloring, newX, u, v);
         }
 
     } else {
-        // If there is no such circuit C above (line 4), then return ‘Cocircuit: X’.
-        Cocircuits.pushBack(X);
+        // If there is no such circuit C above (line 6), then return ‘Cocircuit: Y union X’.
+        List<edge> un(Y);
+        un.conc(X);
+        bonds.pushBack(un);
     }
 }
 
 
+// TODO: Define with spanningEdges as parameter passed by reference. Or maybe define own variant of isAcyclicUndirected which wouldn't need that set complement
 /**
  * Returns edges spanning forest of (possibly disconnected) graph G
  * @param G
@@ -306,11 +327,16 @@ List<edge> spanningEdges(const Graph &G) {
     return spanningEdges;
 }
 
-void CircuitCocircuit(Graph &G, List<List<edge>> &cocircuits) {
-    List<edge> base = spanningEdges(G);
+void EscalatedCircuitCocircuit(Graph &G, const List<edge> &Y, int j, List<List<edge>> &bonds) {
+    List<edge> D = spanningEdges(G); // D is an arbitrary matroid base; our D corresponds to F from the paper now
+
+    // Set D = E(F) \ Y
+    for(List<edge>::const_iterator i = Y.begin(); i != Y.end(); i++) {
+        D.removeFirst(*i); // del(iterator) is not defined for constant iterators
+    }
 
     edge e;
-    for(List<edge>::iterator i = base.begin(); i != base.end(); i++) {
+    for(List<edge>::iterator i = D.begin(); i != D.end(); i++) {
         e = *i;
         List<edge> X; // (Indexes might be sufficient? Check later)
         GraphColoring coloring(G);
@@ -318,14 +344,14 @@ void CircuitCocircuit(Graph &G, List<List<edge>> &cocircuits) {
         coloring[e->source()] = Color::RED;
         coloring[e->target()] = Color::BLUE;
 
-        GenCocircuits(cocircuits, G, coloring, X, e->source(), e->target());
+        GenStage(Y, j, bonds, G, coloring, X, e->source(), e->target());
     }
 }
 
 int main(int argc, char* argv[])
 {
-    if (argc != 3 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
-        cout << "Usage: " << argv[0] << " <graph.csv> <cocircuit size bound>" << endl;
+    if (argc != 4 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
+        cout << "Usage: " << argv[0] << " <graph.csv> <cocircuit size bound> <components>" << endl;
         exit(2);
     }
 
@@ -342,14 +368,35 @@ int main(int argc, char* argv[])
         exit(4);
     }
 
+    components = stoi(argv[3]);
+    if (cutSizeBound < 1) {
+        cerr << "Desired components number lower than 1. Terminating." << endl;
+        exit(5);
+    }
+
     try {
         Graph G;
-        csvToGraph(fEdges, G);
+        csvToGraph(G, fEdges);
 
-        List<List<edge>> cocircuits;
-        CircuitCocircuit(G, cocircuits);
+        List<List<edge>> bonds;
+        List<edge> Y; // In the first stage (j = 1) Y = {}
+        EscalatedCircuitCocircuit(G, Y, 1, bonds);
 
-        for(List<List<edge> >::iterator it = cocircuits.begin(); it != cocircuits.end(); ++it) {
+        List<List<edge>> jm1bonds, jbonds;
+        jm1bonds = bonds;
+
+        // The following works correctly only for j < 4 (as it accumulates bonds on one place and repeats the same procedure on already extended bonds)
+        for (int j = 2; j < components; ++j) {
+            for(List<List<edge> >::iterator it = jm1bonds.begin(); it != jm1bonds.end(); ++it) {
+                EscalatedCircuitCocircuit(G, *it, j, jbonds);
+            }
+            jm1bonds = jbonds;
+            jbonds.clear();
+        }
+
+        bonds = jm1bonds;
+
+        for(List<List<edge> >::iterator it = bonds.begin(); it != bonds.end(); ++it) {
             cout << *it << endl;
         }
 
