@@ -14,6 +14,7 @@ enum class Color {
 class GraphColoring
 {
     // TODO: Check whether map wouldn't be a better choice. (As these arrays might consume a lot of memory for uncolored vertices/edges)
+    // TODO: Maybe vertices are enough?
     NodeArray<Color> vertices;
     EdgeArray<Color> edges;
 

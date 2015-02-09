@@ -24,7 +24,9 @@
 using namespace std;
 using namespace ogdf;
 
-int cutSizeBound; // Global variables are evil but this one never changes...
+// Global variables are evil but these two never change...
+int cutSizeBound;
+int components;
 
 /**
  * Reads a csv file with lines "<id>;<source>;<target>;..." and transforms it into a graph
@@ -212,16 +214,16 @@ bool reconnectBlueSubgraph(Graph &G, const List<edge> &X, GraphColoring &colorin
 }
 
 
-void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring coloring, List<edge> X, node red, node blue) {
-    if (X.size() > cutSizeBound) return;
+void GenStage(List<edge> Y, int j, List<List<edge>> &Cocircuits, Graph &G, GraphColoring coloring, List<edge> X, node red, node blue) {
+    if (Y.size() + X.size() > cutSizeBound - components + j + 1) return;
 
     // Find set D = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X
-    List<edge> D = shortestPath(G, coloring, red, blue, X);
+    List<edge> P = shortestPath(G, coloring, red, blue, X);
 
-    if (D.size() > 0) {
+    if (P.size() > 0) {
 
         // for each c ∈ D, recursively call GenCocircuits(X ∪ {c}).
-        for(List<edge>::iterator iterator = D.begin(); iterator != D.end(); iterator++) {
+        for(List<edge>::iterator iterator = P.begin(); iterator != P.end(); iterator++) {
             edge c = *iterator;
 
             List<edge> newX = X;
@@ -233,7 +235,7 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
                                       // initialized to red and blue since the first for can have 0 iterations
                  u, v; // c = (u,v), say u is red (and so will be all vertices on the path from the first red to u)
 
-            for(List<edge>::iterator j = D.begin(); j != iterator; j++) {
+            for(List<edge>::iterator j = P.begin(); j != iterator; j++) {
                 edge e = *j;
 
                 n1 = e->source();
@@ -254,7 +256,7 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
             v = c->opposite(u);
 
             // Color the rest of the path blue
-            for(List<edge>::iterator j = iterator.succ(); j != D.end(); j++) {
+            for(List<edge>::iterator j = iterator.succ(); j != P.end(); j++) {
                 edge e = *j;
 
                 coloring[e->source()] = Color::BLUE;
@@ -271,7 +273,7 @@ void GenCocircuits(List<List<edge>> &Cocircuits, Graph &G, GraphColoring colorin
                 }
             }
 
-            GenCocircuits(Cocircuits, G, coloring, newX, u, v);
+            GenStage(Y, j, Cocircuits, G, coloring, newX, u, v);
         }
 
     } else {
@@ -306,7 +308,7 @@ List<edge> spanningEdges(const Graph &G) {
     return spanningEdges;
 }
 
-void CircuitCocircuit(Graph &G, List<List<edge>> &cocircuits) {
+void EscalatedCircuitCocircuit(Graph &G, int j, List<edge> Y, List<List<edge>> &cocircuits) {
     List<edge> base = spanningEdges(G);
 
     edge e;
@@ -318,14 +320,14 @@ void CircuitCocircuit(Graph &G, List<List<edge>> &cocircuits) {
         coloring[e->source()] = Color::RED;
         coloring[e->target()] = Color::BLUE;
 
-        GenCocircuits(cocircuits, G, coloring, X, e->source(), e->target());
+        GenStage(Y, j, cocircuits, G, coloring, X, e->source(), e->target());
     }
 }
 
 int main(int argc, char* argv[])
 {
-    if (argc != 3 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
-        cout << "Usage: " << argv[0] << " <graph.csv> <cocircuit size bound>" << endl;
+    if (argc != 4 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
+        cout << "Usage: " << argv[0] << " <graph.csv> <cocircuit size bound> <components>" << endl;
         exit(2);
     }
 
@@ -342,12 +344,19 @@ int main(int argc, char* argv[])
         exit(4);
     }
 
+    components = stoi(argv[3]);
+    if (cutSizeBound < 1) {
+        cerr << "Desired components number lower than 1. Terminating." << endl;
+        exit(5);
+    }
+
     try {
         Graph G;
         csvToGraph(fEdges, G);
 
         List<List<edge>> cocircuits;
-        CircuitCocircuit(G, cocircuits);
+        List<edge> Y; // In the first stage (j = 1) Y = {}
+        EscalatedCircuitCocircuit(G, 1, Y, cocircuits);
 
         for(List<List<edge> >::iterator it = cocircuits.begin(); it != cocircuits.end(); ++it) {
             cout << *it << endl;
