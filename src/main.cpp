@@ -235,7 +235,17 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G, Gra
     // Find set P = (a short circuit C in G, s. t. |C ∩ X| = 1) \ X
     List<edge> P = shortestPath(G, coloring, red, blue, X);
 
+
     if (P.size() > 0) {
+
+        // Color the path blue
+        for(List<edge>::iterator iterator = P.begin(); iterator != P.end(); iterator++) {
+            edge e = *iterator;
+
+            coloring[e->source()] = Color::BLUE;
+            coloring[e->target()] = Color::BLUE;
+            coloring[e] = Color::BLUE;
+        }
 
         // for each c ∈ D, recursively call GenCocircuits(X ∪ {c}).
         for(List<edge>::iterator iterator = P.begin(); iterator != P.end(); iterator++) {
@@ -243,6 +253,7 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G, Gra
 
             List<edge> newX = X;
             newX.pushBack(c);
+            coloring[c] = Color::BLACK;
 
             // Coloring red-c path red, determining u and v, coloring the rest blue
             node n1 = red, n2 = blue, // after the first of the following for cycles these are the
@@ -250,6 +261,7 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G, Gra
                                       // initialized to red and blue since the first for can have 0 iterations
                  u, v; // c = (u,v), say u is red (and so will be all vertices on the path from the first red to u)
 
+            // the following could be replaced by just coloring[previous c] and u determined by comparing previous c target/src with current c target/src
             for(List<edge>::iterator j = P.begin(); j != iterator; j++) {
                 edge e = *j;
 
@@ -271,13 +283,13 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G, Gra
             v = c->opposite(u);
 
             // Color the rest of the path blue
-            for(List<edge>::iterator j = iterator.succ(); j != P.end(); j++) {
+            /*for(List<edge>::iterator j = iterator.succ(); j != P.end(); j++) {
                 edge e = *j;
 
                 coloring[e->source()] = Color::BLUE;
                 coloring[e->target()] = Color::BLUE;
                 coloring[e] = Color::BLUE;
-            }
+            }*/
 
 
             // If c = (u, v) is blue, reconnect blue subgraph if needed
@@ -381,7 +393,7 @@ int main(int argc, char* argv[])
         List<edge> Y; // In the first stage (j = 1) Y = {}
         EscalatedCircuitCocircuit(G, Y, 1, bonds);
 
-        List<List<edge>> jm1bonds, jbonds;
+      /*  List<List<edge>> jm1bonds, jbonds;
         jm1bonds = bonds;
 
         // The following works correctly only for j < 4 (as it accumulates bonds on one place and repeats the same procedure on already extended bonds)
@@ -394,7 +406,7 @@ int main(int argc, char* argv[])
         }
 
         bonds = jm1bonds;
-
+*/
         for(List<List<edge> >::iterator it = bonds.begin(); it != bonds.end(); ++it) {
             cout << *it << endl;
         }
