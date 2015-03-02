@@ -228,16 +228,16 @@ bool reconnectBlueSubgraph(Graph &G, const List<edge> &X, GraphColoring &colorin
     return true;
 }
 
-// TODO: pass graph coloring as reference (first colour whole D with blue and then recolor red one edge at a time)
-void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G, GraphColoring coloring, List<edge> X, node red, node blue) {
-    if (Y.size() + X.size() > cutSizeBound - components + j + 1) return;
+void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G, GraphColoring &coloring, List<edge> X, node red, node blue) {
+    //if (Y.size() + X.size() > cutSizeBound - components + j + 1) return;
+    if (Y.size() + X.size() > cutSizeBound) return;
+
 
     List<edge> Ycopy(Y);
     List<edge> XY(X); XY.conc(Ycopy); // Few parts require not having X and Y in the graph
 
     // Find set P = (a short circuit C in G1, s. t. |C ∩ X| = 1) \ X, G1 is G - Y
     List<edge> P = shortestPath(G, coloring, red, blue, XY);
-
 
     if (P.size() > 0) {
 
@@ -285,16 +285,6 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G, Gra
 
             v = c->opposite(u);
 
-            // Color the rest of the path blue
-            /*for(List<edge>::iterator j = iterator.succ(); j != P.end(); j++) {
-                edge e = *j;
-
-                coloring[e->source()] = Color::BLUE;
-                coloring[e->target()] = Color::BLUE;
-                coloring[e] = Color::BLUE;
-            }*/
-
-
             // If c = (u, v) is blue, reconnect blue subgraph if needed
             // (if u and v are both blue then find the shortest path between them using only nonred edges)
             if (coloring[c] == Color::BLUE) {
@@ -306,13 +296,21 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G, Gra
             GenStage(Y, j, bonds, G, coloring, newX, u, v);
         }
 
+        // Recolor to black what we colored red/blue so that the original coloring is used in the recursion level above
+        for(List<edge>::iterator iterator = P.begin(); iterator != P.end(); iterator++) {
+            edge e = *iterator;
+
+            coloring[e->source()] = Color::BLACK;
+            coloring[e->target()] = Color::BLACK;
+            coloring[e] = Color::BLACK;
+        }
+
     } else {
         // If there is no such path P above (line 6), then return ‘(j + 1) bond: Y union X’.
-        List<edge> un(Y);
-        un.conc(X);
-        bonds.pushBack(un);
+        bonds.pushBack(XY);
     }
 }
+
 
 
 // TODO: Define with spanningEdges as parameter passed by reference. Or maybe define own variant of isAcyclicUndirected which wouldn't need that set complement
@@ -405,20 +403,6 @@ int main(int argc, char* argv[])
         List<List<edge>> bonds;
         List<edge> Y; // In the first stage (j = 1) Y = {}
         EscalatedCircuitCocircuit(G, Y, 1, bonds);
-/*
-      List<List<edge>> jm1bonds, jbonds;
-        jm1bonds = bonds;
-
-        // The following works correctly only for j < 4 (as it accumulates bonds on one place and repeats the same procedure on already extended bonds)
-        for (int j = 2; j < components; ++j) {            
-            for(List<List<edge> >::iterator it = jm1bonds.begin(); it != jm1bonds.end(); ++it) {
-                EscalatedCircuitCocircuit(G, *it, j, jbonds);
-            }
-            jm1bonds = jbonds;
-            jbonds.clear();
-        }
-
-        bonds = jm1bonds;*/
 
         for(List<List<edge> >::iterator it = bonds.begin(); it != bonds.end(); ++it) {
             cout << *it << endl;
