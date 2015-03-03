@@ -29,40 +29,6 @@ int cutSizeBound;
 int components;
 
 /**
- * Reads a csv file with lines "<id>;<source>;<target>;..." and transforms it into a graph
- */
-void csvToGraph(Graph &G, ifstream &fEdges) {
-    string line;
-
-    int id, u, v;
-    int maxNodeId = 0;
-    for (; getline(fEdges, line);) {
-        sscanf(line.c_str(), "%d;%d;%d;", &id, &u, &v);
-        if (u > maxNodeId) maxNodeId = u;
-        if (v > maxNodeId) maxNodeId = v;
-    }
-
-    fEdges.clear(); // This should not be needed in C++11 but as it seems it actually is needed
-    fEdges.seekg(0);
-
-    vector<node> nodes(maxNodeId + 1);
-
-    for (; getline(fEdges, line);) {
-        sscanf(line.c_str(), "%d;%d;%d;", &id, &u, &v);
-
-        if(nodes[u] == nullptr)
-            nodes[u] = G.newNode(u);
-
-        if(nodes[v] == nullptr)
-            nodes[v] = G.newNode(v);
-
-        G.newEdge(nodes[u], nodes[v], id);
-    }
-
-}
-
-
-/**
  * Performs BFS to find the shortest path from s to t in graph G without using any edge from the forbidden edges.
  * Returns empty set if no such path exists.
  */
@@ -377,7 +343,6 @@ int main(int argc, char* argv[])
         exit(2);
     }
 
-    // TODO: Read from stdin
     ifstream fEdges(argv[1]);
     if (!fEdges.is_open()) {
         cerr << "Edges file doesn't exist or could not be accessed. Terminating." << endl;
@@ -391,7 +356,7 @@ int main(int argc, char* argv[])
     }
 
     components = stoi(argv[3]);
-    if (cutSizeBound < 1) {
+    if (components < 1) {
         cerr << "Desired components number lower than 1. Terminating." << endl;
         exit(5);
     }

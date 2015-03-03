@@ -1,18 +1,53 @@
 #ifndef HELPERS_HPP
 #define HELPERS_HPP
 
-#include <ogdf/basic/Graph.h>
 #include <sstream>
+#include <ogdf/basic/Graph.h>
 #include "graphcoloring.h"
 
 using namespace ogdf;
 using namespace std;
 
+/**
+ * Reads a csv file with lines "<id>;<source>;<target>;..." and transforms it into a graph
+ */
+void csvToGraph(Graph &G, ifstream &fEdges) {
+    string line;
+
+    int id, u, v;
+    int maxNodeId = 0;
+    for (; getline(fEdges, line);) {
+        sscanf(line.c_str(), "%d;%d;%d;", &id, &u, &v);
+        if (u > maxNodeId) maxNodeId = u;
+        if (v > maxNodeId) maxNodeId = v;
+    }
+
+    fEdges.clear(); // This should not be needed in C++11 but as it seems it actually is needed
+    fEdges.seekg(0);
+
+    vector<node> nodes(maxNodeId + 1);
+
+    for (; getline(fEdges, line);) {
+        sscanf(line.c_str(), "%d;%d;%d;", &id, &u, &v);
+
+        if(nodes[u] == nullptr)
+            nodes[u] = G.newNode(u);
+
+        if(nodes[v] == nullptr)
+            nodes[v] = G.newNode(v);
+
+        G.newEdge(nodes[u], nodes[v], id);
+    }
+
+}
+
 std::ostream & operator<<(std::ostream &os, const List<edge>& L)
 {
-    for(List<edge>::const_iterator i = L.begin(); i != L.end(); i++) {
-        os << (*i)->index() << "(" << (*i)->source() << "," << (*i)->target() << ")";
-        if (*i != L.back()) os << ",";
+    int i = 0, ls = L.size();
+    for(auto e : L) {
+        os << e->index() << "(" << e->source() << "," << e->target() << ")";
+        if (i < ls - 1) os << ","; // This doesn't work if I have to same edges in a list,... TODO
+        i++;
     }
     return os;
 }

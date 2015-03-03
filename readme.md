@@ -5,6 +5,21 @@ Installation
 * Install OGDF Snapshot 2014-03-07 into `~/ogdf`
 * Run `make`
 
+
+TODO: Completness check against all combinations
+-----------
+
+Let %=% be an equiv. relation s.t. a %=% b <=> #components(G\a) = #components(G\b).
+Let C = <cuts \subseteq combinations> and C_j be the class of %=% with index j.
+Let K = cuts gen. by my mincuts implementation, K_j --||--.
+
+for j in range(1,k):
+	for each c in C_j:
+		if some permutation* of some subset of c is contained: it's ok
+		if not: report trouble
+
+(* don't check all permutations, just order the result by edge index)
+
 Tools
 -----
 
