@@ -3,7 +3,10 @@
 
 #include <sstream>
 #include <ogdf/basic/Graph.h>
+#include <ogdf/basic/simple_graph_alg.h>
 #include "graphcoloring.h"
+
+#include <set> // TODO: Not necessary, remove
 
 using namespace ogdf;
 using namespace std;
@@ -41,12 +44,22 @@ void csvToGraph(Graph &G, ifstream &fEdges) {
 
 }
 
+std::ostream & operator<<(std::ostream &os, const set<edge>& S){
+    int i = 0, ss = S.size();
+    for(auto e : S) {
+        os << e->index(); // << "(" << e->source() << "," << e->target() << ")";
+        if (i < ss - 1) os << ",";
+        i++;
+    }
+    return os;
+}
+
 std::ostream & operator<<(std::ostream &os, const List<edge>& L)
 {
     int i = 0, ls = L.size();
     for(auto e : L) {
-        os << e->index() << "(" << e->source() << "," << e->target() << ")";
-        if (i < ls - 1) os << ","; // This doesn't work if I have to same edges in a list,... TODO
+        os << e->index(); //<< "(" << e->source() << "," << e->target() << ")";
+        if (i < ls - 1) os << ",";
         i++;
     }
     return os;
@@ -102,6 +115,23 @@ edge edgeByIndex(const List<edge> &edges, int index) {
     return nullptr;
 }
 
+List<edge> indiciesToEdges(const Graph &G, List<int> indicies) {
+    List<edge> ret; // Resulting list
+    List<edge> allEdges;
+    G.allEdges(allEdges);
+    for(int i : indicies) {
+        edge e;
+        for (edge f : allEdges) {
+            if (f->index() == i)
+                e = f;
+        }
+
+        ret.pushBack(e);
+    }
+
+    return ret;
+}
+
 
 /**
  * Helper function to determine whether given set of edges really is a cut
@@ -118,20 +148,36 @@ bool isCut(Graph &G, const List<edge> &cut) {
 }
 
 /**
- * Helper function todetermine whether given set of edges really is a minimal cut
+ * Helper function todetermine whether given set of edges really is a minimal cut, w.r.t. # of components of G\cut
+ * Returns 0 on success, -1 if # of components is 1. Otherwise, the # of components of G\cut
  */
-bool isMinCut(Graph &G, const List<edge> &cut) {
+int isMinCut(Graph &G, const List<edge> &cut) {
     // try to subtract each edge from the cut and test the rest with isCut
 
+    NodeArray<int> component(G);
+
     for(auto e : cut) {
-        List<edge> smallerCut = cut;
-        ListIterator<edge> it = smallerCut.search(e);
-        smallerCut.del(it);
-        if(!isCut(G, smallerCut))
-            return false;
+        G.hideEdge(e);
+    }
+    int ncomponents = connectedComponents(G, component);
+
+	if (ncomponents == 1) return -1;
+
+    for(auto e : cut) {        
+        G.restoreEdge(e);
+
+        // Count # of components of smaller cut
+        int nSmallerCutComponents = connectedComponents(G, component);        
+
+        // If numbers of components is the same and it's still a cut then obviously the original cut was not minimal
+        if(nSmallerCutComponents == ncomponents) {
+            G.hideEdge(e);
+            return ncomponents;
+        }
+        G.hideEdge(e);
     }
 
-    return true;
+    return 0;
 }
 
 

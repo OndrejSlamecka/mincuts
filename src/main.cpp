@@ -16,10 +16,13 @@
 #include <ogdf/basic/Queue.h>
 #include <ogdf/basic/Graph.h>
 #include <ogdf/basic/Stack.h>
+#include <ogdf/basic/BinaryHeap2.h>
 #include <ogdf/basic/simple_graph_alg.h>
 
 #include "helpers.hpp"
 #include "graphcoloring.h"
+
+#include <set> // TODO: Remove, not necessary generally
 
 using namespace std;
 using namespace ogdf;
@@ -198,7 +201,6 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G, Gra
     //if (Y.size() + X.size() > cutSizeBound - components + j + 1) return;
     if (Y.size() + X.size() > cutSizeBound) return;
 
-
     List<edge> Ycopy(Y);
     List<edge> XY(X); XY.conc(Ycopy); // Few parts require not having X and Y in the graph
 
@@ -220,6 +222,9 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G, Gra
         for(List<edge>::iterator iterator = P.begin(); iterator != P.end(); iterator++) {
             edge c = *iterator;
 
+            if (!X.empty() && X.back()->index() > c->index()) // Cannonical, informal, bullet one
+                continue;
+
             List<edge> newX = X;
             newX.pushBack(c);
             coloring[c] = Color::BLACK;
@@ -231,8 +236,8 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G, Gra
                  u, v; // c = (u,v), say u is red (and so will be all vertices on the path from the first red to u)
 
             // the following could be replaced by just coloring[previous c] and u determined by comparing previous c target/src with current c target/src
-            for(List<edge>::iterator j = P.begin(); j != iterator; j++) {
-                edge e = *j;
+            for(List<edge>::iterator it2 = P.begin(); it2 != iterator; ++it2) {
+                edge e = *it2;
 
                 n1 = e->source();
                 n2 = e->target();
@@ -278,46 +283,80 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G, Gra
 }
 
 
+// This is basically a copy of code from OGDF but with few simplifications
 
-// TODO: Define with spanningEdges as parameter passed by reference. Or maybe define own variant of isAcyclicUndirected which wouldn't need that set complement
-/**
- * Returns edges spanning forest of (possibly disconnected) graph G
- * @param G
- */
-List<edge> spanningEdges(const Graph &G) {
-    EdgeArray<bool> isBackedge(G, false);
+void minimalSpanningTree(const node start, BinaryHeap2<int, node> &pq,
+                         NodeArray<int> &pqpos, NodeArray<edge> &pred, NodeArray<bool> &processed) {
 
-    List<edge> backedges;
-    isAcyclicUndirected(G, backedges);
+    // insert start node
+    int tmp(0);
+    pq.insert(start, tmp, &pqpos[start]);
 
-    for(List<edge>::iterator i = backedges.begin(); i != backedges.end(); i++) {
-        isBackedge[*i] = true;
-    }
+    // extract the nodes again along a minimum ST
+    while (!pq.empty()) {
+        const node v = pq.extractMin();
+        processed[v] = true;
+        for (adjEntry adj = v->firstAdj(); adj; adj = adj->succ()) {
+            const node w = adj->twinNode();
+            const edge e = adj->theEdge();
+            const int wPos = pqpos[w];
+            if (wPos == -1) {
+                tmp = e->index();
+                pq.insert(w, tmp, &pqpos[w]);
 
-    List<edge> spanningEdges;
-    edge e;
-    forall_edges(e, G) {
-        if (!isBackedge[e]) {
-            spanningEdges.pushBack(e);
+                pred[w] = e;
+            } else if (!processed[w]
+                    && e->index() < pq.getPriority(wPos)) {
+                pq.decreaseKey(wPos, e->index());
+                pred[w] = e;
+            }
         }
     }
 
-    return spanningEdges;
+}
+
+void minimalSpanningForest(const Graph &G, List<edge> &edges)
+{    
+    // TODO: First line of the algorithm as described in the paper
+    // selects here spanning forest of k-1 trees. So pick first
+    // n - k - 1 (?) edges here
+
+    BinaryHeap2<int, node> pq(G.numberOfNodes()); // priority queue of front vertices
+    NodeArray<int> pqpos(G, -1); // position of each node in pq
+    NodeArray<edge> pred(G);
+    pred.init(G, NULL);
+
+    NodeArray<bool> processed(G, false);
+
+    int rootcount = 0;
+    for (node v = G.firstNode(); v; v = v->succ()) {
+        if (!pred[v]) {
+            ++rootcount;            
+            minimalSpanningTree(v, pq, pqpos, pred, processed);
+        } else {
+            edges.pushBack(pred[v]);
+        }
+    }    
 }
 
 void EscalatedCircuitCocircuit(Graph &G, const List<edge> &Y, int j, List<List<edge>> &bonds) {
-    List<edge> D = spanningEdges(G); // D is an arbitrary matroid base; our D corresponds to F from the paper now
+    List<edge> D;
 
-    // Set D = E(F) \ Y
-    for(List<edge>::const_iterator i = Y.begin(); i != Y.end(); i++) {
-        D.removeFirst(*i); // del(iterator) is not defined for constant iterators
-    }
+    for(edge e : Y) G.hideEdge(e);
+    minimalSpanningForest(G, D); // D is an arbitrary matroid base; our D corresponds to F from the paper now
+    for(edge e : Y) G.restoreEdge(e);
+
+    // Set D = E(F) \ Y... but it's already done, we've already forbidden Y
 
     List<List<edge>> stageBonds;
 
     edge e;
     for(List<edge>::iterator i = D.begin(); i != D.end(); i++) {
         e = *i;
+
+        if (!Y.empty() && Y.back()->index() > e->index()) // Cannonical, informal, bullet one
+            continue;
+
         List<edge> X; // (Indexes might be sufficient? Check later)
         GraphColoring coloring(G);
         X.pushBack(e);
@@ -339,7 +378,7 @@ void EscalatedCircuitCocircuit(Graph &G, const List<edge> &Y, int j, List<List<e
 int main(int argc, char* argv[])
 {
     if (argc != 4 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
-        cout << "Usage: " << argv[0] << " <graph.csv> <cocircuit size bound> <components>" << endl;
+        cout << "Usage: " << argv[0] << " <graph.csv> [<cocircuit size bound> <components>] [--ismincut, -imc <comma separated list of edge indicies>]" << endl;
         exit(2);
     }
 
@@ -349,28 +388,75 @@ int main(int argc, char* argv[])
         exit(3);
     }
 
-    cutSizeBound = stoi(argv[2]);
-    if (cutSizeBound < 1) {
-        cerr << "Cocircuit size bound lower than 1. Terminating." << endl;
-        exit(4);
-    }
+    int action = 0; // 0 for mincuts computation, 1 for ismincut, 2 for cut components
+    List<int> indicies;
 
-    components = stoi(argv[3]);
-    if (components < 1) {
-        cerr << "Desired components number lower than 1. Terminating." << endl;
-        exit(5);
+    // TODO: Some checks to warn user of wrong inputs
+    string thirdArg = argv[2];
+    if (thirdArg == "--ismincut" || thirdArg == "-imc" || thirdArg == "-cc") {
+        action = 1;
+        if (thirdArg == "-cc") action = 2;
+
+        stringstream ss(argv[3]);
+        string item;
+        while (getline(ss, item, ',')) {
+            indicies.pushBack(stoi(item));
+        }
+    } else {
+        cutSizeBound = stoi(argv[2]);
+        components = stoi(argv[3]);
     }
 
     try {
         Graph G;
         csvToGraph(G, fEdges);
 
-        List<List<edge>> bonds;
-        List<edge> Y; // In the first stage (j = 1) Y = {}
-        EscalatedCircuitCocircuit(G, Y, 1, bonds);
+        if (action == 1) {
+            List<edge> edges = indiciesToEdges(G, indicies);
+            int n = isMinCut(G, edges);
+            if (n == 0) {
+                cout << "true" << endl;
+            } else if (n == -1) {
+                cout << "false, not a cut! " << endl;
+            } else {
+                cout << "false, # of components: " << n << endl;
+            }
+        } else if (action == 2){
+            List<edge> edges = indiciesToEdges(G, indicies);
+            NodeArray<int> component(G);
 
-        for(List<List<edge> >::iterator it = bonds.begin(); it != bonds.end(); ++it) {
-            cout << *it << endl;
+            for(auto e : edges) {
+                G.hideEdge(e);
+            }
+            int ncomponents = connectedComponents(G, component);
+            G.restoreAllEdges();
+
+            cout << ncomponents << endl;
+        } else {
+            List<List<edge>> bonds;
+            List<edge> Y; // In the first stage (j = 1) Y = {}
+            EscalatedCircuitCocircuit(G, Y, 1, bonds);
+
+            // Cannonization
+
+            set<set<edge>> set_bonds;
+            for(List<List<edge> >::iterator it = bonds.begin(); it != bonds.end(); ++it) {
+                set<edge> bond;
+
+                for(edge e : *it) {
+                    bond.insert(e);
+                }
+                set_bonds.insert(bond);
+            }
+
+            for(auto s : set_bonds) {
+                cout << s << endl;
+            }
+
+
+            /*for(List<List<edge> >::iterator it = bonds.begin(); it != bonds.end(); ++it) {
+                cout << *it << endl;
+            }*/
         }
 
     } catch (invalid_argument *e) {

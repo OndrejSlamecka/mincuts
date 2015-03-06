@@ -10,4 +10,4 @@ main: src/graphcoloring.cpp src/main.cpp
 	g++ $(flags) $(ogdf) src/graphcoloring.cpp src/main.cpp -o build/mincuts $(links)
 
 bruteforce: src/bruteforce.cpp
-	g++ $(flags) $(ogdf) src/bruteforce.cpp -o build/bruteforce -g $(links)
+	g++ $(flags) $(ogdf) src/bruteforce.cpp -o build/bruteforce $(links)

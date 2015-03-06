@@ -20,6 +20,15 @@ for j in range(1,k):
 
 (* don't check all permutations, just order the result by edge index)
 
+
+Notes to cannonical generation implementation
+---------------------------------------------
+
+Assumptions:
+* Each cut X is ordered w.r.t. edge indicies, thus (12,15,17) (while (15,12) is not correct)
+
+
+
 Tools
 -----
 
