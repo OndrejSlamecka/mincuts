@@ -6,8 +6,10 @@ for i in {1..5000}
 do
 	R=$[ 1 + $[ RANDOM % LINES ]]
 	CUT=$(cat $2 | awk "FNR == $R")
-	IS=$(./build/mincuts $1 -imc $CUT)
+	CMD="./build/mincuts $1 -imc $CUT"
+	IS=$($CMD)
 	if [ "$IS" != "true" ]; then
+		echo $CMD
 		echo $CUT
 		echo $IS
 		break

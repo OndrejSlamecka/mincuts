@@ -42,12 +42,13 @@ Converts from `ClosureSim` output format to `mincuts` format.
 
 Splits `mincuts` results file by cut size.
 
-**canonicalize**
+**cutdiff**
 
-Work only with cuts of size 2.
+Performs set difference on sets of cuts. If ~ is passed as a second parameter then it prints set out A\{} = A (so if file A contains permutations of some cut only one representant of the cut will be printed).
 
-	./tools/canonicalize.py < temp/myop/zlin_2bySize/2
-
+	Usage: ./build/cutdiff <file A with cuts> [<file B with cuts> | ~]
+	Output: Set difference A\B. Each cut of A and B is considered a set. '~' can be used to use empty set instead of second file
+	Expected file format: lines of edge indicies separated by commas (e.g. 1,2,3)
 
 -----------------------
 
