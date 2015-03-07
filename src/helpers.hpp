@@ -84,22 +84,26 @@ string nameColor(Color c) {
     }
 }
 
-void printColoring(const Graph &G, const GraphColoring &c) {
+string coloring2str(const Graph &G, const GraphColoring &c) {
+    stringstream s;
+
     node n;
 
-    cout << "Nodes: ";
+    s << "Nodes: ";
     forall_nodes(n, G) {
-        cout << n->index() << " is " << nameColor(c[n]) << "; ";
+        s << n->index() << " is " << nameColor(c[n]) << "; ";
     }
-    cout << endl;
+    s << endl;
 
     edge e;
 
-    cout << "Edges: ";
+    s << "Edges: ";
     forall_edges(e, G) {
-        cout << e->index() << " is " << nameColor(c[e]) << "; ";
+        s << e->index() << " is " << nameColor(c[e]) << "; ";
     }
-    cout << endl;
+    s << endl;
+
+    return s.str();
 }
 
 /*void printColoring(Graph &G)
@@ -115,8 +119,7 @@ edge edgeByIndex(const List<edge> &edges, int index) {
     return nullptr;
 }
 
-List<edge> indiciesToEdges(const Graph &G, List<int> indicies) {
-    List<edge> ret; // Resulting list
+void indicies2edges(const Graph &G, List<int> indicies, List<edge> &edges) {
     List<edge> allEdges;
     G.allEdges(allEdges);
     for(int i : indicies) {
@@ -126,10 +129,8 @@ List<edge> indiciesToEdges(const Graph &G, List<int> indicies) {
                 e = f;
         }
 
-        ret.pushBack(e);
+        edges.pushBack(e);
     }
-
-    return ret;
 }
 
 
@@ -163,11 +164,11 @@ int isMinCut(Graph &G, const List<edge> &cut) {
 
 	if (ncomponents == 1) return -1;
 
-    for(auto e : cut) {        
+    for(auto e : cut) {
         G.restoreEdge(e);
 
         // Count # of components of smaller cut
-        int nSmallerCutComponents = connectedComponents(G, component);        
+        int nSmallerCutComponents = connectedComponents(G, component);
 
         // If numbers of components is the same and it's still a cut then obviously the original cut was not minimal
         if(nSmallerCutComponents == ncomponents) {

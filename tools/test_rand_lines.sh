@@ -2,11 +2,19 @@
 
 LINES=$(wc -l $2 | awk '{print $1}')
 
+AWK_CMD=""
 for i in {1..5000}
 do
 	R=$[ 1 + $[ RANDOM % LINES ]]
-	CUT=$(cat $2 | awk "FNR == $R")
-	CMD="./build/mincuts $1 -imc $CUT"
+	AWK_CMD="FNR == $R || $AWK_CMD"
+done
+
+AWK_CMD=${AWK_CMD:0:-3}
+CUTS=$(cat $2 | awk "$AWK_CMD")
+
+for CUT in $CUTS
+do
+	CMD="./build/cutcheck $1 -imc $CUT"
 	IS=$($CMD)
 	if [ "$IS" != "true" ]; then
 		echo $CMD
@@ -18,4 +26,5 @@ do
 	fi
 done
 
+echo ""
 echo "DONE, nothing but dots above means OK"

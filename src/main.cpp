@@ -32,48 +32,53 @@ int cutSizeBound;
 int components;
 
 /**
- * Performs BFS to find the shortest path from s to t in graph G without using any edge from the forbidden edges.
- * Returns empty set if no such path exists.
+ * Performs BFS to find the shortest path from s to t in graph G without using any edge from the forbidden edges. 
+ *
  */
-List<edge> shortestPath(const Graph &G, const GraphColoring &coloring, node s, node t, const List<edge> &forbidden) {
-    List<edge> path;
+void shortestPath(const Graph &G, const GraphColoring &coloring, node s, node t,
+                        const List<edge> &forbidden, node &lastRed, List<edge> &path) {
     node u, v;
     edge e;
 
     Queue<node> Q;
 
-    NodeArray<bool> visited(G, false);
-    NodeArray<node> predecessor(G);
+    NodeArray<bool> visited(G, false);    
+    NodeArray<edge> accessEdge(G);
 
     Q.append(s);
     visited[s] = true;
 
     while(!Q.empty()) {
-        v = Q.pop();
+        u = Q.pop();
 
-        if (v == t) {
-            // Traceback predecessors and reconstruct path
-            for (node n = t; n != s; n = predecessor[n]) {
-                e = G.searchEdge(n, predecessor[n]); // Takes O(min(deg(v), deg(w))) (that's fast on sparse graphs), but TODO: Use access edge vector
-                if (coloring[e] != Color::RED)
-                    path.pushFront(e);
+        if (u == t) {
+            lastRed = s;
+            for (node n = t; n != s; n = v) {
+                e = accessEdge[n];
+                v = e->opposite(n);
+
+                if (coloring[n] == Color::RED) {
+                    // In reverse direction it is first red
+                    lastRed = n;
+                    break;
+                }
+
+                path.pushFront(e);
             }
             break;
         }
 
-        forall_adj_edges(e, v) {
+        forall_adj_edges(e, u) {
             if (forbidden.search(e).valid()) continue; // This is fast because m is a small constant
 
-            u = e->opposite(v);
-            if (!visited[u]) {
-                predecessor[u] = v;
-                visited[u] = true;
-                Q.append(u);
+            v = e->opposite(u);
+            if (!visited[v]) {
+                accessEdge[v] = e;
+                visited[v] = true;
+                Q.append(v);
             }
         }
     }
-
-    return path;
 }
 
 
@@ -124,6 +129,12 @@ bool findPathToAnyBlueAndColorItBlue(const Graph &G, GraphColoring &coloring, no
                 e = accessEdge[n];
                 v = e->opposite(n);
 
+#ifdef DEBUG
+                if(coloring[n] == Color::RED || coloring[v] == Color::RED) {// FIX IT
+                    throw logic_error("Red node in findPathToAnyblueAndColorItBlue");
+                }
+#endif
+
                 coloring[n] = Color::BLUE;
                 coloring[v] = Color::BLUE;
                 coloring[e] = Color::BLUE;
@@ -148,7 +159,9 @@ bool findPathToAnyBlueAndColorItBlue(const Graph &G, GraphColoring &coloring, no
 /**
  * @return bool True for successful reconnection, false otherwise
  */
-bool reconnectBlueSubgraph(Graph &G, const List<edge> &X, GraphColoring &coloring, node u, node v, edge c) {
+bool reconnectBlueSubgraph(Graph &G, const List<edge> &X,
+                           GraphColoring &coloring, node u, node v, edge c)
+{
     // if u has blue adjacent edges (except of c) AND v has blue adjacent edges (exc. of c) then
     //     enumerate one blue subgraph, call it G_b1
     //     create graph G_rest = G \ X \ G_r \ G_b1 and BFS in it until blue is found
@@ -177,7 +190,8 @@ bool reconnectBlueSubgraph(Graph &G, const List<edge> &X, GraphColoring &colorin
     }
 
     if (!uaIsEmpty && !vaIsEmpty) {
-        // G_b has been disconnected, hide X, G_r and one component of blue subgraph (TODO: Maintain G_rest through the whole algorithm and not recompute here every time?)
+        // G_b has been disconnected, hide X, G_r and one component of blue subgraph
+        // (TODO: Maintain G_rest through the whole algorithm and not recompute here every time?)
         for(List<edge>::const_iterator it = X.begin(); it != X.end(); it++) G.hideEdge(*it);
         forall_edges(e, G) { if(coloring[e] == Color::RED) G.hideEdge(e); }
         hideConnectedBlueSubgraph(G, coloring, u);
@@ -197,32 +211,49 @@ bool reconnectBlueSubgraph(Graph &G, const List<edge> &X, GraphColoring &colorin
     return true;
 }
 
-void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G, GraphColoring &coloring, List<edge> X, node red, node blue) {
+void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G,
+              GraphColoring &coloring, List<edge> X, node red, node blue)
+{
     //if (Y.size() + X.size() > cutSizeBound - components + j + 1) return;
-    if (Y.size() + X.size() > cutSizeBound) return;
+    if (Y.size() + X.size() > cutSizeBound) return;    
 
     List<edge> Ycopy(Y);
     List<edge> XY(X); XY.conc(Ycopy); // Few parts require not having X and Y in the graph
 
+   /* cout << "~" << X << endl;
+    cout << coloring2str(G, coloring) << endl;*/
+
+    node firstRed = NULL;
     // Find set P = (a short circuit C in G1, s. t. |C ∩ X| = 1) \ X, G1 is G - Y
-    List<edge> P = shortestPath(G, coloring, red, blue, XY);
+    List<edge> P;
+    shortestPath(G, coloring, red, blue, XY, firstRed, P);
 
     if (P.size() > 0) {
+
+#ifdef DEBUG
+        edge eg = P.front();
+        if (coloring[eg->source()] != Color::RED && coloring[eg->target()] != Color::RED) {
+            throw logic_error("GenStage: first edge of path has no end in red");
+        }
+#endif
 
         // Color the path blue
         for(List<edge>::iterator iterator = P.begin(); iterator != P.end(); iterator++) {
             edge e = *iterator;
 
-            coloring[e->source()] = Color::BLUE;
-            coloring[e->target()] = Color::BLUE;
+            //if (coloring[e->source()] != Color::RED)
+                coloring[e->source()] = Color::BLUE;
+            //if (coloring[e->target()] != Color::RED)
+                coloring[e->target()] = Color::BLUE;
             coloring[e] = Color::BLUE;
         }
+        coloring[firstRed] = Color::RED;
 
         // for each c ∈ D, recursively call GenCocircuits(X ∪ {c}).
         for(List<edge>::iterator iterator = P.begin(); iterator != P.end(); iterator++) {
             edge c = *iterator;
 
-            if (!X.empty() && X.back()->index() > c->index()) // Cannonical, informal, bullet one
+            if (!X.empty() && X.back()->index() > c->index()) // See paper, cannonical, informal, bullet one
                 continue;
 
             List<edge> newX = X;
@@ -230,7 +261,7 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G, Gra
             coloring[c] = Color::BLACK;
 
             // Coloring red-c path red, determining u and v, coloring the rest blue
-            node n1 = red, n2 = blue, // after the first of the following for cycles these are the
+            node n1 = firstRed, n2 = blue, // after the first of the following for cycles these are the
                                       // nodes of the last red edge (one of them has to be incident with c)
                                       // initialized to red and blue since the first for can have 0 iterations
                  u, v; // c = (u,v), say u is red (and so will be all vertices on the path from the first red to u)
@@ -276,9 +307,13 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G, Gra
             coloring[e] = Color::BLACK;
         }
 
+        coloring[firstRed] = Color::RED;
+        coloring[blue] = Color::BLUE;
+
     } else {
         // If there is no such path P above (line 6), then return ‘(j + 1) bond: Y union X’.
         bonds.pushBack(XY);
+        //cout << XY << endl;
     }
 }
 
@@ -286,7 +321,9 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G, Gra
 // This is basically a copy of code from OGDF but with few simplifications
 
 void minimalSpanningTree(const node start, BinaryHeap2<int, node> &pq,
-                         NodeArray<int> &pqpos, NodeArray<edge> &pred, NodeArray<bool> &processed) {
+                         NodeArray<int> &pqpos, NodeArray<edge> &pred,
+                         NodeArray<bool> &processed)
+{
 
     // insert start node
     int tmp(0);
@@ -364,6 +401,9 @@ void EscalatedCircuitCocircuit(Graph &G, const List<edge> &Y, int j, List<List<e
         coloring[e->target()] = Color::BLUE;
 
         GenStage(Y, j, stageBonds, G, coloring, X, e->source(), e->target());
+
+        coloring[e->source()] = Color::BLACK;
+        coloring[e->target()] = Color::BLACK;
     }    
 
     if (j < components) {
@@ -375,88 +415,60 @@ void EscalatedCircuitCocircuit(Graph &G, const List<edge> &Y, int j, List<List<e
     bonds.conc(stageBonds); // Beware, this empties stageBonds!
 }
 
+void printUsage(char *name) {
+    cout << "Usage: " << name << " <edge_file.csv> " \
+         << "[<cocircuit size bound> <components>]" << endl;
+}
+
 int main(int argc, char* argv[])
 {
-    if (argc != 4 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
-        cout << "Usage: " << argv[0] << " <graph.csv> [<cocircuit size bound> <components>] [--ismincut, -imc <comma separated list of edge indicies>]" << endl;
-        exit(2);
+    // User requested help right away
+    if (argc != 4 || argv[1] == string("-h") || argv[1] == string("--help")) {
+        printUsage(argv[0]);
+        exit(1);
     }
 
     ifstream fEdges(argv[1]);
     if (!fEdges.is_open()) {
         cerr << "Edges file doesn't exist or could not be accessed. Terminating." << endl;
-        exit(3);
+        exit(2);
     }
 
-    int action = 0; // 0 for mincuts computation, 1 for ismincut, 2 for cut components
-    List<int> indicies;
-
-    // TODO: Some checks to warn user of wrong inputs
-    string thirdArg = argv[2];
-    if (thirdArg == "--ismincut" || thirdArg == "-imc" || thirdArg == "-cc") {
-        action = 1;
-        if (thirdArg == "-cc") action = 2;
-
-        stringstream ss(argv[3]);
-        string item;
-        while (getline(ss, item, ',')) {
-            indicies.pushBack(stoi(item));
-        }
-    } else {
+    try {
         cutSizeBound = stoi(argv[2]);
         components = stoi(argv[3]);
-    }
+    } catch (invalid_argument _) { // stoi failed
+        printUsage(argv[0]);
+        exit(1);
+    };
 
     try {
         Graph G;
         csvToGraph(G, fEdges);
 
-        if (action == 1) {
-            List<edge> edges = indiciesToEdges(G, indicies);
-            int n = isMinCut(G, edges);
-            if (n == 0) {
-                cout << "true" << endl;
-            } else if (n == -1) {
-                cout << "false, not a cut! " << endl;
-            } else {
-                cout << "false, # of components: " << n << endl;
+        List<List<edge>> bonds;
+        List<edge> Y; // In the first stage (j = 1) Y = {}
+        EscalatedCircuitCocircuit(G, Y, 1, bonds);
+
+        // Cannonization
+/*
+        set<set<edge>> set_bonds;
+        for(List<List<edge> >::iterator it = bonds.begin(); it != bonds.end(); ++it) {
+            set<edge> bond;
+
+            for(edge e : *it) {
+                bond.insert(e);
             }
-        } else if (action == 2){
-            List<edge> edges = indiciesToEdges(G, indicies);
-            NodeArray<int> component(G);
+            set_bonds.insert(bond);
+        }
 
-            for(auto e : edges) {
-                G.hideEdge(e);
-            }
-            int ncomponents = connectedComponents(G, component);
-            G.restoreAllEdges();
-
-            cout << ncomponents << endl;
-        } else {
-            List<List<edge>> bonds;
-            List<edge> Y; // In the first stage (j = 1) Y = {}
-            EscalatedCircuitCocircuit(G, Y, 1, bonds);
-
-            // Cannonization
-
-            set<set<edge>> set_bonds;
-            for(List<List<edge> >::iterator it = bonds.begin(); it != bonds.end(); ++it) {
-                set<edge> bond;
-
-                for(edge e : *it) {
-                    bond.insert(e);
-                }
-                set_bonds.insert(bond);
-            }
-
-            for(auto s : set_bonds) {
-                cout << s << endl;
-            }
+        for(auto s : set_bonds) {
+            cout << s << endl;
+        }*/
 
 
-            /*for(List<List<edge> >::iterator it = bonds.begin(); it != bonds.end(); ++it) {
-                cout << *it << endl;
-            }*/
+        for(List<List<edge> >::iterator it = bonds.begin(); it != bonds.end(); ++it) {
+            cout << *it << endl;
         }
 
     } catch (invalid_argument *e) {

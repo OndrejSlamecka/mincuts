@@ -44,7 +44,7 @@ Splits `mincuts` results file by cut size.
 
 **cutdiff**
 
-Performs set difference on sets of cuts. If ~ is passed as a second parameter then it prints set out A\{} = A (so if file A contains permutations of some cut only one representant of the cut will be printed).
+Performs set difference on sets of cuts. If ~ is passed as a second parameter then it prints set out A\\{} (so if file A contains permutations of some cut only one representant of the cut will be printed).
 
 	Usage: ./build/cutdiff <file A with cuts> [<file B with cuts> | ~]
 	Output: Set difference A\B. Each cut of A and B is considered a set. '~' can be used to use empty set instead of second file
