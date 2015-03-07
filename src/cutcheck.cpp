@@ -6,14 +6,6 @@
 
 using namespace std;
 
-void indiciesStr2list(char *str, List<int> &l) {
-	stringstream ss(str);
-	string item;
-	while (getline(ss, item, ',')) {
-		l.pushBack(stoi(item));
-	}
-}
-
 void visualize_isMinCut(Graph &G, const List<edge> &edges)
 {
 	int n = isMinCut(G, edges);
@@ -39,24 +31,70 @@ void visualize_countComponents(Graph &G, const List<edge> &edges)
 	cout << ncomponents << endl;
 }
 
+void visualize_totalCutsCheck(Graph &G, const List<List<edge>> &cuts,
+		bool force)
+{
+	int fails = 0;
+	for(List<edge> cut : cuts) {
+		int n = isMinCut(G, cut);
+		if (n == 0) {
+			cout << ".";
+		} else {
+			cout << "FAIL on cut: " << cut << endl;
+			++fails;
+			if (!force) {
+				break;
+			}
+		}
+	}
+
+	cout << endl << "DONE, fails: " << fails << "/" << cuts.size() << endl \
+		 << "(-tcc stops on first failure, use -tccf to find all) " << endl;
+}
+
+void visualize_randomizedCutsCheck(Graph &G, const List<List<edge>> &cuts)
+{
+	int c = 5000;
+
+	List<List<edge>> test;
+	int ncuts = cuts.size();
+
+	if (ncuts < c) {
+		visualize_totalCutsCheck(G, cuts, true);
+	} else {
+		int i = 0;
+		for(List<edge> cut : cuts) {
+			if (i % (ncuts / c) == 0) {
+				test.pushBack(cut);
+			}
+			++i;
+		}
+
+		visualize_totalCutsCheck(G, test, true);
+	}
+}
+
 void printUsage(char *name)
 {
 	cout << "Usage:\t" << name << " <edge_file.csv> " \
-		 << "[-imc, --ismincut <list>] [-cc <list>]\n\t[-rcc <results file>]" \
-		 << endl;
+		 << "[-imc, --ismincut <list>] [-cc <list>]\n\t[-rcc <cuts file>] " \
+		 << "[-tcc[f] <cuts file>] " << endl;
 
 	cout << endl \
-		<< "\t-imc -- verifies if <list> is cut and minimal one" << endl \
-		<< "\t-cc  -- computes # of components of G\\<list>" << endl \
-		<< "\t-rcc -- randomized cuts check." << endl;
+		<< "\t-imc    -- verifies if <list> is cut and minimal one" << endl \
+		<< "\t-cc     -- computes # of components of G\\<list>" << endl \
+		<< "\t-rcc    -- randomized cuts check" << endl \
+		<< "\t-tcc[f] -- total cuts check, 'f' counts all failures" << endl;
 
 	cout << endl << "*list* is comma separated list of edge indicies." << endl;
 }
 
 int main(int argc, char *argv[])
 {
+	ios_base::sync_with_stdio(false);
+
     // User requested help right away
-	if (argc <= 1 || argv[1] == string("-h") || argv[1] == string("--help")) {
+	if (argc != 4 || argv[1] == string("-h") || argv[1] == string("--help")) {
 		printUsage(argv[0]);
 		exit(1);
 	}
@@ -73,7 +111,7 @@ int main(int argc, char *argv[])
 
 	// Determine action
 	int action = 0;
-	List<int> indicies;
+	bool tccForce = false;
 
 	if (argv[2] == string("-imc") || argv[2] == string("--ismincut")) {
 		action = 1;
@@ -83,20 +121,60 @@ int main(int argc, char *argv[])
 		action = 2;
 	}
 
+	if (argv[2] == string("-rcc")) {
+		action = 3;
+	}
+
+	if (argv[2] == string("-tcc")) {
+		action = 4;
+	}
+
+	if (argv[2] == string("-tccf")) {
+		action = 4;
+		tccForce = true;
+	}
+
 	// Perform the action
 	List<edge> edges;
+	List<edge> allEdges;
+	G.allEdges(allEdges);
+
 	if (1 <= action && action <= 2) {
-		indiciesStr2list(argv[3], indicies);
-		indicies2edges(G, indicies, edges);
+		indicies2edges(allEdges, string(argv[3]), edges);
+	}
+
+	List<List<edge>> cuts;
+	if (3 <= action && action <= 4) {
+		ifstream fCuts(argv[3]);
+		if (!fCuts.is_open()) {
+			cerr << "Cuts file doesn't exist or could not be accessed." \
+				 << endl;
+			exit(2);
+		}
+
+		for (string line; getline(fCuts, line);) {
+			List<edge> cut;
+			indicies2edges(allEdges, line, cut);
+			cuts.pushBack(cut);
+		}
 	}
 
 	switch (action) {
-		case 1: visualize_isMinCut(G, edges);
-				break;
-		case 2: visualize_countComponents(G, edges);
-				break;
-		default: printUsage(argv[0]);
-				 exit(1);
+		case 1:
+			visualize_isMinCut(G, edges);
+			break;
+		case 2:
+			visualize_countComponents(G, edges);
+			break;
+		case 3:
+			visualize_randomizedCutsCheck(G, cuts);
+			break;
+		case 4:
+			visualize_totalCutsCheck(G, cuts, tccForce);
+			break;
+		default:
+		   	printUsage(argv[0]);
+			exit(1);
 	}
 
 	return 0;

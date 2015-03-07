@@ -20,6 +20,13 @@ for j in range(1,k):
 
 (* don't check all permutations, just order the result by edge index)
 
+Input/output file specification
+-------------------------------
+
+Input: Each line contains one edge described in format `<edge id>;<source node id>;<target node id>`
+
+Output: Each line contains one cut: edge indicies joined by comma (e.g. `1,2,3`)
+
 
 Notes to cannonical generation implementation
 ---------------------------------------------

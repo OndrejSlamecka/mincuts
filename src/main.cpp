@@ -58,7 +58,7 @@ void shortestPath(const Graph &G, const GraphColoring &coloring, node s, node t,
                 v = e->opposite(n);
 
                 if (coloring[n] == Color::RED) {
-                    // In reverse direction it is first red
+                    // In reverse direction it is the first red
                     lastRed = n;
                     break;
                 }
@@ -130,7 +130,7 @@ bool findPathToAnyBlueAndColorItBlue(const Graph &G, GraphColoring &coloring, no
                 v = e->opposite(n);
 
 #ifdef DEBUG
-                if(coloring[n] == Color::RED || coloring[v] == Color::RED) {// FIX IT
+                if(coloring[n] == Color::RED || coloring[v] == Color::RED) {
                     throw logic_error("Red node in findPathToAnyblueAndColorItBlue");
                 }
 #endif
@@ -220,8 +220,7 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G,
     List<edge> Ycopy(Y);
     List<edge> XY(X); XY.conc(Ycopy); // Few parts require not having X and Y in the graph
 
-   /* cout << "~" << X << endl;
-    cout << coloring2str(G, coloring) << endl;*/
+    // cout << "~" << X << endl;
 
     node firstRed = NULL;
     // Find set P = (a short circuit C in G1, s. t. |C ∩ X| = 1) \ X, G1 is G - Y
@@ -241,13 +240,11 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G,
         for(List<edge>::iterator iterator = P.begin(); iterator != P.end(); iterator++) {
             edge e = *iterator;
 
-            //if (coloring[e->source()] != Color::RED)
-                coloring[e->source()] = Color::BLUE;
-            //if (coloring[e->target()] != Color::RED)
-                coloring[e->target()] = Color::BLUE;
+            coloring[e->source()] = Color::BLUE;
+            coloring[e->target()] = Color::BLUE;
             coloring[e] = Color::BLUE;
         }
-        coloring[firstRed] = Color::RED;
+        coloring[firstRed] = Color::RED; // Keep red what was red
 
         // for each c ∈ D, recursively call GenCocircuits(X ∪ {c}).
         for(List<edge>::iterator iterator = P.begin(); iterator != P.end(); iterator++) {
@@ -313,7 +310,7 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G,
     } else {
         // If there is no such path P above (line 6), then return ‘(j + 1) bond: Y union X’.
         bonds.pushBack(XY);
-        //cout << XY << endl;
+        cout << XY << endl;
     }
 }
 
@@ -324,7 +321,6 @@ void minimalSpanningTree(const node start, BinaryHeap2<int, node> &pq,
                          NodeArray<int> &pqpos, NodeArray<edge> &pred,
                          NodeArray<bool> &processed)
 {
-
     // insert start node
     int tmp(0);
     pq.insert(start, tmp, &pqpos[start]);
@@ -354,10 +350,6 @@ void minimalSpanningTree(const node start, BinaryHeap2<int, node> &pq,
 
 void minimalSpanningForest(const Graph &G, List<edge> &edges)
 {    
-    // TODO: First line of the algorithm as described in the paper
-    // selects here spanning forest of k-1 trees. So pick first
-    // n - k - 1 (?) edges here
-
     BinaryHeap2<int, node> pq(G.numberOfNodes()); // priority queue of front vertices
     NodeArray<int> pqpos(G, -1); // position of each node in pq
     NodeArray<edge> pred(G);
@@ -365,13 +357,20 @@ void minimalSpanningForest(const Graph &G, List<edge> &edges)
 
     NodeArray<bool> processed(G, false);
 
-    int rootcount = 0;
+    int rootcount = 0, nedges = 0;
     for (node v = G.firstNode(); v; v = v->succ()) {
         if (!pred[v]) {
             ++rootcount;            
             minimalSpanningTree(v, pq, pqpos, pred, processed);
-        } else {
+        } else {            
             edges.pushBack(pred[v]);
+            ++nedges;
+
+            // According to Line 1 in paper:
+            // nedges == |V| - 1 - (comp. - 1)
+            /*if(nedges == G.numberOfNodes() - 1 - (components - 1)) {
+                break;
+            }*/
         }
     }    
 }
@@ -397,13 +396,17 @@ void EscalatedCircuitCocircuit(Graph &G, const List<edge> &Y, int j, List<List<e
         List<edge> X; // (Indexes might be sufficient? Check later)
         GraphColoring coloring(G);
         X.pushBack(e);
-        coloring[e->source()] = Color::RED;
-        coloring[e->target()] = Color::BLUE;
 
-        GenStage(Y, j, stageBonds, G, coloring, X, e->source(), e->target());
+        node u = e->source(), v = e->target();
+        if (u->index() > v->index()) swap(u, v); // Def 4.3, i.
 
-        coloring[e->source()] = Color::BLACK;
-        coloring[e->target()] = Color::BLACK;
+        coloring[u] = Color::RED;
+        coloring[v] = Color::BLUE;
+
+        GenStage(Y, j, stageBonds, G, coloring, X, u, v);
+
+        coloring[u] = Color::BLACK;
+        coloring[v] = Color::BLACK;
     }    
 
     if (j < components) {
@@ -422,7 +425,6 @@ void printUsage(char *name) {
 
 int main(int argc, char* argv[])
 {
-    // User requested help right away
     if (argc != 4 || argv[1] == string("-h") || argv[1] == string("--help")) {
         printUsage(argv[0]);
         exit(1);
@@ -450,8 +452,8 @@ int main(int argc, char* argv[])
         List<edge> Y; // In the first stage (j = 1) Y = {}
         EscalatedCircuitCocircuit(G, Y, 1, bonds);
 
-        // Cannonization
-/*
+        /*
+        // Remove duplicates
         set<set<edge>> set_bonds;
         for(List<List<edge> >::iterator it = bonds.begin(); it != bonds.end(); ++it) {
             set<edge> bond;
@@ -464,8 +466,8 @@ int main(int argc, char* argv[])
 
         for(auto s : set_bonds) {
             cout << s << endl;
-        }*/
-
+        }
+        */
 
         for(List<List<edge> >::iterator it = bonds.begin(); it != bonds.end(); ++it) {
             cout << *it << endl;

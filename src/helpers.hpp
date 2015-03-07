@@ -91,7 +91,7 @@ string coloring2str(const Graph &G, const GraphColoring &c) {
 
     s << "Nodes: ";
     forall_nodes(n, G) {
-        s << n->index() << " is " << nameColor(c[n]) << "; ";
+        s << n->index() << " " << nameColor(c[n]) << "; ";
     }
     s << endl;
 
@@ -99,40 +99,28 @@ string coloring2str(const Graph &G, const GraphColoring &c) {
 
     s << "Edges: ";
     forall_edges(e, G) {
-        s << e->index() << " is " << nameColor(c[e]) << "; ";
+        s << e->index() << " " << nameColor(c[e]) << "; ";
     }
     s << endl;
 
     return s.str();
 }
 
-/*void printColoring(Graph &G)
-{
-    node u;
-    forall_nodes(u, G) {
-        cout << u << " is " << nameColor(G[u]) << "; ";
-    }
-}*/
-
 edge edgeByIndex(const List<edge> &edges, int index) {
-    for(auto it = edges.begin(); it != edges.end(); ++it) if((*it)->index() == index) return *it;
+    for(edge e : edges) if(e->index() == index) return e;
     return nullptr;
 }
 
-void indicies2edges(const Graph &G, List<int> indicies, List<edge> &edges) {
-    List<edge> allEdges;
-    G.allEdges(allEdges);
-    for(int i : indicies) {
-        edge e;
-        for (edge f : allEdges) {
-            if (f->index() == i)
-                e = f;
-        }
-
-        edges.pushBack(e);
+void indicies2edges(const List<edge> &graphEdges, const string &str, List<edge> &l)
+{
+    stringstream ss(str);
+    string item;
+    while (getline(ss, item, ',')) {
+        int index = stoi(item);
+        edge e = edgeByIndex(graphEdges, index);
+        l.pushBack(e);
     }
 }
-
 
 /**
  * Helper function to determine whether given set of edges really is a cut
@@ -157,7 +145,7 @@ int isMinCut(Graph &G, const List<edge> &cut) {
 
     NodeArray<int> component(G);
 
-    for(auto e : cut) {
+    for(auto e : cut) {        
         G.hideEdge(e);
     }
     int ncomponents = connectedComponents(G, component);
@@ -172,11 +160,13 @@ int isMinCut(Graph &G, const List<edge> &cut) {
 
         // If numbers of components is the same and it's still a cut then obviously the original cut was not minimal
         if(nSmallerCutComponents == ncomponents) {
-            G.hideEdge(e);
+            G.restoreAllEdges();
             return ncomponents;
         }
         G.hideEdge(e);
     }
+
+    G.restoreAllEdges();
 
     return 0;
 }
