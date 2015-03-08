@@ -1,47 +1,50 @@
-
 Installation
 ------------
 
-* Install OGDF Snapshot 2014-03-07 into `~/ogdf`
+* Install OGDF Snapshot 2014-03-07 into `~/.bin/ogdf` (or different directory but edit Makefile)
 * Run `make`
-
-
-TODO: Completness check against all combinations
------------
-
-Let %=% be an equiv. relation s.t. a %=% b <=> #components(G\a) = #components(G\b).
-Let C = <cuts \subseteq combinations> and C_j be the class of %=% with index j.
-Let K = cuts gen. by my mincuts implementation, K_j --||--.
-
-for j in range(1,k):
-	for each c in C_j:
-		if some permutation* of some subset of c is contained: it's ok
-		if not: report trouble
-
-(* don't check all permutations, just order the result by edge index)
 
 Input/output file specification
 -------------------------------
 
-Input: Each line contains one edge described in format `<edge id>;<source node id>;<target node id>`
+**Input** Each line contains one edge described in format `<edge id>;<source node id>;<target node id>`
 
-Output: Each line contains one cut: edge indicies joined by comma (e.g. `1,2,3`)
+**Output** Each line contains one cut: edge indicies joined by comma (e.g. `1,2,3`)
+
+Run
+---
+
+**mincuts**
+
+	Usage:	./build/mincuts <edge_file.csv> <cut size bound> <max components> [-bfc]
+
+			-bfc --	use bruteforcing of all combinations instead of
+					circuit-cocircuit algorithm
 
 
-Notes to cannonical generation implementation
----------------------------------------------
+**cutcheck**
 
-Assumptions:
-* Each cut X is ordered w.r.t. edge indicies, thus (12,15,17) (while (15,12) is not correct)
+	Usage:	./build/cutcheck <edge_file.csv> [-imc, --ismincut <list>] [-cc <list>]
+			[-rcc <cuts file>] [-tcc[f] <cuts file>]
 
+			-imc    -- verifies if <list> is cut and minimal one
+			-cc     -- computes # of components of G\<list>
+			-rcc    -- randomized cuts check
+			-tcc[f] -- total cuts check, 'f' counts all failures
 
+	*list* is comma separated list of edge indicies.
 
-Tools
------
+**cutdiff**
+
+	Usage: ./build/cutdiff <file A with cuts> [<file B with cuts> | ~]
+	Output:
+		* Set difference A\B (note that B\A is not computed)
+		* Each cut of A and B is considered a set
+		* '~' replaces second file with empty set
 
 **names2ids**
 
-Converts from `ClosureSim` output format to `mincuts` format.
+Converts from [ClosureSim](http://www.fi.muni.cz/~xsvobo38/closuresim/) output format to `mincuts` format.
 
 	./tools/names2ids.py data/zlin-silnice.csv < temp/closuresim/results-2.csv > ires-2
 
@@ -49,15 +52,11 @@ Converts from `ClosureSim` output format to `mincuts` format.
 
 Splits `mincuts` results file by cut size.
 
-**cutdiff**
+------------
 
-Performs set difference on sets of cuts. If ~ is passed as a second parameter then it prints set out A\\{} (so if file A contains permutations of some cut only one representant of the cut will be printed).
+Work in progress: Notes to cannonical generation implementation
+---------------------------------------------
 
-	Usage: ./build/cutdiff <file A with cuts> [<file B with cuts> | ~]
-	Output: Set difference A\B. Each cut of A and B is considered a set. '~' can be used to use empty set instead of second file
-	Expected file format: lines of edge indicies separated by commas (e.g. 1,2,3)
-
------------------------
-
-http://www.fi.muni.cz/~xsvobo38/closuresim/
+Assumptions:
+* Each cut X is ordered w.r.t. edge indicies, thus (12,15,17) (while (15,12) is not correct)
 

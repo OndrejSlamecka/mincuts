@@ -22,8 +22,6 @@
 #include "helpers.hpp"
 #include "graphcoloring.h"
 
-#include <set> // TODO: Remove, not necessary generally
-
 using namespace std;
 using namespace ogdf;
 
@@ -32,22 +30,22 @@ int cutSizeBound;
 int components;
 
 /**
- * Performs BFS to find the shortest path from s to t in graph G without using any edge from the forbidden edges. 
+ * Performs BFS to find the shortest path from s to t in graph G without using any edge from the forbidden edges.
  *
  */
 void shortestPath(const Graph &G, const GraphColoring &coloring, node s, node t,
-                        const List<edge> &forbidden, node &lastRed, List<edge> &path) {
-    node u, v;
-    edge e;
-
+                        const List<edge> &forbidden, node &lastRed, List<edge> &path)
+{
     Queue<node> Q;
 
-    NodeArray<bool> visited(G, false);    
+    NodeArray<bool> visited(G, false);
     NodeArray<edge> accessEdge(G);
 
     Q.append(s);
     visited[s] = true;
 
+    node u, v;
+    edge e;
     while(!Q.empty()) {
         u = Q.pop();
 
@@ -88,11 +86,12 @@ void shortestPath(const Graph &G, const GraphColoring &coloring, node s, node t,
  * @param coloring
  * @param start
  */
-void hideConnectedBlueSubgraph(Graph &G, const GraphColoring &coloring, node start) {
+void hideConnectedBlueSubgraph(Graph &G, const GraphColoring &coloring, node start)
+{
     Stack<node> Q;
-    Q.push(start);
-
     NodeArray<bool> visited(G, false);
+
+    Q.push(start);
 
     node u, v;
     edge e;
@@ -112,7 +111,8 @@ void hideConnectedBlueSubgraph(Graph &G, const GraphColoring &coloring, node sta
 }
 
 
-bool findPathToAnyBlueAndColorItBlue(const Graph &G, GraphColoring &coloring, node start) {
+bool findPathToAnyBlueAndColorItBlue(const Graph &G, GraphColoring &coloring, node start)
+{
     Queue<node> Q;
     Q.append(start);
 
@@ -215,15 +215,13 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G,
               GraphColoring &coloring, List<edge> X, node red, node blue)
 {
     //if (Y.size() + X.size() > cutSizeBound - components + j + 1) return;
-    if (Y.size() + X.size() > cutSizeBound) return;    
+    if (Y.size() + X.size() > cutSizeBound) return;
 
     List<edge> Ycopy(Y);
-    List<edge> XY(X); XY.conc(Ycopy); // Few parts require not having X and Y in the graph
+    List<edge> XY(X); XY.conc(Ycopy); // G1 = G\XY, few parts require not having X and Y in the graph
 
-    // cout << "~" << X << endl;
-
-    node firstRed = NULL;
     // Find set P = (a short circuit C in G1, s. t. |C ∩ X| = 1) \ X, G1 is G - Y
+    node firstRed = NULL;
     List<edge> P;
     shortestPath(G, coloring, red, blue, XY, firstRed, P);
 
@@ -285,8 +283,9 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G,
             v = c->opposite(u);
 
             // If c = (u, v) is blue, reconnect blue subgraph if needed
-            // (if u and v are both blue then find the shortest path between them using only nonred edges)
-            if (coloring[c] == Color::BLUE) {
+            // (if u and v are both blue then find the shortest path
+			// between them using only nonred edges)
+            if (coloring[c] == Color::BLUE) { // FIX IT
                 if(!reconnectBlueSubgraph(G, XY, coloring, u, v, c)) { // can't reconnect: fail
                     return;
                 }
@@ -310,7 +309,7 @@ void GenStage(const List<edge> &Y, int j, List<List<edge>> &bonds, Graph &G,
     } else {
         // If there is no such path P above (line 6), then return ‘(j + 1) bond: Y union X’.
         bonds.pushBack(XY);
-        cout << XY << endl;
+        //cout << XY << endl;
     }
 }
 
@@ -349,7 +348,7 @@ void minimalSpanningTree(const node start, BinaryHeap2<int, node> &pq,
 }
 
 void minimalSpanningForest(const Graph &G, List<edge> &edges)
-{    
+{
     BinaryHeap2<int, node> pq(G.numberOfNodes()); // priority queue of front vertices
     NodeArray<int> pqpos(G, -1); // position of each node in pq
     NodeArray<edge> pred(G);
@@ -360,9 +359,9 @@ void minimalSpanningForest(const Graph &G, List<edge> &edges)
     int rootcount = 0, nedges = 0;
     for (node v = G.firstNode(); v; v = v->succ()) {
         if (!pred[v]) {
-            ++rootcount;            
+            ++rootcount;
             minimalSpanningTree(v, pq, pqpos, pred, processed);
-        } else {            
+        } else {
             edges.pushBack(pred[v]);
             ++nedges;
 
@@ -372,14 +371,16 @@ void minimalSpanningForest(const Graph &G, List<edge> &edges)
                 break;
             }*/
         }
-    }    
+    }
 }
 
-void EscalatedCircuitCocircuit(Graph &G, const List<edge> &Y, int j, List<List<edge>> &bonds) {
+void EscalatedCircuitCocircuit(Graph &G, const List<edge> &Y, int j, List<List<edge>> &bonds)
+{
     List<edge> D;
 
     for(edge e : Y) G.hideEdge(e);
-    minimalSpanningForest(G, D); // D is an arbitrary matroid base; our D corresponds to F from the paper now
+	// D is an arbitrary matroid base; our D corresponds to F from the paper now
+    minimalSpanningForest(G, D);
     for(edge e : Y) G.restoreEdge(e);
 
     // Set D = E(F) \ Y... but it's already done, we've already forbidden Y
@@ -390,7 +391,8 @@ void EscalatedCircuitCocircuit(Graph &G, const List<edge> &Y, int j, List<List<e
     for(List<edge>::iterator i = D.begin(); i != D.end(); i++) {
         e = *i;
 
-        if (!Y.empty() && Y.back()->index() > e->index()) // Cannonical, informal, bullet one
+		// See paper: cannonical, informal, bullet one
+        if (!Y.empty() && Y.back()->index() > e->index())
             continue;
 
         List<edge> X; // (Indexes might be sufficient? Check later)
@@ -407,10 +409,10 @@ void EscalatedCircuitCocircuit(Graph &G, const List<edge> &Y, int j, List<List<e
 
         coloring[u] = Color::BLACK;
         coloring[v] = Color::BLACK;
-    }    
+    }
 
     if (j < components) {
-        for(List<List<edge>>::iterator it = stageBonds.begin(); it != stageBonds.end(); ++it) {            
+        for(List<List<edge>>::iterator it = stageBonds.begin(); it != stageBonds.end(); ++it) {
             EscalatedCircuitCocircuit(G, *it, j + 1, bonds);
         }
     }
@@ -418,16 +420,68 @@ void EscalatedCircuitCocircuit(Graph &G, const List<edge> &Y, int j, List<List<e
     bonds.conc(stageBonds); // Beware, this empties stageBonds!
 }
 
+
+// bruteforce alg:
+
+// note that these are actually variations
+// TODO: some sort of generating combinations such that we get all of size s,
+// s.t. 1 <= s <= k...
+// IDEA: Generate all comb. of size i and in next iteration use those to build comb. of size i+1? Do later...
+void combinations(Graph &G, const List<edge> &allEdges,
+		const List<edge>::iterator &start, const List<edge> &acc,int k)
+{
+    int ncomponents;
+    if (isMinCut(G, acc, ncomponents) == 0 && ncomponents <= components) {
+		cout << acc << endl;
+    }
+	if (k == 0) {
+		return;
+	}
+
+    // TODO: Improve
+    List<edge> lessEdges(allEdges), moreAcc(acc);
+    for (edge e : allEdges) {
+//    for (List<edge>::iterator it = lessEdges.begin(); it != lessEdges.end(); ++it) {
+//        edge e = *it;
+        lessEdges.removeFirst(e);
+		moreAcc.pushBack(e);
+
+        combinations(G, lessEdges, start, moreAcc, k - 1);
+
+		moreAcc.removeFirst(e);
+        lessEdges.pushBack(e);
+	}
+}
+
+void bruteforce(Graph &G)
+{
+	List<edge> allEdges;
+	G.allEdges(allEdges);
+
+	List<edge> acc;
+	combinations(G, allEdges, allEdges.begin(), acc, cutSizeBound);
+}
+
 void printUsage(char *name) {
-    cout << "Usage: " << name << " <edge_file.csv> " \
-         << "[<cocircuit size bound> <components>]" << endl;
+    cout << "Usage:\t" << name << " <edge_file.csv> " \
+            "<cut size bound> <max components> [-bfc]" << endl;
+	cout << endl \
+   		 << "\t-bfc --\tuse bruteforcing of all combinations instead of\n" \
+            "\t\tcircuit-cocircuit algorithm" << endl;
 }
 
 int main(int argc, char* argv[])
 {
-    if (argc != 4 || argv[1] == string("-h") || argv[1] == string("--help")) {
+    if ((argc == 5 && argv[4] != string("-bfc"))
+      || argc < 4 || argc > 5
+	  || argv[1] == string("-h") || argv[1] == string("--help")) {
         printUsage(argv[0]);
         exit(1);
+    }
+
+    int algorithm = 0; // 0 for CircuitCocircuit, 1 for bruteforce
+    if (argc == 5 && argv[4] == string("-bfc")) {
+        algorithm = 1;
     }
 
     ifstream fEdges(argv[1]);
@@ -439,7 +493,7 @@ int main(int argc, char* argv[])
     try {
         cutSizeBound = stoi(argv[2]);
         components = stoi(argv[3]);
-    } catch (invalid_argument _) { // stoi failed
+    } catch (invalid_argument &_) { // stoi failed
         printUsage(argv[0]);
         exit(1);
     };
@@ -448,33 +502,20 @@ int main(int argc, char* argv[])
         Graph G;
         csvToGraph(G, fEdges);
 
-        List<List<edge>> bonds;
-        List<edge> Y; // In the first stage (j = 1) Y = {}
-        EscalatedCircuitCocircuit(G, Y, 1, bonds);
+        if (algorithm == 1) {
+            bruteforce(G);
+        } else {
+        	List<List<edge>> bonds;
+            List<edge> Y; // In the first stage (j = 1) Y = {}
+            EscalatedCircuitCocircuit(G, Y, 1, bonds);
 
-        /*
-        // Remove duplicates
-        set<set<edge>> set_bonds;
-        for(List<List<edge> >::iterator it = bonds.begin(); it != bonds.end(); ++it) {
-            set<edge> bond;
-
-            for(edge e : *it) {
-                bond.insert(e);
-            }
-            set_bonds.insert(bond);
+			for(List<List<edge> >::iterator it = bonds.begin(); it != bonds.end(); ++it) {
+				cout << *it << endl;
+			}
         }
 
-        for(auto s : set_bonds) {
-            cout << s << endl;
-        }
-        */
-
-        for(List<List<edge> >::iterator it = bonds.begin(); it != bonds.end(); ++it) {
-            cout << *it << endl;
-        }
-
-    } catch (invalid_argument *e) {
-        cerr << "Error: " << e->what() << endl;
+    } catch (invalid_argument &e) {
+        cerr << "Error: " << e.what() << endl;
         return 1;
     }
 

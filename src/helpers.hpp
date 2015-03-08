@@ -140,7 +140,7 @@ bool isCut(Graph &G, const List<edge> &cut) {
  * Helper function todetermine whether given set of edges really is a minimal cut, w.r.t. # of components of G\cut
  * Returns 0 on success, -1 if # of components is 1. Otherwise, the # of components of G\cut
  */
-int isMinCut(Graph &G, const List<edge> &cut) {
+int isMinCut(Graph &G, const List<edge> &cut, int &ncomponents) {
     // try to subtract each edge from the cut and test the rest with isCut
 
     NodeArray<int> component(G);
@@ -148,9 +148,12 @@ int isMinCut(Graph &G, const List<edge> &cut) {
     for(auto e : cut) {        
         G.hideEdge(e);
     }
-    int ncomponents = connectedComponents(G, component);
+    ncomponents = connectedComponents(G, component);
 
-	if (ncomponents == 1) return -1;
+    if (ncomponents == 1) {
+        G.restoreAllEdges();
+        return -1;
+    }
 
     for(auto e : cut) {
         G.restoreEdge(e);
@@ -171,6 +174,9 @@ int isMinCut(Graph &G, const List<edge> &cut) {
     return 0;
 }
 
-
+int isMinCut(Graph &G, const List<edge> &cut) {
+    int nc;
+    return isMinCut(G, cut, nc);
+}
 
 #endif // HELPERS_HPP

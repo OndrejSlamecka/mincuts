@@ -78,7 +78,7 @@ void printUsage(char *name)
 {
 	cout << "Usage:\t" << name << " <edge_file.csv> " \
 		 << "[-imc, --ismincut <list>] [-cc <list>]\n\t[-rcc <cuts file>] " \
-		 << "[-tcc[f] <cuts file>] " << endl;
+		 << "[-tcc[f] <cuts file>]" << endl;
 
 	cout << endl \
 		<< "\t-imc    -- verifies if <list> is cut and minimal one" << endl \

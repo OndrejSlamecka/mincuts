@@ -49,11 +49,11 @@ int main(int argc, char *argv[])
 		cout << "Usage: " << argv[0] << " <file A with cuts> " \
 		   "[<file B with cuts> | ~]" << endl;
 
-		cout << "Output: Set difference A\\B. Each cut of A and B is " \
-			"considered a set. '~' can be used to use empty set instead " \
-			"of second file" << endl;
-	  	cout << "Expected file format: lines of edge indicies " \
-			"separated by commas (e.g. 1,2,3)" << endl;
+		cout << "Output:" << endl << \
+	   		"\t* Set difference A\\B (note that B\\A is not computed)\n" \
+		   	"\t* Each cut of A and B is considered a set\n" \
+			"\t* '~' replaces second file with empty set" \
+			<< endl;
 		exit(1);
 	}
 
