@@ -6,11 +6,11 @@ ogdf = -L $(ogdfPath)/_debug -I $(ogdfPath)/include
 
 all: main cutdiff cutcheck
 
-main: src/graphcoloring.cpp src/main.cpp
-	g++ $(flags) $(ogdf) src/graphcoloring.cpp src/main.cpp -o build/mincuts $(links)
+main: src/helpers.cpp src/graphcoloring.cpp src/circuitcocircuit.cpp src/main.cpp
+	g++ $(flags) $(ogdf) src/helpers.cpp src/graphcoloring.cpp src/circuitcocircuit.cpp src/main.cpp -o bin/mincuts $(links)
 
-cutdiff: src/cutdiff.cpp
-	g++ $(flags) src/cutdiff.cpp -o build/cutdiff
+cutdiff: src/cutdiff.cpp 
+	g++ $(flags) src/cutdiff.cpp -o bin/cutdiff
 
-cutcheck: src/cutcheck.cpp
-	g++ $(flags) $(ogdf) src/cutcheck.cpp -o build/cutcheck $(links)
+cutcheck: src/helpers.cpp src/cutcheck.cpp 
+	g++ $(flags) $(ogdf) src/helpers.cpp src/cutcheck.cpp -o bin/cutcheck $(links)

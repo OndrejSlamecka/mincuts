@@ -1,6 +1,6 @@
 *.pro
 *.pro.user
-build/*
+bin/*
 data/*
 temp/*
 tmp/*

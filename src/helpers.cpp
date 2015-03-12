@@ -1,20 +1,9 @@
-#ifndef HELPERS_HPP
-#define HELPERS_HPP
-
-#include <sstream>
-#include <ogdf/basic/Graph.h>
-#include <ogdf/basic/simple_graph_alg.h>
-#include "graphcoloring.h"
-
-#include <set> // TODO: Not necessary, remove
-
-using namespace ogdf;
-using namespace std;
+#include "helpers.h"
 
 /**
  * Reads a csv file with lines "<id>;<source>;<target>;..." and transforms it into a graph
  */
-void csvToGraph(Graph &G, ifstream &fEdges) {
+void csvToGraph(ogdf::Graph &G, std::ifstream &fEdges) {
     string line;
 
     int id, u, v;
@@ -28,7 +17,7 @@ void csvToGraph(Graph &G, ifstream &fEdges) {
     fEdges.clear(); // This should not be needed in C++11 but as it seems it actually is needed
     fEdges.seekg(0);
 
-    vector<node> nodes(maxNodeId + 1);
+    std::vector<node> nodes(maxNodeId + 1);
 
     for (; getline(fEdges, line);) {
         sscanf(line.c_str(), "%d;%d;%d;", &id, &u, &v);
@@ -41,10 +30,9 @@ void csvToGraph(Graph &G, ifstream &fEdges) {
 
         G.newEdge(nodes[u], nodes[v], id);
     }
-
 }
 
-std::ostream & operator<<(std::ostream &os, const set<edge>& S){
+std::ostream & operator<<(std::ostream &os, const std::set<edge>& S){
     int i = 0, ss = S.size();
     for(auto e : S) {
         os << e->index(); // << "(" << e->source() << "," << e->target() << ")";
@@ -54,7 +42,7 @@ std::ostream & operator<<(std::ostream &os, const set<edge>& S){
     return os;
 }
 
-std::ostream & operator<<(std::ostream &os, const List<edge>& L)
+std::ostream & operator<<(std::ostream &os, const ogdf::List<edge>& L)
 {
     int i = 0, ls = L.size();
     for(auto e : L) {
@@ -65,8 +53,7 @@ std::ostream & operator<<(std::ostream &os, const List<edge>& L)
     return os;
 }
 
-
-std::ostream & operator<<(std::ostream &os, const Graph& G)
+std::ostream & operator<<(std::ostream &os, const ogdf::Graph& G)
 {
     edge e;
     forall_edges(e, G) {
@@ -84,8 +71,8 @@ string nameColor(Color c) {
     }
 }
 
-string coloring2str(const Graph &G, const GraphColoring &c) {
-    stringstream s;
+string coloring2str(const ogdf::Graph &G, const GraphColoring &c) {
+    std::stringstream s;
 
     node n;
 
@@ -106,14 +93,26 @@ string coloring2str(const Graph &G, const GraphColoring &c) {
     return s.str();
 }
 
-edge edgeByIndex(const List<edge> &edges, int index) {
+edge edgeByIndex(const ogdf::List<edge> &edges, int index)
+{
     for(edge e : edges) if(e->index() == index) return e;
     return nullptr;
 }
 
-void indicies2edges(const List<edge> &graphEdges, const string &str, List<edge> &l)
+std::string ei(ogdf::Graph &G, int index)
 {
-    stringstream ss(str);
+    List<edge> edges;
+    G.allEdges(edges);
+
+    edge e = edgeByIndex(edges, index);
+    std::stringstream ss;
+    ss << "s: " << e->source()->index() << "; t: " << e->target()->index();
+    return ss.str();
+}
+
+void indicies2edges(const ogdf::List<edge> &graphEdges, const string &str, ogdf::List<edge> &l)
+{
+    std::stringstream ss(str);
     string item;
     while (getline(ss, item, ',')) {
         int index = stoi(item);
@@ -125,7 +124,7 @@ void indicies2edges(const List<edge> &graphEdges, const string &str, List<edge> 
 /**
  * Helper function to determine whether given set of edges really is a cut
  */
-bool isCut(Graph &G, const List<edge> &cut) {
+bool isCut(ogdf::Graph &G, const ogdf::List<edge> &cut) {
     for (auto e : cut) {
         G.hideEdge(e);
     }
@@ -140,12 +139,12 @@ bool isCut(Graph &G, const List<edge> &cut) {
  * Helper function todetermine whether given set of edges really is a minimal cut, w.r.t. # of components of G\cut
  * Returns 0 on success, -1 if # of components is 1. Otherwise, the # of components of G\cut
  */
-int isMinCut(Graph &G, const List<edge> &cut, int &ncomponents) {
+int isMinCut(ogdf::Graph &G, const ogdf::List<edge> &cut, int &ncomponents) {
     // try to subtract each edge from the cut and test the rest with isCut
 
     NodeArray<int> component(G);
 
-    for(auto e : cut) {        
+    for(auto e : cut) {
         G.hideEdge(e);
     }
     ncomponents = connectedComponents(G, component);
@@ -174,9 +173,7 @@ int isMinCut(Graph &G, const List<edge> &cut, int &ncomponents) {
     return 0;
 }
 
-int isMinCut(Graph &G, const List<edge> &cut) {
+int isMinCut(ogdf::Graph &G, const ogdf::List<edge> &cut) {
     int nc;
     return isMinCut(G, cut, nc);
 }
-
-#endif // HELPERS_HPP

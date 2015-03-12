@@ -2,7 +2,7 @@
 #include <sstream>
 
 #include <ogdf/basic/Graph.h>
-#include "helpers.hpp"
+#include "helpers.h"
 
 using namespace std;
 

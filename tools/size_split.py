@@ -5,7 +5,6 @@ import sys, os
 # TODO: Add help
 
 def size_split(source, dest):
-	# I am too lazy to search the docs for RE right now
 	def edges(line):
 		n = 0
 		p = False # inside parentheses
