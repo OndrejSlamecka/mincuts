@@ -7,14 +7,19 @@ void CircuitCocircuit::run(int components, ogdf::List<ogdf::List<edge>> &bonds)
     extendBond(components, Y, 1, bonds);
 }
 
+/**
+ * @brief Extends j-1 bond Y (possibly empty) to j-bond (which is added to bonds)
+ * @param components
+ * @param Y
+ * @param j
+ * @param bonds
+ */
 void CircuitCocircuit::extendBond(int components, const ogdf::List<edge> &Y,
                                   int j, ogdf::List<ogdf::List<edge>> &bonds)
 {
-    ogdf::List<edge> D;
-
     // D is an arbitrary matroid base; our D corresponds to F from the paper now
+    ogdf::List<edge> D;    
     minimalSpanningForest(components, Y, D);
-
     // Set D = E(F) \ Y... but it's already done, we've already forbidden Y
 
     ogdf::List<ogdf::List<edge>> stageBonds;
@@ -28,7 +33,7 @@ void CircuitCocircuit::extendBond(int components, const ogdf::List<edge> &Y,
         X.pushBack(e);
 
         node u = e->source(), v = e->target();
-        //if (u->index() > v->index()) swap(u, v); // Def 4.3, i.
+        // if (u->index() > v->index()) swap(u, v); // Def 4.3, i.
 
         coloring[u] = Color::RED;
         coloring[v] = Color::BLUE;

@@ -9,8 +9,6 @@
 #include <ogdf/basic/DisjointSets.h>
 #include "graphcoloring.h"
 
-using namespace ogdf;
-
 class CircuitCocircuit
 {
     Graph &G;
