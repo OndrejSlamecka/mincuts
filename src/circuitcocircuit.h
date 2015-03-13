@@ -70,8 +70,8 @@ public:
      * @param j
      * @param bonds
      */
-    void extendBond(int components, const bond &Y, int j,
-                    ogdf::List<bond> &bonds);
+    void extendBond(int components, const bond &Y, GraphColoring &coloring,
+                    int j, ogdf::List<bond> &bonds);
 
     ~CircuitCocircuit();
 };

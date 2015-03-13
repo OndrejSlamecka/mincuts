@@ -9,11 +9,13 @@ std::ostream & operator<<(std::ostream &os, const bond &L)
 void CircuitCocircuit::run(int k, ogdf::List<bond> &bonds)
 {
     bond Y;
-    extendBond(k, Y, 1, bonds);
+    GraphColoring coloring(G);
+    extendBond(k, Y, coloring, 1, bonds);
 }
 
 void CircuitCocircuit::extendBond(int components, const bond &Y,
-                                  int j, ogdf::List<bond> &bonds)
+                                  GraphColoring &coloring, int j,
+                                  ogdf::List<bond> &bonds)
 {
     // D is an arbitrary matroid base; our D corresponds to F from the paper now
     ogdf::List<edge> D;    
@@ -27,7 +29,6 @@ void CircuitCocircuit::extendBond(int components, const bond &Y,
         e = *i;
 
         bond X;
-        GraphColoring coloring(G);
         X.edges.pushBack(e);
         X.lastBondFirstEdge = e;
 
@@ -47,7 +48,7 @@ void CircuitCocircuit::extendBond(int components, const bond &Y,
         bonds.conc(stageBonds); // Beware, this empties stageBonds!
     } else {
         for(ogdf::List<bond>::iterator it = stageBonds.begin(); it != stageBonds.end(); ++it) {
-            extendBond(components, *it, j + 1, bonds);
+            extendBond(components, *it, coloring, j + 1, bonds);
         }
     }
 }
@@ -71,7 +72,6 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
     if (P.empty()) {
         // If there is no such path P above (line 6), then return ‘(j + 1) bond: Y union X’.
         bonds.pushBack(XY);
-        //cout << XY << endl;
     } else {
         // Try adding each e in P to X
 
