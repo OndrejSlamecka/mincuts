@@ -108,17 +108,15 @@ int main(int argc, char* argv[])
         if (algorithm == 1) {
             bruteforce(G, cutSizeBound, components);
         } else {
-            ogdf::List<ogdf::List<edge>> bonds;
+            ogdf::List<bond> bonds;
 
             CircuitCocircuit alg(G, cutSizeBound);
 
             for (int i = 2; i <= components; ++i) {
-                alg.run(i, bonds); // i, bonds
+                alg.run(i, bonds);
             }
 
-            //alg.run(2, bonds);
-
-            for(ogdf::List<ogdf::List<edge> >::iterator it = bonds.begin(); it != bonds.end(); ++it) {
+            for(ogdf::List<bond>::iterator it = bonds.begin(); it != bonds.end(); ++it) {
 				cout << *it << endl;
             }
         }

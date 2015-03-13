@@ -9,6 +9,13 @@
 #include <ogdf/basic/DisjointSets.h>
 #include "graphcoloring.h"
 
+typedef struct bond {
+    ogdf::List<edge> edges;
+    edge lastBondFirstEdge; // c_s(j) where j is the largest index s.t. c_s(j) has been added to Y union X
+} bond;
+
+std::ostream & operator<<(std::ostream &os, const bond &S);
+
 class CircuitCocircuit
 {
     Graph &G;
@@ -17,9 +24,9 @@ class CircuitCocircuit
 
     CircuitCocircuit();
 
-    void genStage(int components, const ogdf::List<edge> &Y, int j,
-                  ogdf::List<ogdf::List<edge>> &bonds, GraphColoring &coloring,
-                  const ogdf::List<edge> &X, node red, node blue);
+    void genStage(int components, const bond &Y, int j,
+                  ogdf::List<bond> &bonds, GraphColoring &coloring,
+                  const bond &X, node red, node blue);
 
     void shortestPath(const GraphColoring &coloring, node s,
                       const ogdf::List<edge> &forbidden, node &lastRed,
@@ -29,7 +36,7 @@ class CircuitCocircuit
     void hideConnectedBlueSubgraph(const GraphColoring &coloring, node start);
 
     /**
-     * @brief findPathToAnyBlueAndColorItBlue Ignores red edges on the way!
+     * Ignores red edges on the way!
      * @param coloring
      * @param start
      * @return
@@ -38,7 +45,7 @@ class CircuitCocircuit
     bool reconnectBlueSubgraph(const ogdf::List<edge> &XY, const ogdf::List<edge> &X,
                                GraphColoring &coloring, node u, edge c);
 
-    void minimalSpanningForest(int components, const ogdf::List<edge> &Y, ogdf::List<edge> &edges);
+    void minimalSpanningForest(int components, const bond &Y, ogdf::List<edge> &edges);
 
 public:    
     CircuitCocircuit(Graph &Graph, int cutSizeBound) : G(Graph), cutSizeBound(cutSizeBound)
@@ -48,9 +55,23 @@ public:
         }
         allEdgesSortedByIndex.quicksort();
     }
-    void run(int components, ogdf::List<ogdf::List<edge>> &bonds);
-    void extendBond(int components, const ogdf::List<edge> &Y, int j,
-                    ogdf::List<ogdf::List<edge>> &bonds);
+
+    /**
+     * Runs the CircuitCocircuit algorithm, stores k-way bonds
+     * @param components
+     * @param bonds
+     */
+    void run(int components, ogdf::List<bond> &bonds);
+
+    /**
+     * Extends j-1 bond Y (possibly empty) to j-bond (which is added to bonds)
+     * @param components
+     * @param Y
+     * @param j
+     * @param bonds
+     */
+    void extendBond(int components, const bond &Y, int j,
+                    ogdf::List<bond> &bonds);
 
     ~CircuitCocircuit();
 };

@@ -1,39 +1,38 @@
 #include "circuitcocircuit.h"
 #include "helpers.h"
 
-void CircuitCocircuit::run(int components, ogdf::List<ogdf::List<edge>> &bonds)
+std::ostream & operator<<(std::ostream &os, const bond &L)
 {
-    ogdf::List<edge> Y;
-    extendBond(components, Y, 1, bonds);
+    return os << L.edges;
 }
 
-/**
- * @brief Extends j-1 bond Y (possibly empty) to j-bond (which is added to bonds)
- * @param components
- * @param Y
- * @param j
- * @param bonds
- */
-void CircuitCocircuit::extendBond(int components, const ogdf::List<edge> &Y,
-                                  int j, ogdf::List<ogdf::List<edge>> &bonds)
+void CircuitCocircuit::run(int k, ogdf::List<bond> &bonds)
+{
+    bond Y;
+    extendBond(k, Y, 1, bonds);
+}
+
+void CircuitCocircuit::extendBond(int components, const bond &Y,
+                                  int j, ogdf::List<bond> &bonds)
 {
     // D is an arbitrary matroid base; our D corresponds to F from the paper now
     ogdf::List<edge> D;    
     minimalSpanningForest(components, Y, D);
     // Set D = E(F) \ Y... but it's already done, we've already forbidden Y
 
-    ogdf::List<ogdf::List<edge>> stageBonds;
+    ogdf::List<bond> stageBonds;
 
     edge e;
     for(ogdf::List<edge>::iterator i = D.begin(); i != D.end(); i++) {
         e = *i;
 
-        ogdf::List<edge> X; // (Indexes might be sufficient? Check later)
+        bond X;
         GraphColoring coloring(G);
-        X.pushBack(e);
+        X.edges.pushBack(e);
+        X.lastBondFirstEdge = e;
 
         node u = e->source(), v = e->target();
-        // if (u->index() > v->index()) swap(u, v); // Def 4.3, i.
+        if (u->index() > v->index()) swap(u, v); // Def 4.3, i.
 
         coloring[u] = Color::RED;
         coloring[v] = Color::BLUE;
@@ -47,29 +46,34 @@ void CircuitCocircuit::extendBond(int components, const ogdf::List<edge> &Y,
     if (j == components - 1) {
         bonds.conc(stageBonds); // Beware, this empties stageBonds!
     } else {
-        for(ogdf::List<ogdf::List<edge>>::iterator it = stageBonds.begin(); it != stageBonds.end(); ++it) {
+        for(ogdf::List<bond>::iterator it = stageBonds.begin(); it != stageBonds.end(); ++it) {
             extendBond(components, *it, j + 1, bonds);
         }
     }
 }
 
 
-void CircuitCocircuit::genStage(int components, const ogdf::List<edge> &Y,
-                                int j, ogdf::List<ogdf::List<edge>> &bonds,
-                                GraphColoring &coloring, const ogdf::List<edge> &X,
+void CircuitCocircuit::genStage(int components, const bond &Y,
+                                int j, ogdf::List<bond> &bonds,
+                                GraphColoring &coloring, const bond &X,
                                 node red, node blue)
 {
-    if (Y.size() + X.size() > cutSizeBound - components + j + 1) return;
+    if (Y.edges.size() + X.edges.size() > cutSizeBound - components + j + 1) return;
 
-    ogdf::List<edge> Ycopy(Y);
-    ogdf::List<edge> XY(X); XY.conc(Ycopy); // G1 = G\XY, few parts require not having X and Y in the graph
+    bond Ycopy(Y);
+    bond XY(X); XY.edges.conc(Ycopy.edges); // G1 = G\XY, few parts require not having X and Y in the graph
 
     // Find set P = (a short circuit C in G1, s. t. |C ∩ X| = 1) \ X, G1 is G - Y
     node firstRed = NULL;
     ogdf::List<edge> P;
-    shortestPath(coloring, red, XY, firstRed, P);
+    shortestPath(coloring, red, XY.edges, firstRed, P);
 
-    if (P.size() > 0) {
+    if (P.empty()) {
+        // If there is no such path P above (line 6), then return ‘(j + 1) bond: Y union X’.
+        bonds.pushBack(XY);
+        //cout << XY << endl;
+    } else {
+        // Try adding each e in P to X
 
 #ifdef DEBUG
         edge eg = P.front();
@@ -78,7 +82,8 @@ void CircuitCocircuit::genStage(int components, const ogdf::List<edge> &Y,
         }
 #endif
 
-        // TODO: Simplify (maybe color just vertices and not edges?)
+        // Remember colours on the path before this iteration
+        // TODO: Simplify (maybe color just vertices?)
         List<edge> blueBefore;
         List<node> blueVBefore;
 
@@ -126,7 +131,7 @@ void CircuitCocircuit::genStage(int components, const ogdf::List<edge> &Y,
                 v = c->opposite(u);
 
                 // TODO: rename to reconnectBlueSubgraphIfNeeded or sth like that
-                if(!reconnectBlueSubgraph(XY, X /* c is ignored too! */, coloring, u, c)) { // can't reconnect -> fail
+                if(!reconnectBlueSubgraph(XY.edges, X.edges /* c is ignored too! */, coloring, u, c)) { // can't reconnect -> fail
                     // Recolor to black what we colored red/blue so that the original coloring is used in the recursion level above
                     recolorBlack(coloring, P);
 
@@ -139,9 +144,16 @@ void CircuitCocircuit::genStage(int components, const ogdf::List<edge> &Y,
                 }
             }
 
-            // all went fine add c
-            ogdf::List<edge> newX(X);
-            newX.pushBack(c);
+            if( (!Y.edges.empty() && c->index() <= Y.lastBondFirstEdge->index())
+             || (!X.edges.empty() && c->index() <= X.edges.front()->index())) {
+                coloring[u] = Color::RED;
+                coloring[c] = Color::RED;
+                continue;
+            }
+
+            // all went fine add c to X
+            bond newX(X);
+            newX.edges.pushBack(c);
 
             coloring[u] = Color::RED;
             coloring[c] = Color::BLACK;
@@ -159,10 +171,6 @@ void CircuitCocircuit::genStage(int components, const ogdf::List<edge> &Y,
 
         coloring[firstRed] = Color::RED;
         coloring[blue] = Color::BLUE;
-
-    } else {
-        // If there is no such path P above (line 6), then return ‘(j + 1) bond: Y union X’.
-        bonds.pushBack(XY);
     }
 }
 
@@ -325,7 +333,7 @@ bool CircuitCocircuit::reconnectBlueSubgraph(const ogdf::List<edge> &XY, // XY i
                                              const ogdf::List<edge> &X, // nearing u/v results in reconnection problem
                            GraphColoring &coloring, node u, edge c)
 {
-    // if u has blue adjacent edges (except for c) or both u and v have then
+    // if u has blue adjacent edges (except for c) then
     //     enumerate one blue subgraph, call it G_b1
     //     create graph G_rest = G \ X \ G_b1 and BFS (ignoring red edges) in it until blue is found
     //     -> path found, color it blue and continue
@@ -334,7 +342,7 @@ bool CircuitCocircuit::reconnectBlueSubgraph(const ogdf::List<edge> &XY, // XY i
 
     G.hideEdge(c); // Don't consider c
 
-    bool uaIsEmpty = true, vaIsEmpty = true;
+    bool uaIsEmpty = true;
     edge e;
 
     forall_adj_edges(e, u) {
@@ -344,17 +352,8 @@ bool CircuitCocircuit::reconnectBlueSubgraph(const ogdf::List<edge> &XY, // XY i
         }
     }
 
-    node v = c->opposite(u);
-    forall_adj_edges(e, v) {
-        if (coloring[e] == Color::BLUE || X.search(e).valid()) {
-            vaIsEmpty = false;
-            break;
-        }
-    }
-
-    if (!uaIsEmpty || (!uaIsEmpty && !vaIsEmpty)) {
+    if (!uaIsEmpty) {
         // G_b has been disconnected, hide X, G_r and one component of blue subgraph
-        // (TODO: Maintain G_rest through the whole algorithm and not recompute here every time?)
         for(ogdf::List<edge>::const_iterator it = XY.begin(); it != XY.end(); it++)
             G.hideEdge(*it);
 
@@ -370,7 +369,6 @@ bool CircuitCocircuit::reconnectBlueSubgraph(const ogdf::List<edge> &XY, // XY i
             G.restoreAllEdges();
             return false;
         }
-
     }
 
     G.restoreAllEdges();
@@ -385,8 +383,7 @@ bool CircuitCocircuit::reconnectBlueSubgraph(const ogdf::List<edge> &XY, // XY i
  * @param forbidden Forbidden edges to use, typically existing bonds
  * @param result
  */
-
-void CircuitCocircuit::minimalSpanningForest(int components, const List<edge> &Y, List<edge> &result)
+void CircuitCocircuit::minimalSpanningForest(int components, const bond &Y, List<edge> &result)
 {
     // A modification of OGDF's makeMinimumSpanningTree
 
@@ -400,14 +397,14 @@ void CircuitCocircuit::minimalSpanningForest(int components, const List<edge> &Y
     for (ListConstIterator<Prioritized<edge,int>> it = allEdgesSortedByIndex.begin(); it.valid(); ++it) {
         const edge e = (*it).item();
 
-        if (Y.search(e).valid()) continue;
+        if (Y.edges.search(e).valid()) continue;
 
         const int v = setID[e->source()];
         const int w = setID[e->target()];
 
         // See paper: cannonical, informal, bullet one
         if ((uf.find(v) != uf.find(w))
-         /*&& (Y.empty() || Y.back()->index() < e->index())*/) { // See paper: cannonical, informal, bullet one // incorrect, fix later
+         && (Y.edges.empty() || e->index() > Y.lastBondFirstEdge->index())) {
             uf.link(uf.find(v), uf.find(w));
             result.pushBack(e);
             stSize++;

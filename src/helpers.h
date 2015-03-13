@@ -13,9 +13,9 @@
  */
 void csvToGraph(Graph &G, ifstream &fEdges);
 
-std::ostream & operator<<(std::ostream &os, const std::set<edge>& S);
-std::ostream & operator<<(std::ostream &os, const ogdf::List<edge>& L);
-std::ostream & operator<<(std::ostream &os, const ogdf::Graph& G);
+std::ostream & operator<<(std::ostream &os, const std::set<edge> &S);
+std::ostream & operator<<(std::ostream &os, const ogdf::List<edge> &L);
+std::ostream & operator<<(std::ostream &os, const ogdf::Graph &G);
 
 string nameColor(Color c);
 
