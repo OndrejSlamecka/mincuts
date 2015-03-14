@@ -1,7 +1,9 @@
+This is a proof of concept implementation of CircuitCocircuit algorithm for finding all small k-way bonds in a graph. The algorithm was devised by prof. Petr Hliněný.
+
 Installation
 ------------
 
-* Install OGDF Snapshot 2014-03-07 into `~/.bin/ogdf` (or different directory but edit Makefile)
+* Install OGDF Snapshot 2014-03-07 into `~/.bin/ogdf` (or elsewhere but edit Makefile)
 * Run `make`
 
 Input/output file specification
