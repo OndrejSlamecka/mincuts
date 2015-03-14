@@ -1,9 +1,12 @@
 #include "helpers.h"
 
+using namespace std;
+using namespace ogdf;
+
 /**
  * Reads a csv file with lines "<id>;<source>;<target>;..." and transforms it into a graph
  */
-void csvToGraph(ogdf::Graph &G, std::ifstream &fEdges) {
+void csvToGraph(Graph &G, ifstream &fEdges) {
     string line;
 
     int id, u, v;
@@ -17,7 +20,7 @@ void csvToGraph(ogdf::Graph &G, std::ifstream &fEdges) {
     fEdges.clear(); // This should not be needed in C++11 but as it seems it actually is needed
     fEdges.seekg(0);
 
-    std::vector<node> nodes(maxNodeId + 1);
+    vector<node> nodes(maxNodeId + 1);
 
     for (; getline(fEdges, line);) {
         sscanf(line.c_str(), "%d;%d;%d;", &id, &u, &v);
@@ -32,7 +35,7 @@ void csvToGraph(ogdf::Graph &G, std::ifstream &fEdges) {
     }
 }
 
-std::ostream & operator<<(std::ostream &os, const std::set<edge> &S){
+ostream & operator<<(ostream &os, const set<edge> &S){
     int i = 0, ss = S.size();
     for(auto e : S) {
         os << e->index();
@@ -42,7 +45,7 @@ std::ostream & operator<<(std::ostream &os, const std::set<edge> &S){
     return os;
 }
 
-std::ostream & operator<<(std::ostream &os, const ogdf::List<edge> &L)
+ostream & operator<<(ostream &os, const List<edge> &L)
 {
     int i = 0, ls = L.size();
     for(auto e : L) {
@@ -53,7 +56,7 @@ std::ostream & operator<<(std::ostream &os, const ogdf::List<edge> &L)
     return os;
 }
 
-std::ostream & operator<<(std::ostream &os, const ogdf::Graph &G)
+ostream & operator<<(ostream &os, const Graph &G)
 {
     edge e;
     forall_edges(e, G) {
@@ -71,9 +74,9 @@ string nameColor(Color c) {
     }
 }
 
-string coloring2str(const ogdf::Graph &G, const GraphColoring &c)
+string coloring2str(const Graph &G, const GraphColoring &c)
 {
-    std::stringstream s;
+    stringstream s;
 
     node n;
 
@@ -94,15 +97,15 @@ string coloring2str(const ogdf::Graph &G, const GraphColoring &c)
     return s.str();
 }
 
-edge edgeByIndex(const ogdf::List<edge> &edges, int index)
+edge edgeByIndex(const List<edge> &edges, int index)
 {
     for(edge e : edges) if(e->index() == index) return e;
     return nullptr;
 }
 
-void indicies2edges(const ogdf::List<edge> &graphEdges, const string &str, ogdf::List<edge> &l)
+void indicies2edges(const List<edge> &graphEdges, const string &str, List<edge> &l)
 {
-    std::stringstream ss(str);
+    stringstream ss(str);
     string item;
     while (getline(ss, item, ',')) {
         int index = stoi(item);
@@ -114,7 +117,7 @@ void indicies2edges(const ogdf::List<edge> &graphEdges, const string &str, ogdf:
 /**
  * Helper function to determine whether given set of edges really is a cut
  */
-bool isCut(ogdf::Graph &G, const ogdf::List<edge> &cut)
+bool isCut(Graph &G, const List<edge> &cut)
 {
     for (auto e : cut) {
         G.hideEdge(e);
@@ -130,7 +133,7 @@ bool isCut(ogdf::Graph &G, const ogdf::List<edge> &cut)
  * Helper function todetermine whether given set of edges really is a minimal cut, w.r.t. # of components of G\cut
  * Returns 0 on success, -1 if # of components is 1. Otherwise, the # of components of G\cut
  */
-int isMinCut(ogdf::Graph &G, const ogdf::List<edge> &cut, int &ncomponents)
+int isMinCut(Graph &G, const List<edge> &cut, int &ncomponents)
 {
     NodeArray<int> component(G);
 
@@ -163,7 +166,37 @@ int isMinCut(ogdf::Graph &G, const ogdf::List<edge> &cut, int &ncomponents)
     return 0;
 }
 
-int isMinCut(ogdf::Graph &G, const ogdf::List<edge> &cut) {
+int isMinCut(Graph &G, const List<edge> &cut) {
     int nc;
     return isMinCut(G, cut, nc);
+}
+
+void bruteforceGraphBonds(Graph &G, int cutSizeBound, int minComponents,
+                int maxComponents, List<List<edge>> &bonds)
+{
+    List<edge> allEdges;
+    G.allEdges(allEdges);
+
+    int n = allEdges.size();
+
+    for (int k = 1; k <= cutSizeBound; ++k) {
+        vector<bool> v(n);
+        fill(v.begin() + n - k, v.end(), true);
+
+        // http://stackoverflow.com/a/9430993
+        do {
+            List<edge> c;
+            for (int i = 0; i < n; ++i) {
+                if (v[i]) {
+                    c.pushBack(*allEdges.get(i));
+                }
+            }
+
+            int ncomponents;
+            if (isMinCut(G, c, ncomponents) == 0
+             && minComponents <= ncomponents && ncomponents <= maxComponents) {
+                bonds.pushBack(c);
+            }
+        } while (next_permutation(v.begin(), v.end()));
+    }
 }

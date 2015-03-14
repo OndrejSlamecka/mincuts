@@ -1,12 +1,26 @@
+/*
+ * Following the definitions from (yet unpublished) paper,
+ * the matroid terms below correspond to the graph
+ * terms right next to them.
+ *
+ *  Base - Spanning forest
+ *  Circuit - either graph cycle or spanning forest formed by # of components - 2 trees
+ *  Cocircuit - minimal edge-cut
+ *  Hyperplane - maximal set not containing any basis (= complement of a min-cut)
+ */
+
 #include "circuitcocircuit.h"
 #include "helpers.h"
 
-std::ostream & operator<<(std::ostream &os, const bond &L)
+using namespace std;
+using namespace ogdf;
+
+ostream & operator<<(ostream &os, const bond &L)
 {
     return os << L.edges;
 }
 
-void CircuitCocircuit::run(int k, ogdf::List<bond> &bonds)
+void CircuitCocircuit::run(int k, List<bond> &bonds)
 {
     bond Y;
     GraphColoring coloring(G);
@@ -15,17 +29,17 @@ void CircuitCocircuit::run(int k, ogdf::List<bond> &bonds)
 
 void CircuitCocircuit::extendBond(int components, const bond &Y,
                                   GraphColoring &coloring, int j,
-                                  ogdf::List<bond> &bonds)
+                                  List<bond> &bonds)
 {
     // D is an arbitrary matroid base; our D corresponds to F from the paper now
-    ogdf::List<edge> D;    
+    List<edge> D;
     minimalSpanningForest(components, Y, D);
     // Set D = E(F) \ Y... but it's already done, we've already forbidden Y
 
-    ogdf::List<bond> stageBonds;
+    List<bond> stageBonds;
 
     edge e;
-    for(ogdf::List<edge>::iterator i = D.begin(); i != D.end(); i++) {
+    for(List<edge>::iterator i = D.begin(); i != D.end(); i++) {
         e = *i;
 
         bond X;
@@ -47,7 +61,7 @@ void CircuitCocircuit::extendBond(int components, const bond &Y,
     if (j == components - 1) {
         bonds.conc(stageBonds); // Beware, this empties stageBonds!
     } else {
-        for(ogdf::List<bond>::iterator it = stageBonds.begin(); it != stageBonds.end(); ++it) {
+        for(List<bond>::iterator it = stageBonds.begin(); it != stageBonds.end(); ++it) {
             extendBond(components, *it, coloring, j + 1, bonds);
         }
     }
@@ -55,7 +69,7 @@ void CircuitCocircuit::extendBond(int components, const bond &Y,
 
 
 void CircuitCocircuit::genStage(int components, const bond &Y,
-                                int j, ogdf::List<bond> &bonds,
+                                int j, List<bond> &bonds,
                                 GraphColoring &coloring, const bond &X,
                                 node red, node blue)
 {
@@ -66,7 +80,7 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
 
     // Find set P = (a short circuit C in G1, s. t. |C ∩ X| = 1) \ X, G1 is G - Y
     node firstRed = NULL;
-    ogdf::List<edge> P;
+    List<edge> P;
     shortestPath(coloring, red, XY.edges, firstRed, P);
 
     if (P.empty()) {
@@ -78,7 +92,7 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
 #ifdef DEBUG
         edge eg = P.front();
         if (coloring[eg->source()] != Color::RED && coloring[eg->target()] != Color::RED) {
-            throw std::logic_error("GenStage: first edge of path has no end in red");
+            throw logic_error("GenStage: first edge of path has no end in red");
         }
 #endif
 
@@ -87,7 +101,7 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
         List<edge> blueBefore;
         List<node> blueVBefore;
 
-        for(ogdf::List<edge>::iterator iterator = P.begin(); iterator != P.end(); iterator++) {
+        for(List<edge>::iterator iterator = P.begin(); iterator != P.end(); iterator++) {
             edge e = *iterator;
             if (coloring[e] == Color::BLUE)
                 blueBefore.pushBack(e);
@@ -98,7 +112,7 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
         }
 
         // Color the path blue
-        for(ogdf::List<edge>::iterator iterator = P.begin(); iterator != P.end(); iterator++) {
+        for(List<edge>::iterator iterator = P.begin(); iterator != P.end(); iterator++) {
             edge e = *iterator;
 
             coloring[e->source()] = Color::BLUE;
@@ -108,7 +122,7 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
         coloring[firstRed] = Color::RED; // Keep red what was red
 
         // for each c ∈ D, recursively call GenCocircuits(X ∪ {c}).
-        for(ogdf::List<edge>::iterator iterator = P.begin(); iterator != P.end(); iterator++) {
+        for(List<edge>::iterator iterator = P.begin(); iterator != P.end(); iterator++) {
             edge c = *iterator;
             node u, v; // c = (u,v), let u be red (and vertices on the path from the first red to u are red too)
 
@@ -181,8 +195,8 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
  *
  */
 void CircuitCocircuit::shortestPath(const GraphColoring &coloring, node s,
-                                    const ogdf::List<edge> &forbidden, node &lastRed,
-                                    ogdf::List<edge> &path)
+                                    const List<edge> &forbidden, node &lastRed,
+                                    List<edge> &path)
 {
     Queue<node> Q;
     NodeArray<bool> visited(G, false);
@@ -231,7 +245,7 @@ void CircuitCocircuit::shortestPath(const GraphColoring &coloring, node s,
 
 void CircuitCocircuit::recolorBlack(GraphColoring &coloring, List<edge> &edges)
 {
-    for(ogdf::List<edge>::iterator iterator = edges.begin(); iterator != edges.end(); iterator++) {
+    for(List<edge>::iterator iterator = edges.begin(); iterator != edges.end(); iterator++) {
         edge e = *iterator;
 
         coloring[e->source()] = Color::BLACK;
@@ -296,7 +310,7 @@ bool CircuitCocircuit::findPathToAnyBlueAndColorItBlue(GraphColoring &coloring, 
 
 #ifdef DEBUG
                 if(coloring[n] == Color::RED || coloring[v] == Color::RED) {
-                    throw std::logic_error("Red node in findPathToAnyblueAndColorItBlue");
+                    throw logic_error("Red node in findPathToAnyblueAndColorItBlue");
                 }
 #endif
 
@@ -329,8 +343,8 @@ bool CircuitCocircuit::findPathToAnyBlueAndColorItBlue(GraphColoring &coloring, 
  * Reconnects the blue subgraph if needed and possible.
  * @return bool True for successful reconnection, false otherwise
  */
-bool CircuitCocircuit::reconnectBlueSubgraph(const ogdf::List<edge> &XY, // XY is just forbidden to use
-                                             const ogdf::List<edge> &X, // nearing u/v results in reconnection problem
+bool CircuitCocircuit::reconnectBlueSubgraph(const List<edge> &XY, // XY is just forbidden to use
+                                             const List<edge> &X, // nearing u/v results in reconnection problem
                            GraphColoring &coloring, node u, edge c)
 {
     // if u has blue adjacent edges (except for c) then
@@ -354,7 +368,7 @@ bool CircuitCocircuit::reconnectBlueSubgraph(const ogdf::List<edge> &XY, // XY i
 
     if (!uaIsEmpty) {
         // G_b has been disconnected, hide X, G_r and one component of blue subgraph
-        for(ogdf::List<edge>::const_iterator it = XY.begin(); it != XY.end(); it++)
+        for(List<edge>::const_iterator it = XY.begin(); it != XY.end(); it++)
             G.hideEdge(*it);
 
         // Hiding red subgraph with forall_edges(e, G) didn't work (e had no m_next set)

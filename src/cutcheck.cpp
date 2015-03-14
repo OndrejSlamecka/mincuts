@@ -5,6 +5,7 @@
 #include "helpers.h"
 
 using namespace std;
+using namespace ogdf;
 
 void visualize_isMinCut(Graph &G, const List<edge> &edges)
 {

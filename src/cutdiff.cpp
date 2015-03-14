@@ -31,7 +31,7 @@ void readFile(const char *filename, set<set<int>> &S)
 	}
 }
 
-std::ostream & operator<<(std::ostream &os, const set<int>& S)
+ostream & operator<<(std::ostream &os, const set<int>& S)
 {
 	int i = 0, ss = S.size();
 	for (auto e : S) {

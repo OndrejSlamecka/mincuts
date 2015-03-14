@@ -10,30 +10,30 @@
 #include "graphcoloring.h"
 
 typedef struct bond {
-    ogdf::List<edge> edges;
-    edge lastBondFirstEdge; // c_s(j) where j is the largest index s.t. c_s(j) has been added to Y union X
+    ogdf::List<ogdf::edge> edges;
+    ogdf::edge lastBondFirstEdge; // c_s(j) where j is the largest index s.t. c_s(j) has been added to Y union X
 } bond;
 
 std::ostream & operator<<(std::ostream &os, const bond &S);
 
 class CircuitCocircuit
 {
-    Graph &G;
-    ogdf::List<Prioritized<edge, int>> allEdgesSortedByIndex;
+    ogdf::Graph &G;
+    ogdf::List<ogdf::Prioritized<ogdf::edge, int>> allEdgesSortedByIndex;
     int cutSizeBound;
 
     CircuitCocircuit();
 
     void genStage(int components, const bond &Y, int j,
                   ogdf::List<bond> &bonds, GraphColoring &coloring,
-                  const bond &X, node red, node blue);
+                  const bond &X, ogdf::node red, ogdf::node blue);
 
-    void shortestPath(const GraphColoring &coloring, node s,
-                      const ogdf::List<edge> &forbidden, node &lastRed,
-                      ogdf::List<edge> &path);
+    void shortestPath(const GraphColoring &coloring, ogdf::node s,
+                      const ogdf::List<ogdf::edge> &forbidden, ogdf::node &lastRed,
+                      ogdf::List<ogdf::edge> &path);
 
-    void recolorBlack(GraphColoring &coloring, List<edge> &edges);
-    void hideConnectedBlueSubgraph(const GraphColoring &coloring, node start);
+    void recolorBlack(GraphColoring &coloring, ogdf::List<ogdf::edge> &edges);
+    void hideConnectedBlueSubgraph(const GraphColoring &coloring, ogdf::node start);
 
     /**
      * Ignores red edges on the way!
@@ -41,17 +41,17 @@ class CircuitCocircuit
      * @param start
      * @return
      */
-    bool findPathToAnyBlueAndColorItBlue(GraphColoring &coloring, node start);
-    bool reconnectBlueSubgraph(const ogdf::List<edge> &XY, const ogdf::List<edge> &X,
-                               GraphColoring &coloring, node u, edge c);
+    bool findPathToAnyBlueAndColorItBlue(GraphColoring &coloring, ogdf::node start);
+    bool reconnectBlueSubgraph(const ogdf::List<ogdf::edge> &XY, const ogdf::List<ogdf::edge> &X,
+                               GraphColoring &coloring, ogdf::node u, ogdf::edge c);
 
-    void minimalSpanningForest(int components, const bond &Y, ogdf::List<edge> &edges);
+    void minimalSpanningForest(int components, const bond &Y, ogdf::List<ogdf::edge> &edges);
 
 public:    
-    CircuitCocircuit(Graph &Graph, int cutSizeBound) : G(Graph), cutSizeBound(cutSizeBound)
+    CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound) : G(Graph), cutSizeBound(cutSizeBound)
     {
-        for (edge e = G.firstEdge(); e; e = e->succ()) {
-            allEdgesSortedByIndex.pushBack(Prioritized<edge,int>(e, e->index()));
+        for (ogdf::edge e = G.firstEdge(); e; e = e->succ()) {
+            allEdgesSortedByIndex.pushBack(ogdf::Prioritized<ogdf::edge,int>(e, e->index()));
         }
         allEdgesSortedByIndex.quicksort();
     }

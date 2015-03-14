@@ -20,10 +20,11 @@ In `bin/`:
 
 **mincuts**
 
-	Usage:	./build/mincuts <edge_file.csv> <cut size bound> <max components> [-bfc]
+	Usage:	mincuts <edge_file.csv> <cut size bound> <# of components> [-bfc]
 
-			-bfc --	use bruteforcing of all combinations instead of
-					circuit-cocircuit algorithm
+		<# of components> can be exact or range (e.g. 2-3)
+		-bfc --	use bruteforcing of all combinations instead of
+			CircuitCocircuit algorithm
 
 
 **cutcheck**

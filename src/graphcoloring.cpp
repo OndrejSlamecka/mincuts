@@ -1,6 +1,6 @@
 #include "graphcoloring.h"
 
-GraphColoring::GraphColoring(const Graph &G)
+GraphColoring::GraphColoring(const ogdf::Graph &G)
 {
     edges.init(G, Color::BLACK);
     vertices.init(G, Color::BLACK);
