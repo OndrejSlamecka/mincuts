@@ -29,7 +29,7 @@ In `bin/`:
 
 **cutcheck**
 
-	Usage:	./build/cutcheck <edge_file.csv> [-imc, --ismincut <list>] [-cc <list>]
+	Usage:	cutcheck <edge_file.csv> [-imc, --ismincut <list>] [-cc <list>]
 			[-rcc <cuts file>] [-tcc[f] <cuts file>]
 
 			-imc    -- verifies if <list> is cut and minimal one
@@ -41,7 +41,7 @@ In `bin/`:
 
 **cutdiff**
 
-	Usage: ./build/cutdiff <file A with cuts> [<file B with cuts> | ~]
+	Usage: cutdiff <file A with cuts> [<file B with cuts> | ~]
 	Output:
 		* Set difference A\B (note that B\A is not computed)
 		* Each cut of A and B is considered a set
@@ -49,7 +49,7 @@ In `bin/`:
 
 -----------
 
-In `tools`:
+In `tools/`:
 
 **csv2dot.sh**
 
