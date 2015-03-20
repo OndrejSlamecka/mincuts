@@ -50,6 +50,7 @@ void CircuitCocircuit::extendBond(int components, const bond &Y,
         if (u->index() > v->index()) swap(u, v); // Def 4.3, i.
 
         coloring[u] = Color::RED;
+        coloring.redNodes.pushBack(u);
         coloring[v] = Color::BLUE;
 
         genStage(components, Y, j, stageBonds, coloring, X, u, v);
@@ -144,15 +145,16 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
                 }
                 v = c->opposite(u);
 
-                // TODO: rename to reconnectBlueSubgraphIfNeeded or sth like that
-                if(!reconnectBlueSubgraph(XY.edges, X.edges /* c is ignored too! */, coloring, u, c)) { // can't reconnect -> fail
+                if(   isBlueSubgraphDisconnected(coloring, X, c, u) // c is ignored because it is not colored black yet
+                   && !reconnectBlueSubgraph(XY.edges, coloring, u)) {
+
                     // Recolor to black what we colored red/blue so that the original coloring is used in the recursion level above
                     recolorBlack(coloring, P);
 
                     for(edge e : blueBefore) coloring[e] = Color::BLUE;
                     for(node v : blueVBefore) coloring[v] = Color::BLUE;
 
-                    coloring[firstRed] = Color::RED;
+                    coloring[firstRed] = Color::RED;                    
                     coloring[blue] = Color::BLUE;
                     return;
                 }
@@ -161,15 +163,17 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
             if( (!Y.edges.empty() && c->index() <= Y.lastBondFirstEdge->index())
              || (!X.edges.empty() && c->index() <= X.edges.front()->index())) {
                 coloring[u] = Color::RED;
+                coloring.redNodes.pushBack(u);
                 coloring[c] = Color::RED;
                 continue;
             }
 
-            // all went fine add c to X
+            // all went fine, add c to X
             bond newX(X);
             newX.edges.pushBack(c);
 
             coloring[u] = Color::RED;
+            coloring.redNodes.pushBack(u);
             coloring[c] = Color::BLACK;
 
             genStage(components, Y, j, bonds, coloring, newX, u, v);
@@ -202,8 +206,16 @@ void CircuitCocircuit::shortestPath(const GraphColoring &coloring, node s,
     NodeArray<bool> visited(G, false);
     NodeArray<edge> accessEdge(G);
 
-    Q.append(s);
-    visited[s] = true;
+    node no;
+    forall_nodes(no, G) {
+        if (coloring[no] == Color::RED) {
+            Q.append(no);
+            visited[no] = true;
+        }
+    }
+
+    /*Q.append(s);
+    visited[s] = true;*/
 
     node u, v;
     edge e;
@@ -213,14 +225,14 @@ void CircuitCocircuit::shortestPath(const GraphColoring &coloring, node s,
         if (u != s && coloring[u] == Color::BLUE) { // Line6: path from any vertex of V_r to any of V_b
             lastRed = s;
             for (node n = u; n != s; n = v) {
-                e = accessEdge[n];
-                v = e->opposite(n);
-
                 if (coloring[n] == Color::RED) {
                     // In reverse direction it is the first red
                     lastRed = n;
                     break;
                 }
+
+                e = accessEdge[n];
+                v = e->opposite(n);
 
                 path.pushFront(e);
             }
@@ -255,7 +267,7 @@ void CircuitCocircuit::recolorBlack(GraphColoring &coloring, List<edge> &edges)
 }
 
 /**
- * @brief Runs DFS and hides everything which can be reached from start node and is blue
+ * @brief Runs DFS and hides everything which is blue and can be reached from start node
  * @param G
  * @param coloring
  * @param start
@@ -322,11 +334,12 @@ bool CircuitCocircuit::findPathToAnyBlueAndColorItBlue(GraphColoring &coloring, 
         }
 
         forall_adj_edges(e, u) {
-            if (coloring[e] == Color::RED) {
+            v = e->opposite(u);
+
+            if (coloring[v] == Color::RED) {
                 continue;
             }
 
-            v = e->opposite(u);
             if (!visited[v]) {
                 visited[v] = true;
                 accessEdge[v] = e;
@@ -338,51 +351,50 @@ bool CircuitCocircuit::findPathToAnyBlueAndColorItBlue(GraphColoring &coloring, 
     return false;
 }
 
-
-/**
- * Reconnects the blue subgraph if needed and possible.
- * @return bool True for successful reconnection, false otherwise
- */
-bool CircuitCocircuit::reconnectBlueSubgraph(const List<edge> &XY, // XY is just forbidden to use
-                                             const List<edge> &X, // nearing u/v results in reconnection problem
-                           GraphColoring &coloring, node u, edge c)
+bool CircuitCocircuit::isBlueSubgraphDisconnected(GraphColoring &coloring, const bond &X, edge c, node u)
 {
-    // if u has blue adjacent edges (except for c) then
-    //     enumerate one blue subgraph, call it G_b1
-    //     create graph G_rest = G \ X \ G_b1 and BFS (ignoring red edges) in it until blue is found
-    //     -> path found, color it blue and continue
-    //     -> path not found, fail here (return;)
-    // else no disconnection happened, G_b stays connected
+    G.hideEdge(c); // Don't consider c to be part of blue subgraph
 
-    G.hideEdge(c); // Don't consider c
-
-    bool uaIsEmpty = true;
     edge e;
-
     forall_adj_edges(e, u) {
-        if (coloring[e] == Color::BLUE || X.search(e).valid()) {
-            uaIsEmpty = false;
-            break;
+        if (coloring[e] == Color::BLUE || X.edges.search(e).valid()) {
+            G.restoreEdge(c);
+            return true;
         }
     }
 
-    if (!uaIsEmpty) {
-        // G_b has been disconnected, hide X, G_r and one component of blue subgraph
-        for(List<edge>::const_iterator it = XY.begin(); it != XY.end(); it++)
-            G.hideEdge(*it);
+    G.restoreEdge(c);
 
-        // Hiding red subgraph with forall_edges(e, G) didn't work (e had no m_next set)
+    return false;
+}
 
-        hideConnectedBlueSubgraph(coloring, u);
 
-        // BFS in G from u to the first found blue edge
-        //  -> not found => fail here
-        //  -> path found => color it blue and continue
+/**
+ * Reconnects the blue subgraph if possible.
+ * @return bool True for successful reconnection, false otherwise
+ */
+bool CircuitCocircuit::reconnectBlueSubgraph(const List<edge> &XY, GraphColoring &coloring, node u)
+{        
+    // enumerate one blue subgraph, call it G_b1
+    // create graph G_rest = G \ X \ G_b1 and BFS (ignoring red edges) in it until blue is found
+    //   -> path found, color it blue and continue
+    //   -> path not found, fail here (return;)
 
-        if (!findPathToAnyBlueAndColorItBlue(coloring, u)) {
-            G.restoreAllEdges();
-            return false;
-        }
+    for(List<edge>::const_iterator it = XY.begin(); it != XY.end(); it++) {
+        G.hideEdge(*it);
+    }
+
+    // Hiding red subgraph with forall_edges(e, G) didn't work (e had no m_next set), instead red are forbidden in findPathToAnyBlue...
+
+    hideConnectedBlueSubgraph(coloring, u);
+
+    // BFS in G from u to the first found blue edge
+    //  -> not found => fail here
+    //  -> path found => color it blue and continue
+
+    if (!findPathToAnyBlueAndColorItBlue(coloring, u)) {
+        G.restoreAllEdges();
+        return false;
     }
 
     G.restoreAllEdges();

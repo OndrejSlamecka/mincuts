@@ -18,6 +18,7 @@ class GraphColoring
     GraphColoring();
 public:
     ogdf::EdgeArray<Color> edges; // TODO: Move to private
+    ogdf::List<ogdf::node> redNodes;
 
     GraphColoring(const ogdf::Graph &G);
 

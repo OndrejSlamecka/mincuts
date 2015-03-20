@@ -42,8 +42,8 @@ class CircuitCocircuit
      * @return
      */
     bool findPathToAnyBlueAndColorItBlue(GraphColoring &coloring, ogdf::node start);
-    bool reconnectBlueSubgraph(const ogdf::List<ogdf::edge> &XY, const ogdf::List<ogdf::edge> &X,
-                               GraphColoring &coloring, ogdf::node u, ogdf::edge c);
+    bool isBlueSubgraphDisconnected(GraphColoring &coloring, const bond &X, ogdf::edge c, ogdf::node u);
+    bool reconnectBlueSubgraph(const ogdf::List<ogdf::edge> &XY, GraphColoring &coloring, ogdf::node u);
 
     void minimalSpanningForest(int components, const bond &Y, ogdf::List<ogdf::edge> &edges);
 
