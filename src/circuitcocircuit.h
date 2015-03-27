@@ -26,15 +26,15 @@ class CircuitCocircuit
 
     void genStage(int components, const bond &Y, int j,
                   ogdf::List<bond> &bonds, GraphColoring &coloring,
-                  const bond &X, ogdf::node red, ogdf::node blue);
+                  const bond &X);
 
-    void shortestPath(const GraphColoring &coloring, ogdf::node s,
-                      const ogdf::List<ogdf::edge> &forbidden, ogdf::node &lastRed,
-                      ogdf::List<ogdf::edge> &path);
+    void shortestPath(const GraphColoring &coloring, const ogdf::List<ogdf::edge> &forbidden,
+                      ogdf::node &lastRed, ogdf::List<ogdf::edge> &path);
 
     void revertColoring(GraphColoring &coloring, ogdf::List<ogdf::edge> &edges,
                         ogdf::List<ogdf::edge> blueEdges, ogdf::node firstRed,
-                        ogdf::List<ogdf::edge> &reconnectionBlues);
+                        ogdf::List<ogdf::edge> &reconnectionBlues,
+                        const bond &X);
     void hideConnectedBlueSubgraph(const GraphColoring &coloring, ogdf::node start);
 
     /**

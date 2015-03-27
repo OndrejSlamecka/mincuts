@@ -17,7 +17,7 @@ using namespace std;
  * http://stackoverflow.com/a/14618505/247532
  */
 void randomConnectedGraph(Graph &G, int nodes, int edges)
-{	
+{
 	randomSimpleGraph(G, nodes, edges);
 	List<edge> added;
 	makeConnected(G, added);
@@ -37,18 +37,18 @@ ostream & operator<<(std::ostream &os, const set<int>& S)
 int main(/*int argc, char *argv[]*/)
 {
 	// TODO: Help
-	int cutSizeBound = 4,
+/*	int cutSizeBound = 7,
 		minComponents = 2,
-		maxComponents = 2,
+		maxComponents = 4,
 		nodes = 15,
 		minEdges = 20,
-		maxEdges = 50;
-/*	int cutSizeBound = 3,
+		maxEdges = 50;*/
+	int cutSizeBound = 4,
 		minComponents = 2,
-		maxComponents = 2,
-		nodes = 8,
-		minEdges = 10,
-		maxEdges = 12;*/
+		maxComponents = 3,
+		nodes = 15,
+		minEdges = 17,
+		maxEdges = 35;
 
 	int edges;
 
@@ -57,6 +57,9 @@ int main(/*int argc, char *argv[]*/)
 
 		edges = randomNumber(minEdges, maxEdges);
 		randomConnectedGraph(G, nodes, edges);
+
+		ofstream fGraph("tmp/tester_in.csv");
+		graph2csv(G, fGraph);
 
 		// run circuitcocircuit and bfc
 		List<bond> bonds;
@@ -109,7 +112,7 @@ int main(/*int argc, char *argv[]*/)
                         break;
 		} else if (correct % 10 == 0) {
 			cout << "Correct: " << correct << endl;
-		}		
+		}
 	}
 
 	return 0;
