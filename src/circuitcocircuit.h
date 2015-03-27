@@ -32,7 +32,9 @@ class CircuitCocircuit
                       const ogdf::List<ogdf::edge> &forbidden, ogdf::node &lastRed,
                       ogdf::List<ogdf::edge> &path);
 
-    void recolorBlack(GraphColoring &coloring, ogdf::List<ogdf::edge> &edges);
+    void revertColoring(GraphColoring &coloring, ogdf::List<ogdf::edge> &edges,
+                        ogdf::List<ogdf::edge> blueEdges, ogdf::node firstRed,
+                        ogdf::List<ogdf::edge> &reconnectionBlues);
     void hideConnectedBlueSubgraph(const GraphColoring &coloring, ogdf::node start);
 
     /**
@@ -41,9 +43,11 @@ class CircuitCocircuit
      * @param start
      * @return
      */
-    bool findPathToAnyBlueAndColorItBlue(GraphColoring &coloring, ogdf::node start);
+    bool findPathToAnyBlueAndColorItBlue(GraphColoring &coloring, ogdf::node start,
+                                         ogdf::List<ogdf::edge> &reconnectionBlues);
     bool isBlueSubgraphDisconnected(GraphColoring &coloring, const bond &X, ogdf::edge c, ogdf::node u);
-    bool reconnectBlueSubgraph(const ogdf::List<ogdf::edge> &XY, GraphColoring &coloring, ogdf::node u);
+    bool reconnectBlueSubgraph(const ogdf::List<ogdf::edge> &XY, GraphColoring &coloring, ogdf::node u,
+                               ogdf::List<ogdf::edge> &reconnectionBlues);
 
     void minimalSpanningForest(int components, const bond &Y, ogdf::List<ogdf::edge> &edges);
 

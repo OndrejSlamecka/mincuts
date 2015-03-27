@@ -1,6 +1,7 @@
 #ifndef HELPERS_HPP
 #define HELPERS_HPP
 
+#include <string>
 #include <sstream>
 #include <ogdf/basic/Graph.h>
 #include <ogdf/basic/simple_graph_alg.h>
@@ -10,15 +11,17 @@
 /**
  * Reads a csv file with lines "<id>;<source>;<target>;..." and transforms it into a graph
  */
-void csvToGraph(ogdf::Graph &G, std::ifstream &fEdges);
+void csv2graph(ogdf::Graph &G, std::ifstream &fEdges);
+void graph2csv(const ogdf::Graph &G, std::ostream &fGraph);
+void graph2dot(const ogdf::Graph &G, std::ostream &fGraph);
 
 std::ostream & operator<<(std::ostream &os, const std::set<ogdf::edge> &S);
 std::ostream & operator<<(std::ostream &os, const ogdf::List<ogdf::edge> &L);
-std::ostream & operator<<(std::ostream &os, const ogdf::Graph &G);
 
 string nameColor(Color c);
 
 string coloring2str(const ogdf::Graph &G, const GraphColoring &c);
+string edgelist2str(const ogdf::List<ogdf::edge> &edges);
 
 ogdf::edge edgeByIndex(const ogdf::List<ogdf::edge> &edges, int index);
 std::string edgeInfo(const ogdf::Graph &G, int index);

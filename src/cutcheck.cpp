@@ -101,14 +101,14 @@ int main(int argc, char *argv[])
 	}
 
 	// First argument is always file with edges (except for help)
-	ifstream fEdges(argv[1]);
-	if (!fEdges.is_open()) {
-		cerr << "Edges file doesn't exist or could not be accessed." << endl;
-		exit(2);
-	}
-
 	Graph G;
-	csvToGraph(G, fEdges);
+	ifstream fGraph(argv[1]);
+	if (!fGraph.is_open()) {
+		cerr << "Graph file " << argv[1] << "doesn't exist or could not be " \
+				"accessed. Terminating." << endl;
+		exit(3);
+	}
+	csv2graph(G, fGraph);
 
 	// Determine action
 	int action = 0;

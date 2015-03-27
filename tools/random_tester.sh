@@ -2,7 +2,7 @@
 
 for i in {1..5000}
 do
-	./tools/random_graph.sh 20 3 > "tmp/tester_in.csv"
+	./tools/random_graph.sh 15 3 > "tmp/tester_in.csv"
 	R=$(./tools/test_on_graph.sh tmp/tester_in.csv)
 	L=$(echo "$R" | wc -l)
 	if [[ L -eq 2 ]]; then

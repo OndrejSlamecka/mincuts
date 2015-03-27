@@ -1,6 +1,5 @@
 #include <iostream>
 #include <stdexcept>
-#include <vector>
 #include <ogdf/basic/Graph.h>
 #include <ogdf/basic/simple_graph_alg.h>
 
@@ -10,7 +9,8 @@
 using namespace std;
 using namespace ogdf;
 
-void printUsage(char *name) {
+void printUsage(char *name)
+{
     cout << "Usage:\t" << name << " <edge_file.csv> " \
             "<cut size bound> <# of components> [-bfc]" << endl;
 	cout << endl \
@@ -33,13 +33,6 @@ int main(int argc, char* argv[])
         algorithm = 1;
     }
 
-    ifstream fEdges(argv[1]);
-    if (!fEdges.is_open()) {
-        cerr << "Edges file doesn't exist or could not be accessed. " \
-                "Terminating." << endl;
-        exit(2);
-    }
-
     int cutSizeBound, minComponents, maxComponents;
     try {
         cutSizeBound = stoi(argv[2]);
@@ -57,18 +50,24 @@ int main(int argc, char* argv[])
                 cerr << "Given range for number of components has negative " \
                         "length. a >= b has to hold in given range 'a-b'." \
                      << endl;
-                exit(3);
+                exit(2);
             }
         }
     } catch (invalid_argument &_) { // stoi failed
         printUsage(argv[0]);
         exit(1);
     };
+        
+    Graph G;
+    ifstream fGraph(argv[1]);
+    if (!fGraph.is_open()) {
+        cerr << "Graph file " << argv[1] << " doesn't exist or could not be " \
+                "accessed. Terminating." << endl;
+        exit(3);
+    }
+    csv2graph(G, fGraph);
 
     try {
-        Graph G;
-        csvToGraph(G, fEdges);
-
         if (algorithm == 1) {
             List<List<edge>> bonds;
             bruteforceGraphBonds(G, cutSizeBound, minComponents, maxComponents, bonds);
@@ -82,13 +81,12 @@ int main(int argc, char* argv[])
 
             for (int i = minComponents; i <= maxComponents; ++i) {
                 alg.run(i, bonds);
-            }
+            }            
 
             for(List<bond>::iterator it = bonds.begin(); it != bonds.end(); ++it) {
                 cout << *it << endl;
             }
         }
-
     } catch (invalid_argument &e) {
         cerr << "Error: " << e.what() << endl;
         return 1;

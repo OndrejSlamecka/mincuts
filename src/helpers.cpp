@@ -6,7 +6,8 @@ using namespace ogdf;
 /**
  * Reads a csv file with lines "<id>;<source>;<target>;..." and transforms it into a graph
  */
-void csvToGraph(Graph &G, ifstream &fEdges) {
+void csv2graph(Graph &G, ifstream &fEdges)
+{
     string line;
 
     int id, u, v;
@@ -35,7 +36,28 @@ void csvToGraph(Graph &G, ifstream &fEdges) {
     }
 }
 
-ostream & operator<<(ostream &os, const set<edge> &S){
+void graph2csv(const Graph &G, ostream &fGraph)
+{
+    edge e;
+    forall_edges(e, G) {
+        fGraph << e->index() << ";" << e->source() << ";" << e->target() << endl;
+    }
+}
+
+void graph2dot(const Graph &G, ostream &fGraph)
+{
+    fGraph << "graph G {" << endl;
+
+    edge e;
+    forall_edges(e, G) {
+        fGraph << "\t" << e->source() << " -- " << e->target() << " [label \"" << e->index() << "\"]" << endl;
+    }
+
+    fGraph << "}" << endl;
+}
+
+ostream & operator<<(ostream &os, const set<edge> &S)
+{
     int i = 0, ss = S.size();
     for(auto e : S) {
         os << e->index();
@@ -56,16 +78,8 @@ ostream & operator<<(ostream &os, const List<edge> &L)
     return os;
 }
 
-ostream & operator<<(ostream &os, const Graph &G)
+string nameColor(Color c)
 {
-    edge e;
-    forall_edges(e, G) {
-        os << "(" << e->source() << "," << e->target() << "), ";
-    }
-    return os;
-}
-
-string nameColor(Color c) {
     switch(c) {
         case Color::BLACK: return "black";
         case Color::RED: return "red";
@@ -94,6 +108,18 @@ string coloring2str(const Graph &G, const GraphColoring &c)
     }
     s << endl;
 
+    return s.str();
+}
+
+string edgelist2str(const ogdf::List<edge> &edges)
+{
+    stringstream s;
+    forall_listiterators(edge, it, edges) {
+        s << (*it)->index();
+        if (*it != edges.back()) {
+            s << ", ";
+        }
+    }
     return s.str();
 }
 
@@ -166,7 +192,8 @@ int isMinCut(Graph &G, const List<edge> &cut, int &ncomponents)
     return 0;
 }
 
-int isMinCut(Graph &G, const List<edge> &cut) {
+int isMinCut(Graph &G, const List<edge> &cut)
+{
     int nc;
     return isMinCut(G, cut, nc);
 }
@@ -179,7 +206,8 @@ void bruteforceGraphBonds(Graph &G, int cutSizeBound, int minComponents,
 
     int n = allEdges.size();
 
-    for (int k = 1; k <= cutSizeBound; ++k) {
+    int stop = min(cutSizeBound, G.numberOfEdges());
+    for (int k = 1; k <= stop; ++k) {
         vector<bool> v(n);
         fill(v.begin() + n - k, v.end(), true);
 
