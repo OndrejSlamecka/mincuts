@@ -5,7 +5,6 @@
 #include <ogdf/basic/Graph.h>
 #include <ogdf/basic/Queue.h>
 #include <ogdf/basic/Stack.h>
-#include <ogdf/basic/BinaryHeap2.h>
 #include <ogdf/basic/DisjointSets.h>
 #include "graphcoloring.h"
 
@@ -32,7 +31,7 @@ class CircuitCocircuit
                       ogdf::node &lastRed, ogdf::List<ogdf::edge> &path);
 
     void revertColoring(GraphColoring &coloring, ogdf::List<ogdf::edge> &edges,
-                        ogdf::List<ogdf::edge> blueEdges, ogdf::node firstRed,
+                        ogdf::List<ogdf::edge> &blueEdges, ogdf::node firstRed,
                         ogdf::List<ogdf::edge> &reconnectionBlues,
                         const bond &X);
     void hideConnectedBlueSubgraph(const GraphColoring &coloring, ogdf::node start);
@@ -46,7 +45,7 @@ class CircuitCocircuit
     bool findPathToAnyBlueAndColorItBlue(GraphColoring &coloring, ogdf::node start,
                                          ogdf::List<ogdf::edge> &reconnectionBlues);
     bool isBlueSubgraphDisconnected(GraphColoring &coloring, const bond &X, ogdf::edge c, ogdf::node u);
-    bool reconnectBlueSubgraph(const ogdf::List<ogdf::edge> &XY, GraphColoring &coloring, ogdf::node u,
+    bool reconnectBlueSubgraph(const ogdf::List<ogdf::edge> &XY, GraphColoring &coloring, ogdf::node u, ogdf::edge c,
                                ogdf::List<ogdf::edge> &reconnectionBlues);
 
     void minimalSpanningForest(int components, const bond &Y, ogdf::List<ogdf::edge> &edges);

@@ -59,6 +59,7 @@ void CircuitCocircuit::extendBond(int components, const bond &Y,
 
         genStage(components, Y, j, stageBonds, coloring, X);
 
+        coloring.redNodes.clear();
         coloring[u] = Color::BLACK;
         coloring[v] = Color::BLACK;
     }
@@ -140,9 +141,10 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
                 }
                 v = c->opposite(u);
 
+                coloring.redNodes.pushBack(u);
                 coloring[u] = Color::RED;
                 if(   isBlueSubgraphDisconnected(coloring, X, c, u) // c is ignored because it is not colored black yet
-                   && !reconnectBlueSubgraph(XY.edges, coloring, v, reconnectionBlues)) {
+                   && !reconnectBlueSubgraph(XY.edges, coloring, v, c, reconnectionBlues)) {
                     // Revert coloring so that the original coloring is used in the recursion level above
                     revertColoring(coloring, P, blueBefore, firstRed, reconnectionBlues, X);
                     return;
@@ -194,6 +196,13 @@ void CircuitCocircuit::shortestPath(const GraphColoring &coloring, const List<ed
             visited[no] = true;
         }
     }
+/*
+    forall_listiterators(node, it, coloring.redNodes) {
+        no = *it;
+        Q.append(no);
+        visited[no] = true;
+    }
+*/
 
     node u, v;
     edge e;
@@ -230,7 +239,7 @@ void CircuitCocircuit::shortestPath(const GraphColoring &coloring, const List<ed
 /* --- Coloring, reconnecting blue subgraph --- */
 
 void CircuitCocircuit::revertColoring(GraphColoring &coloring, List<edge> &edges,
-                                      List<edge> blueEdges, node firstRed,
+                                      List<edge> &blueEdges, node firstRed,
                                       List<edge> &reconnectionBlues,
                                       const bond &X)
 {
@@ -256,7 +265,6 @@ void CircuitCocircuit::revertColoring(GraphColoring &coloring, List<edge> &edges
 
 
     for(edge e : blueEdges) coloring[e] = Color::BLUE;
-
     coloring[firstRed] = Color::RED;
 }
 
@@ -351,7 +359,7 @@ bool CircuitCocircuit::isBlueSubgraphDisconnected(GraphColoring &coloring, const
 
     edge e;
     forall_adj_edges(e, u) {
-        if (coloring[e] == Color::BLUE || X.edges.search(e).valid()) {
+        if (coloring[e] == Color::BLUE || X.edges.search(e).valid()) { // TODO: check if e.opposite(u) is blue, it's equiv. to X.edges.search(e).valid()
             G.restoreEdge(c);
             return true;
         }
@@ -368,7 +376,7 @@ bool CircuitCocircuit::isBlueSubgraphDisconnected(GraphColoring &coloring, const
  * @return bool True for successful reconnection, false otherwise
  */
 bool CircuitCocircuit::reconnectBlueSubgraph(const List<edge> &XY,
-                                             GraphColoring &coloring, node u,
+                                             GraphColoring &coloring, node u, edge c,
                                              ogdf::List<edge> &reconnectionBlues)
 {        
     // enumerate one blue subgraph, call it G_b1
@@ -376,12 +384,16 @@ bool CircuitCocircuit::reconnectBlueSubgraph(const List<edge> &XY,
     //   -> path found, color it blue and continue
     //   -> path not found, fail here (return;)
 
+    G.hideEdge(c);
+
     forall_listiterators(edge, it, XY) {
         G.hideEdge(*it);
     }
 
     // Hiding red subgraph with forall_edges(e, G) didn't work (e had no m_next set), instead red are forbidden in findPathToAnyBlue...
-
+    // TODO: This will create problem if removing c doesn't disconnect the blue subgraph
+    // Either change this (BFS for blue, then DFS and count found blue vertices... until we find all blue vertcies)
+    // OR: Prove it cannot happen
     hideConnectedBlueSubgraph(coloring, u);
 
     // BFS in G from u to the first found blue edge

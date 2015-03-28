@@ -34,32 +34,73 @@ ostream & operator<<(std::ostream &os, const set<int>& S)
 	return os;
 }
 
-int main(/*int argc, char *argv[]*/)
+void printUsage(char *name)
 {
-	// TODO: Help
-/*	int cutSizeBound = 7,
-		minComponents = 2,
-		maxComponents = 4,
-		nodes = 15,
-		minEdges = 20,
-		maxEdges = 50;*/
-	int cutSizeBound = 4,
-		minComponents = 2,
-		maxComponents = 3,
-		nodes = 15,
-		minEdges = 17,
-		maxEdges = 35;
+	cout << "Usage:\t" << name << " <# of nodes> <min>-<max edges> " \
+		 << "<cut size bound> <# of components>\n" << endl;
+
+	cout << "\tGenerates random graphs to test CircuitCocircuit " \
+	     << "implementation\n" << endl;
+	cout << "\t<# of components> can be exact or range (e.g. 2-3)" << endl;
+	cout << "\t<max edges> is not strict (if the random graph is " \
+		 << "disconnected\n\t\tthen we add edges to connect it" << endl;
+}
+
+int main(int argc, char *argv[])
+{
+	if (argc != 5) {
+		printUsage(argv[0]);
+		exit(1);
+	}
+
+	int nodes, minEdges, maxEdges,
+		cutSizeBound, minComponents, maxComponents;
+	try {
+		size_t hyphenPos;
+
+		// # of nodes
+		nodes = stoi(argv[1]);
+
+		// min-max edges
+		string secondArg(argv[2]);
+		hyphenPos = secondArg.find('-');
+		if (hyphenPos == string::npos) {
+			throw invalid_argument("Number of edges is not range.");
+		}
+		minEdges = stoi(secondArg.substr(0, hyphenPos));
+		maxEdges = stoi(secondArg.substr(hyphenPos + 1));
+
+		if (maxEdges < minEdges) {
+			throw invalid_argument("max edges < min edges");
+		}
+
+		// cut size bound
+		cutSizeBound = stoi(argv[3]);
+
+		// # of components
+		string fourthArg(argv[4]);
+		hyphenPos = fourthArg.find('-');
+		if (hyphenPos == string::npos) {
+			minComponents = maxComponents = stoi(argv[4]);
+		} else {
+			minComponents = stoi(fourthArg.substr(0, hyphenPos));
+			maxComponents = stoi(fourthArg.substr(hyphenPos + 1));
+		}
+
+		if (maxComponents < minComponents) {
+			throw invalid_argument("max components < min components");
+		}
+	} catch(invalid_argument &_) { // stoi failed
+		printUsage(argv[0]);
+		exit(2);
+	}
 
 	int edges;
-
-	for(int correct = 1;; ++correct) {
+	for(;;) {
 		Graph G;
 
 		edges = randomNumber(minEdges, maxEdges);
 		randomConnectedGraph(G, nodes, edges);
-
-		ofstream fGraph("tmp/tester_in.csv");
-		graph2csv(G, fGraph);
 
 		// run circuitcocircuit and bfc
 		List<bond> bonds;
@@ -90,7 +131,11 @@ int main(/*int argc, char *argv[]*/)
 		set_difference(B.begin(), B.end(), A.begin(), A.end(),
 			inserter(BmA, BmA.end()));
 
-		if (!(AmB.empty() && BmA.empty())) {
+		if (AmB.empty() && BmA.empty()) {
+			cout << ".";
+			cout.flush();
+		} else {
+			cout << endl;
 			cout << "mincuts / bf:" << endl;
 			for (set<int> c : AmB) {
 				cout << c << endl;
@@ -109,9 +154,7 @@ int main(/*int argc, char *argv[]*/)
 			graph2csv(G, fGraph);
 			cout << "Input graph written to tmp/tester_in.csv" << endl;
 
-                        break;
-		} else if (correct % 10 == 0) {
-			cout << "Correct: " << correct << endl;
+			break;
 		}
 	}
 

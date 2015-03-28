@@ -46,10 +46,8 @@ int main(int argc, char* argv[])
             minComponents = stoi(thirdArg.substr(0, hyphenPos));
             maxComponents = stoi(thirdArg.substr(hyphenPos + 1));
 
-            if (minComponents > maxComponents) {
-                cerr << "Given range for number of components has negative " \
-                        "length. a >= b has to hold in given range 'a-b'." \
-                     << endl;
+            if (maxComponents < minComponents) {
+                cerr << "max # of components < min # of components" << endl;
                 exit(2);
             }
         }
