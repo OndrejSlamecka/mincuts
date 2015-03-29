@@ -143,7 +143,7 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
 
                 coloring.redNodes.pushBack(u);
                 coloring[u] = Color::RED;
-                if(   isBlueSubgraphDisconnected(coloring, X, c, u) // c is ignored because it is not colored black yet
+                if(   isBlueSubgraphDisconnected(coloring, c, u) // c is ignored because it is not colored black yet
                    && !reconnectBlueSubgraph(XY.edges, coloring, v, c, reconnectionBlues)) {
                     // Revert coloring so that the original coloring is used in the recursion level above
                     revertColoring(coloring, P, blueBefore, firstRed, reconnectionBlues, X);
@@ -204,6 +204,10 @@ void CircuitCocircuit::shortestPath(const GraphColoring &coloring, const List<ed
     }
 */
 
+    forall_listiterators(edge, it, XY) {
+        G.hideEdge(*it);
+    }
+
     node u, v;
     edge e;
     while(!Q.empty()) {
@@ -223,8 +227,6 @@ void CircuitCocircuit::shortestPath(const GraphColoring &coloring, const List<ed
         }
 
         forall_adj_edges(e, u) {
-            if (XY.search(e).valid()) continue; // This is fast because m is a small constant
-
             v = e->opposite(u);
             if (!visited[v]) {
                 accessEdge[v] = e;
@@ -233,6 +235,8 @@ void CircuitCocircuit::shortestPath(const GraphColoring &coloring, const List<ed
             }
         }
     }
+
+    G.restoreAllEdges();
 }
 
 
@@ -319,32 +323,21 @@ bool CircuitCocircuit::findPathToAnyBlueAndColorItBlue(GraphColoring &coloring,
     while(!Q.empty()) {
         u = Q.pop();
 
-        // TODO: Optimize this... (use Queue<edge>?)
-        bool hasBlueAdjacentEdge = false;
         forall_adj_edges(e, u) {
+            // If u is incident to a blue edge then color u-start path blue and return true
             if (coloring[e] == Color::BLUE) {
-                hasBlueAdjacentEdge = true;
-                break;
-            }
-        }
+                for (node n = u; n != start; n = v) {
+                    e = accessEdge[n];
+                    v = e->opposite(n);
 
-        if ((hasBlueAdjacentEdge || coloring[u] == Color::BLUE) && u != start) {
-            for (node n = u; n != start; n = v) {
-                e = accessEdge[n];
-                v = e->opposite(n);
-
-#ifdef DEBUG
-                if(coloring[n] == Color::RED || coloring[v] == Color::RED) {
-                    throw logic_error("Red node in findPathToAnyblueAndColorItBlue");
+                    coloring[e] = Color::BLUE;
+                    reconnectionBlues.pushBack(e);
                 }
-#endif
-                coloring[e] = Color::BLUE;
-                reconnectionBlues.pushBack(e);
+                return true;
             }
-            return true;
-        }
 
-        forall_adj_edges(e, u) {
+            // Else continue the search (with avoiding red graph)
+            // Note that the edge currently being added to X is hidden
             v = e->opposite(u);
 
             if (coloring[v] == Color::RED) {
@@ -362,13 +355,13 @@ bool CircuitCocircuit::findPathToAnyBlueAndColorItBlue(GraphColoring &coloring,
     return false;
 }
 
-bool CircuitCocircuit::isBlueSubgraphDisconnected(GraphColoring &coloring, const bond &X, edge c, node u)
+bool CircuitCocircuit::isBlueSubgraphDisconnected(GraphColoring &coloring, edge c, node u)
 {
     G.hideEdge(c); // Don't consider c to be part of blue subgraph
 
     edge e;
     forall_adj_edges(e, u) {
-        if (coloring[e] == Color::BLUE || X.edges.search(e).valid()) { // TODO: check if e.opposite(u) is blue, it's equiv. to X.edges.search(e).valid()
+        if (coloring[e] == Color::BLUE) {
             G.restoreEdge(c);
             return true;
         }

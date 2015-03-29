@@ -44,7 +44,7 @@ class CircuitCocircuit
      */
     bool findPathToAnyBlueAndColorItBlue(GraphColoring &coloring, ogdf::node start,
                                          ogdf::List<ogdf::edge> &reconnectionBlues);
-    bool isBlueSubgraphDisconnected(GraphColoring &coloring, const bond &X, ogdf::edge c, ogdf::node u);
+    bool isBlueSubgraphDisconnected(GraphColoring &coloring, ogdf::edge c, ogdf::node u);
     bool reconnectBlueSubgraph(const ogdf::List<ogdf::edge> &XY, GraphColoring &coloring, ogdf::node u, ogdf::edge c,
                                ogdf::List<ogdf::edge> &reconnectionBlues);
 
