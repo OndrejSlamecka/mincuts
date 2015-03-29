@@ -319,7 +319,16 @@ bool CircuitCocircuit::findPathToAnyBlueAndColorItBlue(GraphColoring &coloring,
     while(!Q.empty()) {
         u = Q.pop();
 
-        if (coloring[u] == Color::BLUE && u != start) {
+        // TODO: Optimize this... (use Queue<edge>?)
+        bool hasBlueAdjacentEdge = false;
+        forall_adj_edges(e, u) {
+            if (coloring[e] == Color::BLUE) {
+                hasBlueAdjacentEdge = true;
+                break;
+            }
+        }
+
+        if ((hasBlueAdjacentEdge || coloring[u] == Color::BLUE) && u != start) {
             for (node n = u; n != start; n = v) {
                 e = accessEdge[n];
                 v = e->opposite(n);
@@ -391,9 +400,7 @@ bool CircuitCocircuit::reconnectBlueSubgraph(const List<edge> &XY,
     }
 
     // Hiding red subgraph with forall_edges(e, G) didn't work (e had no m_next set), instead red are forbidden in findPathToAnyBlue...
-    // TODO: This will create problem if removing c doesn't disconnect the blue subgraph
-    // Either change this (BFS for blue, then DFS and count found blue vertices... until we find all blue vertcies)
-    // OR: Prove it cannot happen
+    // Removing c always disconnects the blue subgraph since it's a tree
     hideConnectedBlueSubgraph(coloring, u);
 
     // BFS in G from u to the first found blue edge
