@@ -1,19 +1,34 @@
-ogdfPath = ~/.bin/ogdf
+ogdf_path = ~/.bin/ogdf
+nauty_path = ~/.bin/nauty25r9
 
 CXXFLAGS=-std=c++11 -pedantic -Wall -Wextra $(EXTRA_CXXFLAGS)
-links = -lOGDF -lpthread
-ogdf = -L $(ogdfPath)/_debug -I $(ogdfPath)/include
+LINKS=-I $(ogdf_path)/include -L $(ogdf_path)/_debug -lOGDF -lpthread
+
+ifeq "$(wildcard $(nauty_path) )" ""
+	NAUTY=
+	CXXFLAGS_TESTER=CXXFLAGS
+else
+	NAUTY=-DNAUTY -DOUTPROC=receiveGraph -DGENG_MAIN=geng_main -I $(nauty_path) -L $(nauty_path)
+	NAUTY_FILES=$(nauty_path)/geng.c $(nauty_path)/gtools.o $(nauty_path)/nauty1.o $(nauty_path)/nautil1.o $(nauty_path)/naugraph1.o $(nauty_path)/schreier.o $(nauty_path)/naurng.o
+	CXXFLAGS_TESTER=-std=c++11 -Wno-write-strings $(EXTRA_CXXFLAGS)
+endif
 
 all: mincuts cutdiff cutcheck tester
 
 mincuts: src/helpers.cpp src/graphcoloring.cpp src/circuitcocircuit.cpp src/mincuts.cpp
-	g++ $(CXXFLAGS) $(ogdf) src/helpers.cpp src/graphcoloring.cpp src/circuitcocircuit.cpp src/mincuts.cpp -o bin/mincuts $(links)
+	g++ -o bin/$@ $(CXXFLAGS) $^ $(LINKS)
 
 cutdiff: src/cutdiff.cpp
-	g++ $(CXXFLAGS) src/cutdiff.cpp -o bin/cutdiff
+	g++ -o bin/$@ $(CXXFLAGS) $^
 
 cutcheck: src/helpers.cpp src/cutcheck.cpp
-	g++ $(CXXFLAGS) $(ogdf) src/helpers.cpp src/cutcheck.cpp -o bin/cutcheck $(links)
+	g++ -o bin/$@ $(CXXFLAGS) $^ $(LINKS)
 
 tester: src/graphcoloring.cpp src/circuitcocircuit.cpp src/helpers.cpp src/tester.cpp
-	g++ $(CXXFLAGS) $(ogdf) src/graphcoloring.cpp src/circuitcocircuit.cpp src/helpers.cpp src/tester.cpp -o bin/tester $(links)
+	g++ -o bin/$@ $(CXXFLAGS_TESTER) $(NAUTY) $(NAUTY_FILES) $^ $(LINKS)
+
+ifeq "$(NAUTY)" ""
+	@echo "-- nauty not found in $(nauty_path), tester option -c disabled"
+else
+	@echo "-- tester compiled with nauty, option -c enabled"
+endif

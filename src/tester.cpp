@@ -1,29 +1,50 @@
+// TODO: Run generators in parallel with tester
+
 #include <iostream>
 #include <stdexcept>
+#include <memory>
 #include <set>
 #include <ogdf/basic/Graph.h>
-#include <ogdf/basic/GraphAttributes.h>
 #include <ogdf/basic/simple_graph_alg.h>
 #include <ogdf/basic/graph_generators.h>
-
 #include "helpers.h"
 #include "circuitcocircuit.h"
 
-using namespace ogdf;
-using namespace std;
+#ifdef NAUTY
+#include <gtools.h>
+int GENG_MAIN(int argc, char *argv[]);
+#endif
 
-/**
- * OGDF's solution is probably biased... TODO
- * http://stackoverflow.com/a/14618505/247532
- */
-void randomConnectedGraph(Graph &G, int nodes, int edges)
+using namespace ogdf;
+using std::string;
+using std::stoi;
+using std::ostream;
+using std::cout;
+using std::cerr;
+using std::unique_ptr;
+using std::invalid_argument;
+using std::pair; using std::make_pair;
+
+void printUsage(char *name)
 {
-	randomSimpleGraph(G, nodes, edges);
-	List<edge> added;
-	makeConnected(G, added);
+	cerr << "This program tests CircuitCocircuit implementation.\n" \
+		 << "Usage:\t" << name << "\t<cut size bound> <# of components> " \
+		 << "[-c, --canonical]\n" \
+		 << "\t\t[-r, --randomized <# of nodes> <min>-<max edges>]\n\n";
+
+	cerr << "\tFirst two arguments are used for any graph being tested.\n"
+		 << "\t<# of components> can be exact or range (e.g. 2-3)\n" \
+		 << "\t-r generate random graphs\n" \
+		 << "\t<max edges> is not strict (if the random graph is " \
+		 << "disconnected\n\t\tthen we add edges to connect it)\n" \
+		 << "\t-c generates graphs cannonically using nauty\n";
+
+#ifndef NAUTY
+	cerr << "\t\t(you need to recompile tester with -DNAUTY flag)\n";
+#endif
 }
 
-ostream & operator<<(std::ostream &os, const set<int>& S)
+ostream & operator<<(ostream &os, const std::set<int>& S)
 {
 	int i = 0, ss = S.size();
 	for (auto e : S) {
@@ -34,57 +55,159 @@ ostream & operator<<(std::ostream &os, const set<int>& S)
 	return os;
 }
 
-void printUsage(char *name)
-{
-	cout << "Usage:\t" << name << " <# of nodes> <min>-<max edges> " \
-		 << "<cut size bound> <# of components>\n" << endl;
+class GraphGenerator {
+public:
+	GraphGenerator() {};
+	virtual void get(Graph &G) = 0;
+	virtual ~GraphGenerator() {};
+};
 
-	cout << "\tGenerates random graphs to test CircuitCocircuit " \
-	     << "implementation\n" << endl;
-	cout << "\t<# of components> can be exact or range (e.g. 2-3)" << endl;
-	cout << "\t<max edges> is not strict (if the random graph is " \
-		 << "disconnected\n\t\tthen we add edges to connect it" << endl;
-}
-
-int main(int argc, char *argv[])
+class RandomGraphGenerator : public GraphGenerator
 {
-	if (argc != 5) {
-		printUsage(argv[0]);
-		exit(1);
+	int nodes;
+	int minEdges, maxEdges;
+
+public:
+	RandomGraphGenerator(int nodes, int min, int max)
+		: nodes(nodes), minEdges(min), maxEdges(max) {};
+
+	/**
+	 * OGDF's solution is probably biased... TODO
+	 * http://stackoverflow.com/a/14618505/247532
+	 */
+	void get(Graph &G) {
+		int edges = randomNumber(minEdges, maxEdges);
+		randomSimpleGraph(G, nodes, edges);
+		List<edge> added;
+		makeConnected(G, added);
 	}
 
-	int nodes, minEdges, maxEdges,
-		cutSizeBound, minComponents, maxComponents;
+	~RandomGraphGenerator() {};
+};
+
+#ifdef NAUTY
+// Due to design of geng we need to use global variables
+// (How nice would it be if we could pass a callback to geng routine?)
+SList<pair<int,graph*>> nautyGeneratedGraphs;
+
+void OUTPROC(FILE *outfile, graph *g, int n)
+{
+	nautyGeneratedGraphs.pushBack(make_pair(n,g));
+}
+
+class CanonicalGraphGenerator : public GraphGenerator
+{
+private:
+	int nodes = 3; // start with 3 nodes, increase with each level
+
+	void generate() {
+		int geng_argc;
+		char *geng_argv[4];
+		// number of digits of biggest integer, in reality
+		// "nodes" will never exceed 100 so 3 should be enough
+		char sNodes[64];
+		sprintf(sNodes, "%d", nodes);
+
+		geng_argv[0] = (char *) "geng";
+		geng_argv[1] = (char *) "-qc"; // quiet geng, connected graphs
+		geng_argv[2] = sNodes;
+		geng_argv[3] = NULL;
+		geng_argc = 3;
+		GENG_MAIN(geng_argc, geng_argv);
+
+		nodes++;
+	}
+
+	/**
+	 * Converts from nauty graph format to ogdf's Graph
+	 */
+	void graphToGraph(int n, graph *g, Graph &G) {
+		G.clear();
+		Array<node> vertices(n);
+
+		for (int i = 0; i < n; ++i) {
+			vertices[i] = G.newNode(i);
+		}
+
+		set *gj; // nauty's set, not from standard library
+		for (int j = 1; j < n; ++j) {
+			gj = GRAPHROW(g, j, 1);
+
+			for (int i = 0; i < j; ++i) {
+				if (ISELEMENT(gj,i)) {
+					G.newEdge(vertices[j], vertices[i]);
+				}
+			}
+		}
+	}
+
+public:
+	CanonicalGraphGenerator() {};
+	void get(Graph &G) {
+		if (nautyGeneratedGraphs.empty()) {
+			generate();
+		}
+
+		pair<int, graph*> ng = nautyGeneratedGraphs.popFrontRet();
+		graphToGraph(ng.first, ng.second, G);
+	}
+
+	~CanonicalGraphGenerator() {};
+};
+#endif
+
+unique_ptr<RandomGraphGenerator> prepareRandomizedTesting(char *argv[])
+{
+	int nodes, minEdges, maxEdges;
 	try {
 		size_t hyphenPos;
 
 		// # of nodes
-		nodes = stoi(argv[1]);
+		nodes = stoi(argv[4]);
 
 		// min-max edges
-		string secondArg(argv[2]);
-		hyphenPos = secondArg.find('-');
+		string fifthArg(argv[5]);
+		hyphenPos = fifthArg.find('-');
 		if (hyphenPos == string::npos) {
 			throw invalid_argument("Number of edges is not range.");
 		}
-		minEdges = stoi(secondArg.substr(0, hyphenPos));
-		maxEdges = stoi(secondArg.substr(hyphenPos + 1));
+		minEdges = stoi(fifthArg.substr(0, hyphenPos));
+		maxEdges = stoi(fifthArg.substr(hyphenPos + 1));
 
 		if (maxEdges < minEdges) {
 			throw invalid_argument("max edges < min edges");
 		}
 
+	} catch(invalid_argument &_) { // stoi failed
+		printUsage(argv[0]);
+		exit(2);
+	}
+
+	auto rgg = new RandomGraphGenerator(nodes, minEdges, maxEdges);
+	return unique_ptr<RandomGraphGenerator>(rgg);
+}
+
+int main(int argc, char *argv[])
+{
+	if (argc != 6 && argc != 4) {
+		printUsage(argv[0]);
+		exit(1);
+	}
+
+	// Configuring bond parameters
+	int cutSizeBound, minComponents, maxComponents;
+	try {
 		// cut size bound
-		cutSizeBound = stoi(argv[3]);
+		cutSizeBound = stoi(argv[1]);
 
 		// # of components
-		string fourthArg(argv[4]);
-		hyphenPos = fourthArg.find('-');
+		string secondArg(argv[2]);
+		size_t hyphenPos = secondArg.find('-');
 		if (hyphenPos == string::npos) {
-			minComponents = maxComponents = stoi(argv[4]);
+			minComponents = maxComponents = stoi(argv[2]);
 		} else {
-			minComponents = stoi(fourthArg.substr(0, hyphenPos));
-			maxComponents = stoi(fourthArg.substr(hyphenPos + 1));
+			minComponents = stoi(secondArg.substr(0, hyphenPos));
+			maxComponents = stoi(secondArg.substr(hyphenPos + 1));
 		}
 
 		if (maxComponents < minComponents) {
@@ -95,12 +218,26 @@ int main(int argc, char *argv[])
 		exit(2);
 	}
 
-	int edges;
+	unique_ptr<GraphGenerator> gg;
+	if (argv[3] == string("-r") || argv[3] == string("--randomized")) {
+		gg = prepareRandomizedTesting(argv);
+	} else if (argv[3] == string("-c") || argv[3] == string("--canonical")) {
+#ifdef NAUTY
+		gg = unique_ptr<CanonicalGraphGenerator>(new CanonicalGraphGenerator());
+#else
+		cerr << "This program was not compiled with nauty, " \
+			 << "compile again with -DNAUTY flag." << endl;
+		exit(3);
+#endif
+	} else {
+		cerr << "Unrecognized option " << argv[3] << "." << endl;
+		printUsage(argv[0]);
+		exit(4);
+	}
+
 	for(;;) {
 		Graph G;
-
-		edges = randomNumber(minEdges, maxEdges);
-		randomConnectedGraph(G, nodes, edges);
+		gg->get(G);
 
 		// run circuitcocircuit and bfc
 		List<bond> bonds;
@@ -113,36 +250,35 @@ int main(int argc, char *argv[])
 		bruteforceGraphBonds(G, cutSizeBound, minComponents, maxComponents,
 				bf_bonds);
 
-		set<set<int>> A, B, AmB, BmA;
+		std::set<std::set<int>> A, B, AmB, BmA;
 		for(bond b : bonds) {
-			set<int> si;
+			std::set<int> si;
 			for (edge e : b.edges) si.insert(e->index());
 			A.insert(si);
 		}
 
 		for(List<edge> le : bf_bonds) {
-			set<int> si;
+			std::set<int> si;
 			for (edge e : le) si.insert(e->index());
 			B.insert(si);
 		}
 
-		set_difference(A.begin(), A.end(), B.begin(), B.end(),
-			inserter(AmB, AmB.end()));
-		set_difference(B.begin(), B.end(), A.begin(), A.end(),
-			inserter(BmA, BmA.end()));
+		std::set_difference(A.begin(), A.end(), B.begin(), B.end(),
+			std::inserter(AmB, AmB.end()));
+		std::set_difference(B.begin(), B.end(), A.begin(), A.end(),
+			std::inserter(BmA, BmA.end()));
 
 		if (AmB.empty() && BmA.empty()) {
 			cout << ".";
 			cout.flush();
 		} else {
-			cout << endl;
-			cout << "mincuts / bf:" << endl;
-			for (set<int> c : AmB) {
-				cout << c << endl;
+			cout << "\nmincuts / bf:" << endl;
+			for (std::set<int> c : AmB) {
+				std::cout << c << endl;
 			}
 
 			cout << "bf / mincuts:" << endl;
-			for (set<int> c : BmA) {
+			for (std::set<int> c : BmA) {
 				cout << c << endl;
 			}
 
