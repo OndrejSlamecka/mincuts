@@ -1,3 +1,9 @@
+#!/bin/bash
+
+if [[ $# -ne 3 ]]; then
+	echo "Usage: $0 <edge_file.csv> <cut size bound> <# of components>"
+	exit 1
+fi
 
 EDGES=$2
 COMPONENTS=$3
