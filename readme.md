@@ -85,4 +85,25 @@ Converts from [ClosureSim](http://www.fi.muni.cz/~xsvobo38/closuresim/) output f
 
 Splits `mincuts` results file by cut size.
 
+Data
+----
 
+**Graph 5**
+
+`Graph 5` is good to understand how the algorithm works. It can be found in `sample-data/graph5.csv`.
+
+![Graph 5](sample-data/graph5.png)
+
+**Zlín Region**
+
+Road network of the [Zlín Region](http://en.wikipedia.org/wiki/Zl%C3%ADn_Region) can be found in `sample-data/zlin.csv`
+
+**Getting new data from OpenStreetMap**
+
+You can export data from [OpenStreetMap](https://www.openstreetmap.org/) and process them with [osm4routing](https://github.com/Tristramg/osm4routing) to get `csv` file.
+
+You will probably want to select just data relevant to you. For example extract just certain roads:
+
+	$ awk -F',' 'NR > 1 {if ($5 > "1") { print $1";"$2";"$3 }}' edges_raw.csv
+
+This excludes edges which have 0 or 1 in the fifth column and thus are forbidden for cars or they are residential streets. See osm4routing page for detailed information.
