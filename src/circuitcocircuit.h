@@ -30,7 +30,7 @@ class CircuitCocircuit
     void shortestPath(const GraphColoring &coloring, const ogdf::List<ogdf::edge> &forbidden,
                       ogdf::node &lastRed, ogdf::List<ogdf::edge> &path);
 
-    void revertColoring(GraphColoring &coloring, ogdf::List<ogdf::edge> &edges,
+    void revertColoring(GraphColoring &coloring, ogdf::List<ogdf::edge> &P,
                         ogdf::List<ogdf::edge> &blueEdges, ogdf::node firstRed,
                         ogdf::List<ogdf::edge> &reconnectionBlues,
                         const bond &X);
