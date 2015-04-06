@@ -89,7 +89,7 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
     shortestPath(coloring, XY.edges, firstRed, P);
 
     if (P.empty()) {
-        // If there is no such path P above (line 6), then return ‘(j + 1) bond: Y union X’.
+        // If there is no such path P, then return ‘(j + 1) bond: Y union X’.
         bonds.pushBack(XY);
     } else {
         // Try adding each c in P to X.
@@ -125,7 +125,7 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
             }
 
             if(   (!Y.edges.empty() && c->index() <= Y.lastBondFirstEdge->index())
-               //|| (!X.edges.empty() && c->index() <= X.lastBondFirstEdge->index())
+               || (                    c->index() <= X.lastBondFirstEdge->index())
               ) {
                 coloring[u] = Color::RED;
                 coloring.redNodes.pushBack(u);
@@ -160,8 +160,11 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
 void CircuitCocircuit::shortestPath(const GraphColoring &coloring, const List<edge> &XY,
                                     node &lastRed, List<edge> &path)
 {
+    // TODO: Comment this method
+
     Queue<node> Q;
     NodeArray<bool> visited(G, false);
+    NodeArray<int> distance(G, -1);
     NodeArray<edge> accessEdge(G);
 
     node no;
@@ -169,6 +172,7 @@ void CircuitCocircuit::shortestPath(const GraphColoring &coloring, const List<ed
         if (coloring[no] == Color::RED) {
             Q.append(no);
             visited[no] = true;
+            distance[no] = 0;
         }
     }
 /*
@@ -183,12 +187,14 @@ void CircuitCocircuit::shortestPath(const GraphColoring &coloring, const List<ed
         G.hideEdge(*it);
     }
 
+    node foundBlue = NULL;
     node u, v;
     edge e;
     while(!Q.empty()) {
         u = Q.pop();
 
         if (coloring[u] == Color::BLUE) { // Line6: path from any vertex of V_r to any of V_b
+            // TODO
             for (node n = u; coloring[n] != Color::RED; n = v) {
                 e = accessEdge[n];
                 v = e->opposite(n);
@@ -198,15 +204,22 @@ void CircuitCocircuit::shortestPath(const GraphColoring &coloring, const List<ed
 
                 path.pushFront(e);
             }
+            foundBlue = u;
             break;
         }
 
         forall_adj_edges(e, u) {
             v = e->opposite(u);
-            if (!visited[v]) {
+            if (visited[v] && distance[v] > distance[u] + lambda[e]) {
+                distance[v] = distance[u] + lambda[e];
+                accessEdge[v] = e;
+            }
+
+            if (!visited[v] && foundBlue == NULL) {
                 accessEdge[v] = e;
                 visited[v] = true;
                 Q.append(v);
+                distance[v] = distance[u] + lambda[e];
             }
         }
     }
