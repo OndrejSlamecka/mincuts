@@ -20,7 +20,11 @@ public:
     ogdf::EdgeArray<Color> edges; // TODO: Move to private
     ogdf::List<ogdf::node> redNodes;
 
-    GraphColoring(const ogdf::Graph &G);
+    GraphColoring(const ogdf::Graph &G)
+    {
+        edges.init(G, Color::BLACK);
+        vertices.init(G, Color::BLACK);
+    }
 
     void printColoring();
 

@@ -15,7 +15,7 @@ endif
 
 all: mincuts cutdiff cutcheck tester
 
-mincuts: src/helpers.cpp src/graphcoloring.cpp src/circuitcocircuit.cpp src/mincuts.cpp
+mincuts: src/helpers.cpp src/circuitcocircuit.cpp src/mincuts.cpp
 	g++ -o bin/$@ $(CXXFLAGS) $^ $(LINKS)
 
 cutdiff: src/cutdiff.cpp
@@ -24,7 +24,7 @@ cutdiff: src/cutdiff.cpp
 cutcheck: src/helpers.cpp src/cutcheck.cpp
 	g++ -o bin/$@ $(CXXFLAGS) $^ $(LINKS)
 
-tester: src/graphcoloring.cpp src/circuitcocircuit.cpp src/helpers.cpp src/tester.cpp
+tester: src/circuitcocircuit.cpp src/helpers.cpp src/tester.cpp
 	g++ -o bin/$@ $(CXXFLAGS_TESTER) $(NAUTY) $(NAUTY_FILES) $^ $(LINKS)
 
 ifeq "$(NAUTY)" ""

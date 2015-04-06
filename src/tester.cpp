@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <memory>
 #include <set>
+#include <chrono>
 #include <ogdf/basic/Graph.h>
 #include <ogdf/basic/simple_graph_alg.h>
 #include <ogdf/basic/graph_generators.h>
@@ -145,6 +146,7 @@ public:
 	CanonicalGraphGenerator() {};
 	void get(Graph &G) {
 		if (nautyGeneratedGraphs.empty()) {
+			cout << "Asking geng for graphs on " << nodes << " nodes" << endl;
 			generate();
 		}
 
@@ -189,6 +191,8 @@ unique_ptr<RandomGraphGenerator> prepareRandomizedTesting(char *argv[])
 
 int main(int argc, char *argv[])
 {
+	std::ios_base::sync_with_stdio(false);
+
 	if (argc != 6 && argc != 4) {
 		printUsage(argv[0]);
 		exit(1);
@@ -235,7 +239,10 @@ int main(int argc, char *argv[])
 		exit(4);
 	}
 
-	for(;;) {
+	std::chrono::time_point<std::chrono::system_clock> lastOutput, now;
+	lastOutput = std::chrono::system_clock::now();
+
+	for(int correct = 0;; ++correct) {
 		Graph G;
 		gg->get(G);
 
@@ -268,9 +275,12 @@ int main(int argc, char *argv[])
 		std::set_difference(B.begin(), B.end(), A.begin(), A.end(),
 			std::inserter(BmA, BmA.end()));
 
+		now = std::chrono::system_clock::now();
 		if (AmB.empty() && BmA.empty()) {
-			cout << ".";
-			cout.flush();
+			if (std::chrono::duration_cast<std::chrono::seconds>(now-lastOutput).count() > 1) {
+				cout << "Correct: " << correct << endl;
+				lastOutput = now;
+			}
 		} else {
 			cout << "\nmincuts / bf:" << endl;
 			for (std::set<int> c : AmB) {
