@@ -88,25 +88,70 @@ string nameColor(Color c)
     }
 }
 
+string nodesByColor2str(const Graph &G, const GraphColoring &coloring, Color c)
+{
+    stringstream s;
+    node n;
+
+    int x = 0;
+    forall_nodes(n, G) {
+        if (coloring[n] == c) {
+            x++;
+        }
+    }
+
+    forall_nodes(n, G) {
+        if (coloring[n] == c) {
+            s << n->index();
+            x--;
+            if (x != 0) {
+                s << ", ";
+            }
+        }
+    }
+
+    return s.str();
+}
+
+
+string edgesByColor2str(const Graph &G, const GraphColoring &coloring, Color c)
+{
+    stringstream s;
+    edge e;
+
+    int x = 0;
+    forall_edges(e, G) {
+        if (coloring[e] == c) {
+            x++;
+        }
+    }
+
+    forall_edges(e, G) {
+        if (coloring[e] == c) {
+            s << e->index();
+            x--;
+            if (x > 0) {
+                s << ", ";
+            }
+        }
+    }
+
+    return s.str();
+}
+
 string coloring2str(const Graph &G, const GraphColoring &c)
 {
     stringstream s;
 
-    node n;
+    s << "Nodes: "
+      << "(blue) " << nodesByColor2str(G, c, Color::BLUE) << "; "
+      << "(red) " << nodesByColor2str(G, c, Color::RED) << "; "
+      << "(black) " << nodesByColor2str(G, c, Color::BLACK) << "; ";
 
-    s << "Nodes: ";
-    forall_nodes(n, G) {
-        s << n->index() << " " << nameColor(c[n]) << "; ";
-    }
-    s << endl;
-
-    edge e;
-
-    s << "Edges: ";
-    forall_edges(e, G) {
-        s << e->index() << " " << nameColor(c[e]) << "; ";
-    }
-    s << endl;
+    s << "Edges: "
+      << "(blue) " << edgesByColor2str(G, c, Color::BLUE) << "; "
+      << "(red) " << edgesByColor2str(G, c, Color::RED) << "; "
+      << "(black) " << edgesByColor2str(G, c, Color::BLACK) << "; ";
 
     return s.str();
 }

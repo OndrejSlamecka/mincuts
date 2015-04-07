@@ -33,16 +33,19 @@ class CircuitCocircuit
                       ogdf::node &lastRed, ogdf::List<ogdf::edge> &path);
 
     void revertColoring(GraphColoring &coloring, ogdf::List<ogdf::edge> &P,
-                        ogdf::List<ogdf::edge> &blueEdges, ogdf::node firstRed,
-                        ogdf::List<ogdf::edge> &reconnectionBlues,
-                        const bond &X);
-    void hideConnectedBlueSubgraph(const GraphColoring &coloring, ogdf::node start);
+                        ogdf::List<ogdf::edge> &blueEdges, ogdf::node firstRed,                        
+                        const bond &X,
+                        ogdf::List<ogdf::edge> &oldBlueTreeEdges, ogdf::List<ogdf::edge> &newBlueTreeEdges);
 
-    bool findPathToAnyBlueAndColorItBlue(GraphColoring &coloring, ogdf::node start,
-                                         ogdf::List<ogdf::edge> &reconnectionBlues);
-    bool isBlueSubgraphDisconnected(GraphColoring &coloring, ogdf::edge c, ogdf::node u);
-    bool reconnectBlueSubgraph(const ogdf::List<ogdf::edge> &XY, GraphColoring &coloring, ogdf::node u, ogdf::edge c,
-                               ogdf::List<ogdf::edge> &reconnectionBlues);
+
+    bool isBlueTreeDisconnected(GraphColoring &coloring, ogdf::edge c, ogdf::node u);
+
+    void recolorBlueSubgraphBlack(GraphColoring &coloring, ogdf::node start, ogdf::List<ogdf::edge> &oldBlueTreeEdges);
+
+    bool recreateBlueTreeIfDisconnected(const ogdf::List<ogdf::edge> &XY, GraphColoring &coloring,
+                                                          ogdf::node v, ogdf::edge c, ogdf::List<ogdf::edge> &oldBlueTreeEdges,
+                                                          ogdf::List<ogdf::edge> &newBlueTreeEdges);
+
 
     void minimalSpanningForest(int components, const bond &Y, ogdf::List<ogdf::edge> &edges);
 
@@ -59,12 +62,12 @@ public:
         // The map is randomized with each algorithm run in order to detect mistakes
         // related to graph traversing order
         std::default_random_engine generator;
-        std::uniform_int_distribution<int> distribution(1, G.numberOfNodes() * G.numberOfNodes());
-        auto dice = std::bind (distribution, generator);
+        int upper_bound = G.numberOfNodes() * G.numberOfNodes() + 10; // + 10 for small graphs
+        std::uniform_int_distribution<int> distribution(1, upper_bound);
 
         ogdf::edge e;
         forall_edges(e, G) {
-            lambda[e] = dice(); // sth random
+            lambda[e] = distribution(generator); // sth random
         }
     }
 

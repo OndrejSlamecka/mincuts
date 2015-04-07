@@ -19,11 +19,13 @@ class GraphColoring
 public:
     ogdf::EdgeArray<Color> edges; // TODO: Move to private
     ogdf::List<ogdf::node> redNodes;
+    int nBlueVertices;
 
     GraphColoring(const ogdf::Graph &G)
     {
         edges.init(G, Color::BLACK);
         vertices.init(G, Color::BLACK);
+        nBlueVertices = 0;
     }
 
     void printColoring();

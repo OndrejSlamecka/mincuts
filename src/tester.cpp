@@ -59,7 +59,7 @@ ostream & operator<<(ostream &os, const std::set<int>& S)
 class GraphGenerator {
 public:
 	GraphGenerator() {};
-	virtual void get(Graph &G) = 0;
+	virtual void get(Graph* &g) = 0;
 	virtual ~GraphGenerator() {};
 };
 
@@ -76,11 +76,12 @@ public:
 	 * OGDF's solution is probably biased... TODO
 	 * http://stackoverflow.com/a/14618505/247532
 	 */
-	void get(Graph &G) {
+	void get(Graph* &gp) {
+		gp = new Graph();
 		int edges = randomNumber(minEdges, maxEdges);
-		randomSimpleGraph(G, nodes, edges);
+		randomSimpleGraph(*gp, nodes, edges);
 		List<edge> added;
-		makeConnected(G, added);
+		makeConnected(*gp, added);
 	}
 
 	~RandomGraphGenerator() {};
@@ -89,11 +90,37 @@ public:
 #ifdef NAUTY
 // Due to design of geng we need to use global variables
 // (How nice would it be if we could pass a callback to geng routine?)
-SList<pair<int,graph*>> nautyGeneratedGraphs;
+SList<Graph*> generatedGraphs;
+
+/**
+ * Converts from nauty graph format to ogdf's Graph
+ */
+Graph* nauty2ogdfGraph(int n, graph *g) {
+	Graph *G = new Graph();
+	Array<node> vertices(n);
+
+	for (int i = 0; i < n; ++i) {
+		vertices[i] = G->newNode(i);
+	}
+
+	int m = (n + WORDSIZE - 1) / WORDSIZE;
+	set *gv; // nauty's set, not from standard library
+	for (int i = 0; i < n; ++i) {
+		gv = GRAPHROW(g, i, m);
+
+		for (int j = 0; j < i; ++j) {
+			if (ISELEMENT(gv, j)) {
+				G->newEdge(vertices[j], vertices[i]);
+			}
+		}
+	}
+
+	return G;
+}
 
 void OUTPROC(FILE *outfile, graph *g, int n)
 {
-	nautyGeneratedGraphs.pushBack(make_pair(n,g));
+	generatedGraphs.pushBack(nauty2ogdfGraph(n, g));
 }
 
 class CanonicalGraphGenerator : public GraphGenerator
@@ -119,39 +146,16 @@ private:
 		nodes++;
 	}
 
-	/**
-	 * Converts from nauty graph format to ogdf's Graph
-	 */
-	void graphToGraph(int n, graph *g, Graph &G) {
-		G.clear();
-		Array<node> vertices(n);
-
-		for (int i = 0; i < n; ++i) {
-			vertices[i] = G.newNode(i);
-		}
-
-		set *gj; // nauty's set, not from standard library
-		for (int j = 1; j < n; ++j) {
-			gj = GRAPHROW(g, j, 1);
-
-			for (int i = 0; i < j; ++i) {
-				if (ISELEMENT(gj,i)) {
-					G.newEdge(vertices[j], vertices[i]);
-				}
-			}
-		}
-	}
 
 public:
 	CanonicalGraphGenerator() {};
-	void get(Graph &G) {
-		if (nautyGeneratedGraphs.empty()) {
+	void get(Graph* &g) {
+		if (generatedGraphs.empty()) {
 			cout << "Asking geng for graphs on " << nodes << " nodes" << endl;
 			generate();
 		}
 
-		pair<int, graph*> ng = nautyGeneratedGraphs.popFrontRet();
-		graphToGraph(ng.first, ng.second, G);
+		g = generatedGraphs.popFrontRet();
 	}
 
 	~CanonicalGraphGenerator() {};
@@ -191,8 +195,6 @@ unique_ptr<RandomGraphGenerator> prepareRandomizedTesting(char *argv[])
 
 int main(int argc, char *argv[])
 {
-	std::ios_base::sync_with_stdio(false);
-
 	if (argc != 6 && argc != 4) {
 		printUsage(argv[0]);
 		exit(1);
@@ -243,9 +245,10 @@ int main(int argc, char *argv[])
 	lastOutput = std::chrono::system_clock::now();
 
 	for(int correct = 0;; ++correct) {
-		Graph G;
-		gg->get(G);
-
+		Graph *gp;
+		gg->get(gp);
+		Graph G = *gp;
+		
 		// run circuitcocircuit and bfc
 		List<bond> bonds;
 		CircuitCocircuit alg(G, cutSizeBound);
@@ -291,7 +294,7 @@ int main(int argc, char *argv[])
 			for (std::set<int> c : BmA) {
 				cout << c << endl;
 			}
-
+			
 			ofstream fGraph("tmp/tester_in.csv");
 			if (!fGraph.is_open()) {
 				cerr << "tmp/tester_in.csv could not be opened" << endl;
@@ -299,10 +302,18 @@ int main(int argc, char *argv[])
 			}
 			graph2csv(G, fGraph);
 			cout << "Input graph written to tmp/tester_in.csv" << endl;
+			
+			// cleanup
+			while(!generatedGraphs.empty()) {
+				delete generatedGraphs.popFrontRet();
+			}
 
+			delete gp;
 			break;
 		}
-	}
-
+	
+		delete gp;
+	} // endfor
+	
 	return 0;
 }
