@@ -1,7 +1,7 @@
 ogdf_path = ~/.bin/ogdf
 nauty_path = ~/.bin/nauty25r9
 
-CXXFLAGS=-std=c++11 -pedantic -Wall -Wextra $(EXTRA_CXXFLAGS)
+CXXFLAGS=-std=c++11 -pedantic -Wall -Wextra -O3 $(EXTRA_CXXFLAGS) 
 LINKS=-I $(ogdf_path)/include -L $(ogdf_path)/_debug -lOGDF -lpthread
 
 ifeq "$(wildcard $(nauty_path) )" ""
@@ -10,7 +10,7 @@ ifeq "$(wildcard $(nauty_path) )" ""
 else
 	NAUTY=-DNAUTY -DOUTPROC=receiveGraph -DGENG_MAIN=geng_main -I $(nauty_path) -L $(nauty_path)
 	NAUTY_FILES=$(nauty_path)/geng.c $(nauty_path)/gtools.o $(nauty_path)/nauty1.o $(nauty_path)/nautil1.o $(nauty_path)/naugraph1.o $(nauty_path)/schreier.o $(nauty_path)/naurng.o
-	CXXFLAGS_TESTER=-std=c++11 -Wno-write-strings $(EXTRA_CXXFLAGS)
+	CXXFLAGS_TESTER=-std=c++11 -Wno-write-strings -O3 $(EXTRA_CXXFLAGS)
 endif
 
 all: mincuts cutdiff cutcheck tester

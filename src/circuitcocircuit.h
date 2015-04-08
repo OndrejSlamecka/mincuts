@@ -37,8 +37,8 @@ class CircuitCocircuit
     void revertColoring(ogdf::List<ogdf::edge> &P, ogdf::List<ogdf::edge> &blueEdges,
                         ogdf::node firstRed, const bond &X,
                         ogdf::List<ogdf::edge> &oldBlueTreeEdges,
-                        ogdf::List<ogdf::edge> &newBlueTreeEdges);
-
+                        ogdf::List<ogdf::edge> &newBlueTreeEdges,
+                        int nVerticesColouredRed);
 
     bool isBlueTreeDisconnected(ogdf::edge c, ogdf::node u);
 

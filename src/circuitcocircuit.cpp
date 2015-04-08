@@ -25,8 +25,8 @@ ostream & operator<<(ostream &os, const bond &L)
 }
 
 void CircuitCocircuit::run(int k, List<bond> &bonds)
-{    
-    bond Y;    
+{
+    bond Y;
     extendBond(k, Y, 1, bonds);
 }
 
@@ -60,7 +60,7 @@ void CircuitCocircuit::extendBond(int components, const bond &Y, int j,
         coloring.set(v, Color::BLACK);
     }
 
-    if (j == components - 1) {        
+    if (j == components - 1) {
         bonds.conc(stageBonds); // Beware, this empties stageBonds!
     } else {
         for(List<bond>::iterator it = stageBonds.begin(); it != stageBonds.end(); ++it) {
@@ -88,6 +88,7 @@ void CircuitCocircuit::genStage(int components, const bond &Y, int j,
         bonds.pushBack(XY);
     } else {
         // Try adding each c in P to X.
+        int nVerticesColouredRed = 0; // counts only this stage of course
 
         List<edge> blueBefore;
         List<edge> newBlueTreeEdges;
@@ -100,46 +101,45 @@ void CircuitCocircuit::genStage(int components, const bond &Y, int j,
                 blueBefore.pushBack(e);
             }
             coloring[e] = Color::BLUE;
-        }        
+        }
 
         // c = (u,v), u is red, v is blue
         node u, v = firstRed; // we're doing u = v at the begining of each step
 
         // for each c ∈ P, recursively call GenCocircuits(X ∪ {c}).
         forall_listiterators(edge, iterator, P) {
-            edge c = *iterator;            
+            edge c = *iterator;
 
             // We're traversing P in order, so we can do this:
             u = v;
             v = c->opposite(u);
 
-            // Add u to red subgraph (this has to be done here so that it won't be used in possible reconnection)
+            // Color as with u and v in X
+            // (the color of u has to be set red here in order to avoid being used
+            // in a possible recreation of the blue tree, the color of c cannot be
+            // set here so that we can check for a blue tree disconnection)
+            coloring.set(v, Color::BLUE);
             coloring.set(u, Color::RED);
 
-            // RECREATION OF BLUE TREE
-            // * recolors both components of T_b \ c black
-            // * runs bfs from one blue vertex
-            // * - mark each found blue vertex and color path to it
-            // * - if all blue vertices weren't found fail
-
-            if (   isBlueTreeDisconnected(c, u)
-                && !recreateBlueTreeIfDisconnected(XY.edges, v, c, oldBlueTreeEdges, newBlueTreeEdges)) {
-                revertColoring(P, blueBefore, firstRed, X, oldBlueTreeEdges, newBlueTreeEdges);
-                return;
-            }
-
+            // Check this condition before the slower hyperplane test
             if(   (!Y.edges.empty() && c->index() <= Y.lastBondFirstEdge->index())
                || (                    c->index() <= X.lastBondFirstEdge->index())) {
                 coloring[c] = Color::RED;
                 continue;
             }
 
+            // Do we still have a hyperplane?
+            if (   isBlueTreeDisconnected(c, u)
+                && !recreateBlueTreeIfDisconnected(XY.edges, v, c, oldBlueTreeEdges, newBlueTreeEdges)) {
+                revertColoring(P, blueBefore, firstRed, X, oldBlueTreeEdges, newBlueTreeEdges, nVerticesColouredRed);
+                return;
+            }
+
             // all went fine, add c to X
             bond newX(X);
             newX.edges.pushBack(c);
 
-            coloring.set(v, Color::BLUE);
-            coloring[c] = Color::BLACK;
+            coloring[c] = Color::BLACK; // Color has to be set after we check for a hyperplane
 
             genStage(components, Y, j, bonds, newX);
 
@@ -147,7 +147,7 @@ void CircuitCocircuit::genStage(int components, const bond &Y, int j,
         }
 
         // Revert coloring so that the original coloring is used in the recursion level above
-        revertColoring(P, blueBefore, firstRed, X, oldBlueTreeEdges, newBlueTreeEdges);
+        revertColoring(P, blueBefore, firstRed, X, oldBlueTreeEdges, newBlueTreeEdges, nVerticesColouredRed);
     }
 }
 
@@ -194,36 +194,50 @@ node CircuitCocircuit::lexicographicallyMinimalPathStartNode(NodeArray<edge> &ac
 }
 
 /**
- * Performs BFS to find the shortest path from s to t in graph G without using any edge from the forbidden edges.
- *
+ * Performs BFS to find the canonical shortest path from some red vertex to
+ * some blue vertex in graph G without using any edge from X union Y.
  */
 void CircuitCocircuit::shortestPath(const List<edge> &XY, node &lastRed, List<edge> &path)
 {
-    // TODO: Comment this method
+    // For every path P = (e_0, e_1, e_2,...) we have the following triplet
+    // (|P|, lambda_length(P), index_vector(P)), where |P| is number of its edges,
+    // lambda length is the sum of lambda(e) through all e in P and index_vector
+    // of P is the vector (e_0.index, e_1.index, e_1.index)
+    //
+    // In this function we're looking for such path P which (lexicographically)
+    // minimizes this triplet. BFS is used with modifications to count the
+    // lambda length of paths
+    //
+    // We compute the lambda length of paths by assigning the lambda distance
+    // to nodes. Lambda distance ld is 0 for the starting nodes and when
+    // discovering a new node v from node u (where e = {u, v} then we set
+    // ld[v] = ld[u] + lambda[e].
+    //
+    // Note that we only calculate lambda distance for a node as we discover it
+    // from path P1 and if we find an edge from P2 to the node then we only update
+    // the lambda distance if |P1| = |P2|. This is because we don't care about
+    // the lambda distance primarily -- and if we did we would need an algorithm
+    // for shortest path on graph with weighted edges, since our approach only
+    // computes the lambda distance correctly for the shortest (wrt. # of edges)
+    // paths currently discovered by BFS.
+
     path.clear();
 
     Queue<node> Q;
     NodeArray<bool> visited(G, false);
-    NodeArray<int> distance(G, -1);
+    NodeArray<int> lambdaDistance(G, -1);
     NodeArray<int> vertexDistance(G, -1);
     NodeArray<edge> accessEdge(G);
 
     node no;
-    forall_nodes(no, G) {
-        if (coloring[no] == Color::RED) {
-            Q.append(no);
-            visited[no] = true;
-            distance[no] = 0;
-            vertexDistance[no] = 0;
-        }
-    }
-/*
-    forall_listiterators(node, it, coloring.redNodes) {
+    forall_listiterators(node, it, coloring.getRedVertices()) {
         no = *it;
         Q.append(no);
         visited[no] = true;
+        lambdaDistance[no] = 0;
+        vertexDistance[no] = 0;
     }
-*/
+
 
     forall_listiterators(edge, it, XY) {
         G.hideEdge(*it);
@@ -236,12 +250,12 @@ void CircuitCocircuit::shortestPath(const List<edge> &XY, node &lastRed, List<ed
         u = Q.pop();
 
         if (coloring[u] == Color::BLUE) { // Line6: path from any vertex of V_r to any of V_b
-            if (foundBlue == NULL || distance[u] < distance[foundBlue]) {
+            if (foundBlue == NULL || lambdaDistance[u] < lambdaDistance[foundBlue]) {
                 foundBlue = u;
-            } else if (distance[u] == distance[foundBlue]) {
-                // Compare path P1 = v-u and path P2 = v-foundBlue,
-                // such that we get the one which lexicographically minimizes
-                // vector (P[0].index, P[1].index, P[2].index,...)
+            } else if (lambdaDistance[u] == lambdaDistance[foundBlue]) {
+                // Compare path P1 = v-u and path P2 = v-foundBlue, and choose the one which
+                // lexicographically minimizes its edgeindicies vector
+                // (P[0].index, P[1].index, P[2].index,...)
 
                 // Note that by the start node we actually mean the blue node
                 foundBlue = lexicographicallyMinimalPathStartNode(accessEdge, u, foundBlue);
@@ -250,8 +264,11 @@ void CircuitCocircuit::shortestPath(const List<edge> &XY, node &lastRed, List<ed
 
         forall_adj_edges(e, u) {
             v = e->opposite(u);
-            if (visited[v] && distance[v] > distance[u] + lambda[e] && vertexDistance[u] == vertexDistance[v] - 1) {
-                distance[v] = distance[u] + lambda[e];
+            // The vertexDistance[u] == vertexDistance[v] - 1 condition is required in order
+            // to prevent setting a wrong accessEdge (wrong as in wrong result of comparison
+            // between paths which would be produced by switching the access edge)
+            if (visited[v] && lambdaDistance[v] > lambdaDistance[u] + lambda[e] && vertexDistance[u] == vertexDistance[v] - 1) {
+                lambdaDistance[v] = lambdaDistance[u] + lambda[e];
                 accessEdge[v] = e;
             }
 
@@ -259,7 +276,7 @@ void CircuitCocircuit::shortestPath(const List<edge> &XY, node &lastRed, List<ed
                 accessEdge[v] = e;
                 visited[v] = true;
                 Q.append(v);
-                distance[v] = distance[u] + lambda[e];
+                lambdaDistance[v] = lambdaDistance[u] + lambda[e];
                 vertexDistance[v] = vertexDistance[u] + 1;
             }
         }
@@ -281,7 +298,7 @@ void CircuitCocircuit::shortestPath(const List<edge> &XY, node &lastRed, List<ed
 }
 
 
-/* --- Coloring, reconnecting blue subgraph --- */
+/* --- Coloring, recreating the blue tree --- */
 
 bool CircuitCocircuit::isBlueTreeDisconnected(edge c, node u)
 {
@@ -337,6 +354,11 @@ bool CircuitCocircuit::recreateBlueTreeIfDisconnected(const List<edge> &XY, node
 {
     // We will colour black what is blue and start building blue tree from scratch
 
+    // * recolor both components of T_b \ c black
+    // * run bfs from one blue vertex
+    // * - for each found blue vertex color the path to it blue, increase counter of found blue vertices
+    // * - if all blue vertices weren't found then fail
+
     edge e;
     node m, // m is node currently being examined in BFS
          n, // neighbours of u
@@ -355,7 +377,7 @@ bool CircuitCocircuit::recreateBlueTreeIfDisconnected(const List<edge> &XY, node
 
     Queue<node> Q;
     Q.append(v);
-    int nBlueVerticesFound = 0; // v will be counted in first iteration
+    int nBlueVerticesFound = 0; // v will be counted in the first iteration
     NodeArray<bool> visited(G, false);
     visited[v] = true;
     NodeArray<edge> accessEdge(G, NULL);
@@ -402,9 +424,10 @@ bool CircuitCocircuit::recreateBlueTreeIfDisconnected(const List<edge> &XY, node
 void CircuitCocircuit::revertColoring(List<edge> &P, List<edge> &blueEdgesOnP,
                                       node firstRed, const bond &X,
                                       List<edge> &oldBlueTreeEdges,
-                                      List<edge> &newBlueTreeEdges)
+                                      List<edge> &newBlueTreeEdges,
+                                      int nVerticesColouredRed)
 {
-    // The order here is important!
+    // The order is important here!
     forall_listiterators(edge, iterator, newBlueTreeEdges) {
         edge e = *iterator;
         coloring[e] = Color::BLACK;
@@ -422,6 +445,8 @@ void CircuitCocircuit::revertColoring(List<edge> &P, List<edge> &blueEdgesOnP,
         coloring.set(e->target(), Color::BLACK);
         coloring[e] = Color::BLACK;
     }
+
+    coloring.popRedVertices(nVerticesColouredRed);
 
     forall_listiterators(edge, iterator, X.edges) {
         edge e = *iterator;
@@ -480,4 +505,3 @@ CircuitCocircuit::~CircuitCocircuit()
 {
 
 }
-

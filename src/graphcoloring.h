@@ -14,11 +14,12 @@ class GraphColoring
     // TODO: Check whether map wouldn't be a better choice. (As these arrays might consume a lot of memory for uncolored vertices/edges)
     // TODO: Maybe vertices are enough?
     ogdf::NodeArray<Color> vertices;
+    ogdf::List<ogdf::node> redVertices;
+
+    ogdf::EdgeArray<Color> edges;
 
     GraphColoring();
-public:
-    ogdf::EdgeArray<Color> edges; // TODO: Move to private
-    ogdf::List<ogdf::node> redNodes;
+public:    
     int nBlueVertices;
 
     GraphColoring(const ogdf::Graph &G)
@@ -28,8 +29,9 @@ public:
         nBlueVertices = 0;
     }
 
-    void printColoring();
+    void printColoring();    
 
+    // TODO: Measure the speed difference when setBlue, setRed, setBlack are separated
     void set(ogdf::node v, Color c)
     {
         if (c == Color::BLUE && vertices[v] != Color::BLUE) {
@@ -39,7 +41,25 @@ public:
             nBlueVertices--;
         }
 
+        if (vertices[v] == Color::RED && c != Color::RED) {
+            redVertices.popBack();
+        }
+        if (vertices[v] != Color::RED && c == Color::RED) {
+            redVertices.pushBack(v);
+        }
+
         vertices[v] = c;
+    }
+
+    const ogdf::List<ogdf::node>& getRedVertices() {
+        return redVertices;
+    }
+
+    void popRedVertices(int n)
+    {
+        for (int i = 0; i < n; ++i) {
+            redVertices.popBack();
+        }
     }
 
     Color& operator[](ogdf::edge e) { return edges[e]; }
