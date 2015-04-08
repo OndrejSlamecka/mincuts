@@ -133,7 +133,6 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
 
             if(   (!Y.edges.empty() && c->index() <= Y.lastBondFirstEdge->index())
                || (                    c->index() <= X.lastBondFirstEdge->index())) {
-                coloring[u] = Color::RED;
                 coloring[c] = Color::RED;
                 continue;
             }
@@ -408,6 +407,17 @@ void CircuitCocircuit::revertColoring(GraphColoring &coloring, List<edge> &P,
                                       List<edge> &blueEdgesOnP, node firstRed,
                                       const bond &X, List<edge> &oldBlueTreeEdges, List<edge> &newBlueTreeEdges)
 {
+    // The order here is important!
+    forall_listiterators(edge, iterator, newBlueTreeEdges) {
+        edge e = *iterator;
+        coloring[e] = Color::BLACK;
+    }
+
+    forall_listiterators(edge, iterator, oldBlueTreeEdges) {
+        edge e = *iterator;
+        coloring[e] = Color::BLUE;
+    }
+
     forall_listiterators(edge, iterator, P) {
         edge e = *iterator;
 
@@ -421,16 +431,6 @@ void CircuitCocircuit::revertColoring(GraphColoring &coloring, List<edge> &P,
 
         if (coloring[e->source()] != Color::RED) coloring[e->source()] = Color::BLUE;
         if (coloring[e->target()] != Color::RED) coloring[e->target()] = Color::BLUE;
-    }
-
-    forall_listiterators(edge, iterator, newBlueTreeEdges) {
-        edge e = *iterator;
-        coloring[e] = Color::BLACK;
-    }
-
-    forall_listiterators(edge, iterator, oldBlueTreeEdges) {
-        edge e = *iterator;
-        coloring[e] = Color::BLUE;
     }
 
     for(edge e : blueEdgesOnP) {
