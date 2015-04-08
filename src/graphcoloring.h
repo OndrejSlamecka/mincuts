@@ -30,6 +30,18 @@ public:
 
     void printColoring();
 
+    void set(ogdf::node v, Color c)
+    {
+        if (c == Color::BLUE && vertices[v] != Color::BLUE) {
+            nBlueVertices++;
+        }
+        if (c != Color::BLUE && vertices[v] == Color::BLUE) {
+            nBlueVertices--;
+        }
+
+        vertices[v] = c;
+    }
+
     Color& operator[](ogdf::edge e) { return edges[e]; }
     Color& operator[](ogdf::node v) { return vertices[v]; }
 

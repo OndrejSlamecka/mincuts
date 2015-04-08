@@ -53,18 +53,13 @@ void CircuitCocircuit::extendBond(int components, const bond &Y,
         node u = e->source(), v = e->target();
         if (u->index() > v->index()) swap(u, v); // Def 4.3, i.
 
-        coloring[u] = Color::RED;
-        coloring.redNodes.pushBack(u);
-        coloring.nBlueVertices++;
-        coloring[v] = Color::BLUE;        
+        coloring.set(u, Color::RED);
+        coloring.set(v, Color::BLUE);
 
         genStage(components, Y, j, stageBonds, coloring, X);
 
-        coloring.redNodes.clear();
-
-        coloring.nBlueVertices--;
-        coloring[u] = Color::BLACK;
-        coloring[v] = Color::BLACK;
+        coloring.set(u, Color::BLACK);
+        coloring.set(v, Color::BLACK);
     }
 
     if (j == components - 1) {        
@@ -122,15 +117,13 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
             v = c->opposite(u);
 
             // Add u to red subgraph (this has to be done here so that it won't be used in possible reconnection)
-            if (coloring[u] == Color::BLUE) coloring.nBlueVertices--;
-            coloring[u] = Color::RED;
+            coloring.set(u, Color::RED);
 
-            // RECREATE BLUE SUBGRAPH
-            // * recolors both subgraphs black
-            // * run bfs from one blue vertex
+            // RECREATION OF BLUE TREE
+            // * recolors both components of T_b \ c black
+            // * runs bfs from one blue vertex
             // * - mark each found blue vertex and color path to it
             // * - if all blue vertices weren't found fail
-            // now to remembering the coloring :-(
 
             if (   isBlueTreeDisconnected(coloring, c, u)
                 && !recreateBlueTreeIfDisconnected(XY.edges, coloring, v, c, oldBlueTreeEdges, newBlueTreeEdges)) {
@@ -139,10 +132,8 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
             }
 
             if(   (!Y.edges.empty() && c->index() <= Y.lastBondFirstEdge->index())
-               || (                    c->index() <= X.lastBondFirstEdge->index())
-              ) {
+               || (                    c->index() <= X.lastBondFirstEdge->index())) {
                 coloring[u] = Color::RED;
-                coloring.redNodes.pushBack(u);
                 coloring[c] = Color::RED;
                 continue;
             }
@@ -151,13 +142,11 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
             bond newX(X);
             newX.edges.pushBack(c);
 
-
-            if (coloring[v] != Color::BLUE) coloring.nBlueVertices++;
-            coloring[v] = Color::BLUE;
-            coloring.redNodes.pushBack(u);
+            coloring.set(v, Color::BLUE);
             coloring[c] = Color::BLACK;
 
             genStage(components, Y, j, bonds, coloring, newX);
+
             coloring[c] = Color::RED;
         }
 
@@ -214,10 +203,12 @@ void CircuitCocircuit::shortestPath(const GraphColoring &coloring, const List<ed
             if (foundBlue == NULL || distance[u] < distance[foundBlue]) {
                 foundBlue = u;
             } else if (distance[u] == distance[foundBlue]) {
-                // problem, TODO
-                //cout << u << endl;
-                //cout << foundBlue << endl;
-                //throw runtime_error("length of two paths are the same");
+                // Compare path P1 = v-u and path P2 = v-foundBlue,
+                // such that we get the one which lexicographically minimizes
+                // vector (P[0].index, P[1].index, P[2].index,...)
+
+                // Step 1: Enumerate both paths
+                // TODO
             }
         }
 
@@ -384,7 +375,7 @@ void CircuitCocircuit::revertColoring(GraphColoring &coloring, List<edge> &P,
         coloring[e] = Color::BLACK;
     }
 
-    forall_listiterators(edge, iterator, X.edges) { // TODO: check if necessary
+    forall_listiterators(edge, iterator, X.edges) {
         edge e = *iterator;
 
         if (coloring[e->source()] != Color::RED) coloring[e->source()] = Color::BLUE;
