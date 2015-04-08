@@ -43,7 +43,6 @@ public:
     }
 
     Color& operator[](ogdf::edge e) { return edges[e]; }
-    Color& operator[](ogdf::node v) { return vertices[v]; }
 
     const Color& operator[](ogdf::edge e) const { return edges[e]; }
     const Color& operator[](ogdf::node v) const { return vertices[v]; }

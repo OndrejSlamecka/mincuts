@@ -18,42 +18,42 @@ std::ostream & operator<<(std::ostream &os, const bond &S);
 
 class CircuitCocircuit
 {
-    ogdf::Graph &G;    
+    ogdf::Graph &G;
+    GraphColoring coloring;
     int cutSizeBound;
     ogdf::EdgeArray<int> lambda;
     ogdf::List<ogdf::Prioritized<ogdf::edge, int>> allEdgesSortedByIndex;
 
     CircuitCocircuit();
 
-    void genStage(int components, const bond &Y, int j,
-                  ogdf::List<bond> &bonds, GraphColoring &coloring,
+    void genStage(int components, const bond &Y, int j, ogdf::List<bond> &bonds,
                   const bond &X);
 
-    ogdf::node lexicographicallyMinimalPathStartNode(const GraphColoring &coloring,
-                                                     ogdf::NodeArray<ogdf::edge> &accessEdge,
+    ogdf::node lexicographicallyMinimalPathStartNode(ogdf::NodeArray<ogdf::edge> &accessEdge,
                                                      ogdf::node s1, ogdf::node s2);
-    void shortestPath(const GraphColoring &coloring, const ogdf::List<ogdf::edge> &forbidden,
-                      ogdf::node &lastRed, ogdf::List<ogdf::edge> &path);
+    void shortestPath(const ogdf::List<ogdf::edge> &forbidden, ogdf::node &lastRed,
+                      ogdf::List<ogdf::edge> &path);
 
-    void revertColoring(GraphColoring &coloring, ogdf::List<ogdf::edge> &P,
-                        ogdf::List<ogdf::edge> &blueEdges, ogdf::node firstRed,                        
-                        const bond &X,
-                        ogdf::List<ogdf::edge> &oldBlueTreeEdges, ogdf::List<ogdf::edge> &newBlueTreeEdges);
+    void revertColoring(ogdf::List<ogdf::edge> &P, ogdf::List<ogdf::edge> &blueEdges,
+                        ogdf::node firstRed, const bond &X,
+                        ogdf::List<ogdf::edge> &oldBlueTreeEdges,
+                        ogdf::List<ogdf::edge> &newBlueTreeEdges);
 
 
-    bool isBlueTreeDisconnected(GraphColoring &coloring, ogdf::edge c, ogdf::node u);
+    bool isBlueTreeDisconnected(ogdf::edge c, ogdf::node u);
 
-    void recolorBlueTreeBlack(GraphColoring &coloring, ogdf::node start, ogdf::List<ogdf::edge> &oldBlueTreeEdges);
+    void recolorBlueTreeBlack(ogdf::node start, ogdf::List<ogdf::edge> &oldBlueTreeEdges);
 
-    bool recreateBlueTreeIfDisconnected(const ogdf::List<ogdf::edge> &XY, GraphColoring &coloring,
-                                                          ogdf::node v, ogdf::edge c, ogdf::List<ogdf::edge> &oldBlueTreeEdges,
-                                                          ogdf::List<ogdf::edge> &newBlueTreeEdges);
+    bool recreateBlueTreeIfDisconnected(const ogdf::List<ogdf::edge> &XY,
+                                        ogdf::node v, ogdf::edge c,
+                                        ogdf::List<ogdf::edge> &oldBlueTreeEdges,
+                                        ogdf::List<ogdf::edge> &newBlueTreeEdges);
 
 
     void minimalSpanningForest(int components, const bond &Y, ogdf::List<ogdf::edge> &edges);
 
 public:    
-    CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound) : G(Graph), cutSizeBound(cutSizeBound), lambda(G)
+    CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound) : G(Graph), coloring(G), cutSizeBound(cutSizeBound), lambda(G)
     {
         // Sort edges by index for use by minimalSpanningForest
         for (ogdf::edge e = G.firstEdge(); e; e = e->succ()) {
@@ -71,7 +71,7 @@ public:
         ogdf::edge e;
         forall_edges(e, G) {
             lambda[e] = distribution(generator);
-        }
+        }        
     }
 
     /**
@@ -88,8 +88,7 @@ public:
      * @param j
      * @param bonds
      */
-    void extendBond(int components, const bond &Y, GraphColoring &coloring,
-                    int j, ogdf::List<bond> &bonds);
+    void extendBond(int components, const bond &Y, int j, ogdf::List<bond> &bonds);
 
     ~CircuitCocircuit();
 };
