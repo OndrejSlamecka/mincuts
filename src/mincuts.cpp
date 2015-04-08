@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
         printUsage(argv[0]);
         exit(1);
     };
-        
+
     Graph G;
     ifstream fGraph(argv[1]);
     if (!fGraph.is_open()) {

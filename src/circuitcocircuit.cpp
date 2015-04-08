@@ -155,6 +155,47 @@ void CircuitCocircuit::genStage(int components, const bond &Y,
     }
 }
 
+/**
+ * Returns the starting node of path P which lexicographically minimizes the vector (P[0].index, P[1].index,...)
+ * Note that by the start node we actually mean the blue node
+ */
+node CircuitCocircuit::lexicographicallyMinimalPathStartNode(const GraphColoring &coloring, NodeArray<edge> &accessEdge, node s1, node s2)
+{
+    // Alternatively we could enumerate P1 and P2 and use lexicographical_compare on list of their indicies
+
+    node n, m,
+         a, b;
+    edge e1, e2;
+    node lexMinStartNode = NULL;
+
+    for (n = s1, m = s2; coloring[n] != Color::RED && coloring[m] != Color::RED; n = a, m = b) {
+        e1 = accessEdge[n];
+        a = e1->opposite(n);
+
+        e2 = accessEdge[m];
+        b = e2->opposite(m);
+
+        if (e1->index() < e2->index()) {
+            lexMinStartNode = s1;
+        } else if (e2->index() < e1->index()) {
+            lexMinStartNode = s2;
+        }
+    }
+
+    // One path hits red -> it is shorter -> lexicographically less than the longer one
+    if (lexMinStartNode == NULL) {
+        if (coloring[n] == Color::RED) {
+            lexMinStartNode = s1;
+        } else if (coloring[m] == Color::RED) {
+            lexMinStartNode = s2;
+        } else {
+            // This should never happen if this implementation is correct
+            throw logic_error("Could not lexicographically compare two paths with equal lambda length.");
+        }
+    }
+
+    return lexMinStartNode;
+}
 
 /**
  * Performs BFS to find the shortest path from s to t in graph G without using any edge from the forbidden edges.
@@ -207,8 +248,8 @@ void CircuitCocircuit::shortestPath(const GraphColoring &coloring, const List<ed
                 // such that we get the one which lexicographically minimizes
                 // vector (P[0].index, P[1].index, P[2].index,...)
 
-                // Step 1: Enumerate both paths
-                // TODO
+                // Note that by the start node we actually mean the blue node
+                foundBlue = lexicographicallyMinimalPathStartNode(coloring, accessEdge, u, foundBlue);
             }
         }
 
@@ -267,7 +308,7 @@ bool CircuitCocircuit::isBlueTreeDisconnected(GraphColoring &coloring, edge c, n
 /**
  * Recolors only edges of course
  */
-void CircuitCocircuit::recolorBlueSubgraphBlack(GraphColoring &coloring, node start, List<edge> &oldBlueTreeEdges)
+void CircuitCocircuit::recolorBlueTreeBlack(GraphColoring &coloring, node start, List<edge> &oldBlueTreeEdges)
 {
     Stack<node> Q;
     NodeArray<bool> visited(G, false);
@@ -306,7 +347,7 @@ bool CircuitCocircuit::recreateBlueTreeIfDisconnected(const List<edge> &XY, Grap
          n, // neighbours of u
          a, b; // node currently being coloured on the path, its successor
 
-    recolorBlueSubgraphBlack(coloring, v, oldBlueTreeEdges); // Recolors only edges of course, note that c is used now
+    recolorBlueTreeBlack(coloring, v, oldBlueTreeEdges); // Recolors only edges of course, note that c is used now
 
     // Run BFS in G \ XY \ T_r \ {c}, each time blue vertex x is found colour path v-x and increase nBlueVerticesFound
     // - if nBlueVerticesFound == coloring.nBlueVertices, return true

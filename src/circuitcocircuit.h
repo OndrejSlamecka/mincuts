@@ -29,6 +29,9 @@ class CircuitCocircuit
                   ogdf::List<bond> &bonds, GraphColoring &coloring,
                   const bond &X);
 
+    ogdf::node lexicographicallyMinimalPathStartNode(const GraphColoring &coloring,
+                                                     ogdf::NodeArray<ogdf::edge> &accessEdge,
+                                                     ogdf::node s1, ogdf::node s2);
     void shortestPath(const GraphColoring &coloring, const ogdf::List<ogdf::edge> &forbidden,
                       ogdf::node &lastRed, ogdf::List<ogdf::edge> &path);
 
@@ -40,7 +43,7 @@ class CircuitCocircuit
 
     bool isBlueTreeDisconnected(GraphColoring &coloring, ogdf::edge c, ogdf::node u);
 
-    void recolorBlueSubgraphBlack(GraphColoring &coloring, ogdf::node start, ogdf::List<ogdf::edge> &oldBlueTreeEdges);
+    void recolorBlueTreeBlack(GraphColoring &coloring, ogdf::node start, ogdf::List<ogdf::edge> &oldBlueTreeEdges);
 
     bool recreateBlueTreeIfDisconnected(const ogdf::List<ogdf::edge> &XY, GraphColoring &coloring,
                                                           ogdf::node v, ogdf::edge c, ogdf::List<ogdf::edge> &oldBlueTreeEdges,
@@ -67,7 +70,7 @@ public:
 
         ogdf::edge e;
         forall_edges(e, G) {
-            lambda[e] = distribution(generator); // sth random
+            lambda[e] = distribution(generator);
         }
     }
 
