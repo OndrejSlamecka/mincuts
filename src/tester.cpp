@@ -134,8 +134,10 @@ public:
 		updateOnGraphRetrieval();
 		lock.unlock();
 
-		char *cp = (char*) s.c_str();
-		stringtograph(cp, G);
+		if (r) {
+			char *cp = (char*) s.c_str();
+			stringtograph(cp, G);
+		}
 
 		return r;
 	}
@@ -189,12 +191,12 @@ protected:
 		errorFound = true;
 
 		cout << "\nmincuts / bf:" << endl;
-		for (set<int> c : AmB) {
+		for (const set<int> &c : AmB) {
 			cout << c << endl;
 		}
 
 		cout << "bf / mincuts:" << endl;
-		for (set<int> c : BmA) {
+		for (const set<int> &c : BmA) {
 			cout << c << endl;
 		}
 
@@ -221,13 +223,13 @@ protected:
 				bf_bonds);
 
 		set<set<int>> A, B, AmB, BmA;
-		for(bond b : bonds) {
+		for(const bond &b : bonds) {
 			set<int> si;
 			for (edge e : b.edges) si.insert(e->index());
 			A.insert(si);
 		}
 
-		for(List<edge> le : bf_bonds) {
+		for(const List<edge> &le : bf_bonds) {
 			set<int> si;
 			for (edge e : le) si.insert(e->index());
 			B.insert(si);
@@ -360,15 +362,20 @@ int main(int argc, char *argv[])
 	}
 
 	// Run tester in parallel
-	TestRunner testrunner(minComponents, maxComponents, cutSizeBound, move(source));
+	try {
+		TestRunner testrunner(minComponents, maxComponents, cutSizeBound, move(source));
 
-	vector<thread> threads(nThreads);
-	for (int i = 0; i < nThreads; ++i) {
-		threads[i] = thread(&TestRunner::run, ref(testrunner));
-	}
+		vector<thread> threads(nThreads);
+		for (int i = 0; i < nThreads; ++i) {
+			threads[i] = thread(&TestRunner::run, ref(testrunner));
+		}
 
-	for (int i = 0; i < nThreads; ++i) {
-		threads[i].join();
+		for (int i = 0; i < nThreads; ++i) {
+			threads[i].join();
+		}
+	} catch (const exception& e) {
+		cerr << e.what() << endl;
+		exit(3);
 	}
 
 	return 0;
