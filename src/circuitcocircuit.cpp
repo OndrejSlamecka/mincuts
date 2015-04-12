@@ -81,10 +81,10 @@ void CircuitCocircuit::genStage(int components, const bond &Y, int j,
     shortestPath(Y.edges, X.edges, firstRed, P);
 
     if (P.empty()) {
-        // If there is no such path P, then return ‘(j + 1) bond: Y union X’.
-        bond Ycopy(Y);
-        bond XY(X); XY.edges.conc(Ycopy.edges); // G1 = G\Y, few parts require not having X and Y in the graph
-        bonds.pushBack(XY);
+        // If there is no such path P, then return ‘(j + 1) bond: Y union X’
+		bond Ycopy(Y);
+        bond XY(X); XY.edges.conc(Ycopy.edges); 
+		bonds.pushBack(XY);
     } else {
         // Try adding each c in P to X.
         int nVerticesColouredRed = 0; // counts only this stage of course

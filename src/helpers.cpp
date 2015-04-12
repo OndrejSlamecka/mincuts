@@ -58,9 +58,21 @@ void graph2dot(const Graph &G, ostream &fGraph)
 
 ostream & operator<<(ostream &os, const set<edge> &S)
 {
+    // TODO: Reduce to   operator<<(ostream &os, const std::set<int>& S)
     int i = 0, ss = S.size();
     for(auto e : S) {
         os << e->index();
+        if (i < ss - 1) os << ",";
+        i++;
+    }
+    return os;
+}
+
+ostream & operator<<(ostream &os, const std::set<int>& S)
+{
+    int i = 0, ss = S.size();
+    for (auto e : S) {
+        os << e;
         if (i < ss - 1) os << ",";
         i++;
     }
