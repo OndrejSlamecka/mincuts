@@ -12,13 +12,13 @@ enum class Color {
 class GraphColoring
 {
     // TODO: Check whether map wouldn't be a better choice. (As these arrays might consume a lot of memory for uncolored vertices/edges)
-    // TODO: Maybe vertices are enough?
     ogdf::NodeArray<Color> vertices;
     ogdf::List<ogdf::node> redVertices;
 
     ogdf::EdgeArray<Color> edges;
 
     GraphColoring();
+
 public:    
     int nBlueVertices;
 
@@ -27,9 +27,7 @@ public:
         edges.init(G, Color::BLACK);
         vertices.init(G, Color::BLACK);
         nBlueVertices = 0;
-    }
-
-    void printColoring();    
+    } 
 
     // TODO: Measure the speed difference when setBlue, setRed, setBlack are separated
     void set(ogdf::node v, Color c)

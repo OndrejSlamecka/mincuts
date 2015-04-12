@@ -31,8 +31,8 @@ class CircuitCocircuit
 
     ogdf::node lexicographicallyMinimalPathStartNode(ogdf::NodeArray<ogdf::edge> &accessEdge,
                                                      ogdf::node s1, ogdf::node s2);
-    void shortestPath(const ogdf::List<ogdf::edge> &forbidden, ogdf::node &lastRed,
-                      ogdf::List<ogdf::edge> &path);
+    void shortestPath(const ogdf::List<ogdf::edge> &Y, const ogdf::List<ogdf::edge> &X,
+                      ogdf::node &lastRed, ogdf::List<ogdf::edge> &path);
 
     void revertColoring(ogdf::List<ogdf::edge> &P, ogdf::List<ogdf::edge> &blueEdges,
                         ogdf::node firstRed, const bond &X,
@@ -44,11 +44,11 @@ class CircuitCocircuit
 
     void recolorBlueTreeBlack(ogdf::node start, ogdf::List<ogdf::edge> &oldBlueTreeEdges);
 
-    bool recreateBlueTreeIfDisconnected(const ogdf::List<ogdf::edge> &XY,
+    bool recreateBlueTreeIfDisconnected(const ogdf::List<ogdf::edge> &Y,
+                                        const ogdf::List<ogdf::edge> &X,
                                         ogdf::node v, ogdf::edge c,
                                         ogdf::List<ogdf::edge> &oldBlueTreeEdges,
                                         ogdf::List<ogdf::edge> &newBlueTreeEdges);
-
 
     void minimalSpanningForest(int components, const bond &Y, ogdf::List<ogdf::edge> &edges);
 

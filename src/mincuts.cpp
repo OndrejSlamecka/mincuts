@@ -11,9 +11,8 @@ using namespace ogdf;
 
 void printUsage(char *name)
 {
-    cout << "Usage:\t" << name << " <edge_file.csv> " \
-            "<cut size bound> <# of components> [-bfc]" << endl;
-	cout << endl \
+    cerr << "Usage:\t" << name << " <edge_file.csv> " \
+         << "<cut size bound> <# of components> [-bfc] \n" \
          << "\t<# of components> can be exact or range (e.g. 2-3)\n" \
          << "\t-bfc --\tuse bruteforcing of all combinations instead of\n" \
             "\t\tCircuitCocircuit algorithm" << endl;
