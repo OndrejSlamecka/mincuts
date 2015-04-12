@@ -53,13 +53,6 @@ public:
         return redVertices;
     }
 
-    void popRedVertices(int n)
-    {
-        for (int i = 0; i < n; ++i) {
-            redVertices.popBack();
-        }
-    }
-
     Color& operator[](ogdf::edge e) { return edges[e]; }
 
     const Color& operator[](ogdf::edge e) const { return edges[e]; }

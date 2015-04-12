@@ -87,7 +87,6 @@ void CircuitCocircuit::genStage(int components, const bond &Y, int j,
 		bonds.pushBack(XY);
     } else {
         // Try adding each c in P to X.
-        int nVerticesColouredRed = 0; // counts only this stage of course
 
         List<edge> blueBefore;
         List<edge> newBlueTreeEdges;
@@ -129,7 +128,7 @@ void CircuitCocircuit::genStage(int components, const bond &Y, int j,
             // Do we still have a hyperplane?
             if (   isBlueTreeDisconnected(c, u)
                 && !recreateBlueTreeIfDisconnected(Y.edges, X.edges, v, c, oldBlueTreeEdges, newBlueTreeEdges)) {
-                revertColoring(P, blueBefore, firstRed, X, oldBlueTreeEdges, newBlueTreeEdges, nVerticesColouredRed);
+                revertColoring(P, blueBefore, firstRed, X, oldBlueTreeEdges, newBlueTreeEdges);
                 return;
             }
 
@@ -145,7 +144,7 @@ void CircuitCocircuit::genStage(int components, const bond &Y, int j,
         }
 
         // Revert coloring so that the original coloring is used in the recursion level above
-        revertColoring(P, blueBefore, firstRed, X, oldBlueTreeEdges, newBlueTreeEdges, nVerticesColouredRed);
+        revertColoring(P, blueBefore, firstRed, X, oldBlueTreeEdges, newBlueTreeEdges);
     }
 }
 
@@ -201,24 +200,22 @@ void CircuitCocircuit::shortestPath(const List<edge> &Y, const List<edge> &X, no
     // For every path P = (e_0, e_1, e_2,...) we have the following triplet
     // (|P|, lambda_length(P), index_vector(P)), where |P| is number of its edges,
     // lambda length is the sum of lambda(e) through all e in P and index_vector
-    // of P is the vector (e_0.index, e_1.index, e_1.index)
+    // of P is the vector (e_0.index, e_1.index, e_2.index)
     //
     // In this function we're looking for such path P which (lexicographically)
-    // minimizes this triplet. BFS is used with modifications to count the
-    // lambda length of paths
-    //
+    // minimizes this triplet. A modification of BFS is used.
+	//
     // We compute the lambda length of paths by assigning the lambda distance
     // to nodes. Lambda distance ld is 0 for the starting nodes and when
     // discovering a new node v from node u (where e = {u, v}) then we set
     // ld[v] = ld[u] + lambda[e].
     //
-    // Note that we only calculate lambda distance for a node as we discover it
+    // Note that we only calculate the lambda distance of a node as we discover it
     // from path P1 and if we find an edge from P2 to the node then we only update
     // the lambda distance if |P1| = |P2|. This is because we don't care about
-    // the lambda distance primarily -- and if we did we would need an algorithm
-    // for shortest path on graph with weighted edges, since our approach only
-    // computes the lambda distance correctly for the shortest (wrt. # of edges)
-    // paths currently discovered by BFS.
+  	// the lambda distance primarily, our approach only computes the lambda length
+	// correctly for the shortest (wrt. # of edges) paths currently discovered by
+	// BFS.
 
     path.clear();
 
@@ -430,8 +427,7 @@ bool CircuitCocircuit::recreateBlueTreeIfDisconnected(const List<edge> &Y, const
 void CircuitCocircuit::revertColoring(List<edge> &P, List<edge> &blueEdgesOnP,
                                       node firstRed, const bond &X,
                                       List<edge> &oldBlueTreeEdges,
-                                      List<edge> &newBlueTreeEdges,
-                                      int nVerticesColouredRed)
+                                      List<edge> &newBlueTreeEdges)
 {
     // The order is important here!
     forall_listiterators(edge, iterator, newBlueTreeEdges) {
@@ -451,8 +447,6 @@ void CircuitCocircuit::revertColoring(List<edge> &P, List<edge> &blueEdgesOnP,
         coloring.set(e->target(), Color::BLACK);
         coloring[e] = Color::BLACK;
     }
-
-    coloring.popRedVertices(nVerticesColouredRed);
 
     forall_listiterators(edge, iterator, X.edges) {
         edge e = *iterator;
