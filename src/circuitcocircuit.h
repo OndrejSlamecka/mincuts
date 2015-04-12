@@ -71,7 +71,7 @@ public:
         ogdf::edge e;
         forall_edges(e, G) {
             lambda[e] = distribution(generator);
-        }        
+        }
     }
 
     /**

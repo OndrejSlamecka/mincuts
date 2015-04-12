@@ -15,6 +15,7 @@ void csv2graph(ogdf::Graph &G, std::ifstream &fEdges);
 void graph2csv(const ogdf::Graph &G, std::ostream &fGraph);
 void graph2dot(const ogdf::Graph &G, std::ostream &fGraph);
 
+std::ostream & operator<<(std::ostream &os, const std::set<int> &S);
 std::ostream & operator<<(std::ostream &os, const std::set<ogdf::edge> &S);
 std::ostream & operator<<(std::ostream &os, const ogdf::List<ogdf::edge> &L);
 

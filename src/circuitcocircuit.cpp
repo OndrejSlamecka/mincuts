@@ -85,7 +85,7 @@ void CircuitCocircuit::genStage(int components, const bond &Y, int j,
 
     if (P.empty()) {
         // If there is no such path P, then return ‘(j + 1) bond: Y union X’.
-        bonds.pushBack(XY);
+        bonds.pushBack(XY);        
     } else {
         // Try adding each c in P to X.
         int nVerticesColouredRed = 0; // counts only this stage of course

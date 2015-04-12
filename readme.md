@@ -49,18 +49,20 @@ In `bin/`:
 
 **tester**
 
-	This program tests CircuitCocircuit implementation.
-	Usage:	tester	<cut size bound> <# of components> [-c, --canonical]
-			[-r, --randomized <# of nodes> <min>-<max edges>]
+	Usage:	tester <cut size bound> <# of components>
+			[-r, --randomized <# of nodes> <min>-<max edges>] [-tN]
+
+		This program tests CircuitCocircuit implementation.
+		Expects graphs in nauty's graph6 format on stdin.
 
 		First two arguments are used for any graph being tested.
 		<# of components> can be exact or range (e.g. 2-3)
-		-r generate random graphs
+		-r generate random graphs (won't use stdin input)
 		<max edges> is not strict (if the random graph is disconnected
 			then we add edges to connect it)
-		-c generates graphs cannonically using nauty
+		-tN use N threads (by default N == 2)
 
-To allow for option `-c` you have to install [nauty](http://pallini.di.uniroma1.it/) (which is not redistributed with this program to avoid unnecessary licensing problems) and specify its location at the top of `Makefile`.
+One can use this tester with program `geng` from package [nauty](http://pallini.di.uniroma1.it/) to systematically test this implementation. E.g. run `geng -cq 8 | tester 4 4` to test all graphs on eight nodes. For testing bigger classes of graphs (like graphs on 10 vertices) it is recommended to use the `res/mod` option of `geng`.
 
 -----------
 
