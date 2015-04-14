@@ -109,3 +109,12 @@ You will probably want to select just data relevant to you. For example extract 
 	$ awk -F',' 'NR > 1 {if ($5 > "1") { print $1";"$2";"$3 }}' edges_raw.csv
 
 This excludes edges which have 0 or 1 in the fifth column and thus are forbidden for cars or they are residential streets. See osm4routing page for detailed information.
+
+Measure runtime
+---------------
+
+You can measure the runtime of the algorithm implementation by building the program with `make mincuts-rtm`. All runs will then produce `mincuts_rtm.log` file. Each line of that file contains information about change of state when some edge `e` is added to `X` in an `extendBond` call (note that if your `k`-bonds have `k > 2` then `extendBond` calls are nested). Line contents (tab separated):
+
+* current stage of the algorithm (note `j`-bonds are created in stage `j-1`)
+* number of bonds generated with given `X` union `{e}`
+* time spent in the `genStage` call in milliseconds

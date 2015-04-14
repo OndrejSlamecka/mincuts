@@ -1,19 +1,28 @@
 ogdf_path = ~/.bin/ogdf
 
+CXX=g++
 CXXFLAGS=-std=c++11 -pedantic -Wall -Wextra -O3 $(EXTRA_CXXFLAGS)
 LINKS=-I $(ogdf_path)/include -L $(ogdf_path)/_debug -lOGDF -lpthread
 
+FAKEVAR:=$(shell mkdir -p bin)
+
+.PHONY: all 
+
 all: mincuts cutdiff cutcheck tester
 
+mincuts-rtm: CXXFLAGS += -DMEASURE_RUNTIME
+mincuts-rtm: LINKS	  += -lboost_chrono -lboost_system
+mincuts-rtm: mincuts
+
 mincuts: src/helpers.cpp src/circuitcocircuit.cpp src/mincuts.cpp
-	g++ -o bin/$@ $(CXXFLAGS) $^ $(LINKS)
+	$(CXX) -o bin/$@ $(CXXFLAGS) $^ $(LINKS)
 
 cutdiff: src/cutdiff.cpp
-	g++ -o bin/$@ $(CXXFLAGS) $^
+	$(CXX) -o bin/$@ $(CXXFLAGS) $^
 
 cutcheck: src/helpers.cpp src/cutcheck.cpp
-	g++ -o bin/$@ $(CXXFLAGS) $^ $(LINKS)
+	$(CXX) -o bin/$@ $(CXXFLAGS) $^ $(LINKS)
 
 tester: src/circuitcocircuit.cpp src/helpers.cpp src/tester.cpp
-	g++ -o bin/$@ $(CXXFLAGS) $^ $(LINKS)
+	$(CXX) -o bin/$@ $(CXXFLAGS) $^ $(LINKS)
 

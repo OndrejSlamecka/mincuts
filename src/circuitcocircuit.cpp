@@ -16,6 +16,20 @@
 #include "circuitcocircuit.h"
 #include "helpers.h"
 
+#ifdef MEASURE_RUNTIME
+#include "runtimemeasurement.hpp"
+
+RuntimeMeasurement rtm;
+#endif
+
+#ifdef MEASURE_RUNTIME
+#define RTM_START RuntimeMeasurement::point start = rtm.mark(bonds);
+#define RTM_END rtm.log(j, bonds, start);
+#else
+#define RTM_START
+#define RTM_END
+#endif
+
 using namespace std;
 using namespace ogdf;
 
@@ -26,6 +40,10 @@ ostream & operator<<(ostream &os, const bond &L)
 
 void CircuitCocircuit::run(int k, List<bond> &bonds)
 {
+#ifdef MEASURE_RUNTIME
+    rtm = RuntimeMeasurement();
+#endif
+
     bond Y;
     extendBond(k, Y, 1, bonds);
 }
@@ -38,11 +56,10 @@ void CircuitCocircuit::extendBond(int components, const bond &Y, int j,
     minimalSpanningForest(components, Y, D);
     // Set D = E(F) \ Y... but it's already done, we've already forbidden Y
 
-    List<bond> stageBonds;
+    GraphColoring coloring(G);
 
-    edge e;
     forall_listiterators(edge, i, D) {
-        e = *i;
+        edge e = *i;
 
         bond X;
         X.edges.pushBack(e);
@@ -54,37 +71,38 @@ void CircuitCocircuit::extendBond(int components, const bond &Y, int j,
         coloring.set(u, Color::RED);
         coloring.set(v, Color::BLUE);
 
-        genStage(components, Y, j, stageBonds, X);
+        RTM_START
+        genStage(coloring, components, Y, j, bonds, X);
+        RTM_END
 
         coloring.set(u, Color::BLACK);
         coloring.set(v, Color::BLACK);
     }
-
-    if (j == components - 1) {
-        bonds.conc(stageBonds); // Beware, this empties stageBonds!
-    } else {
-        forall_listiterators(bond, it, stageBonds) {
-            extendBond(components, *it, j + 1, bonds);
-        }
-    }
 }
 
 
-void CircuitCocircuit::genStage(int components, const bond &Y, int j,
+void CircuitCocircuit::genStage(GraphColoring &coloring, int components, const bond &Y, int j,
                                 List<bond> &bonds, const bond &X)
 {
     if (Y.edges.size() + X.edges.size() > cutSizeBound - components + j + 1) return;
 
+    //RTM_START
+
     // Find set P = (a short circuit C in G \ Y \ T_r, s. t. |C ∩ X| = 1) \ X
     node firstRed = NULL;
     List<edge> P;
-    shortestPath(Y.edges, X.edges, firstRed, P);
+    shortestPath(coloring, Y.edges, X.edges, firstRed, P);
 
     if (P.empty()) {
         // If there is no such path P, then return ‘(j + 1) bond: Y union X’
 		bond Ycopy(Y);
-        bond XY(X); XY.edges.conc(Ycopy.edges); 
-		bonds.pushBack(XY);
+        bond XY(X); XY.edges.conc(Ycopy.edges);
+
+        if (j == components - 1) {
+            bonds.pushBack(XY);
+        } else {
+            extendBond(components, XY, j + 1, bonds);
+        }
     } else {
         // Try adding each c in P to X.
 
@@ -126,10 +144,10 @@ void CircuitCocircuit::genStage(int components, const bond &Y, int j,
             }
 
             // Do we still have a hyperplane?
-            if (   isBlueTreeDisconnected(c, u)
-                && !recreateBlueTreeIfDisconnected(Y.edges, X.edges, v, c, oldBlueTreeEdges, newBlueTreeEdges)) {
-                revertColoring(P, blueBefore, firstRed, X, oldBlueTreeEdges, newBlueTreeEdges);
-                return;
+            if (   isBlueTreeDisconnected(coloring, c, u)
+                && !recreateBlueTreeIfDisconnected(coloring, Y.edges, X.edges, v, c, oldBlueTreeEdges, newBlueTreeEdges)) {
+                // Revert coloring and end
+                break;
             }
 
             // all went fine, add c to X
@@ -138,21 +156,23 @@ void CircuitCocircuit::genStage(int components, const bond &Y, int j,
 
             coloring[c] = Color::BLACK; // Color has to be set after we check for a hyperplane
 
-            genStage(components, Y, j, bonds, newX);
+            genStage(coloring, components, Y, j, bonds, newX);
 
             coloring[c] = Color::RED;
         }
 
         // Revert coloring so that the original coloring is used in the recursion level above
-        revertColoring(P, blueBefore, firstRed, X, oldBlueTreeEdges, newBlueTreeEdges);
+        revertColoring(coloring, P, blueBefore, firstRed, X, oldBlueTreeEdges, newBlueTreeEdges);
     }
+
+    //RTM_END
 }
 
 /**
  * Returns the starting node of path P which lexicographically minimizes the vector (P[0].index, P[1].index,...)
  * Note that by the start node we actually mean the blue node
  */
-node CircuitCocircuit::lexicographicallyMinimalPathStartNode(NodeArray<edge> &accessEdge, node s1, node s2)
+node CircuitCocircuit::lexicographicallyMinimalPathStartNode(GraphColoring &coloring, NodeArray<edge> &accessEdge, node s1, node s2)
 {
     // Alternatively we could enumerate P1 and P2 and use lexicographical_compare on list of their indicies
 
@@ -195,7 +215,7 @@ node CircuitCocircuit::lexicographicallyMinimalPathStartNode(NodeArray<edge> &ac
  * Performs BFS to find the canonical shortest path from some red vertex to
  * some blue vertex in graph G without using any edge from X union Y.
  */
-void CircuitCocircuit::shortestPath(const List<edge> &Y, const List<edge> &X, node &lastRed, List<edge> &path)
+void CircuitCocircuit::shortestPath(GraphColoring &coloring, const List<edge> &Y, const List<edge> &X, node &lastRed, List<edge> &path)
 {
     // For every path P = (e_0, e_1, e_2,...) we have the following triplet
     // (|P|, lambda_length(P), index_vector(P)), where |P| is number of its edges,
@@ -257,7 +277,7 @@ void CircuitCocircuit::shortestPath(const List<edge> &Y, const List<edge> &X, no
                 // (P[0].index, P[1].index, P[2].index,...)
 
                 // Note that by the start node we actually mean the blue node
-                foundBlue = lexicographicallyMinimalPathStartNode(accessEdge, u, foundBlue);
+                foundBlue = lexicographicallyMinimalPathStartNode(coloring, accessEdge, u, foundBlue);
             }
         }
 
@@ -299,7 +319,7 @@ void CircuitCocircuit::shortestPath(const List<edge> &Y, const List<edge> &X, no
 
 /* --- Coloring, recreating the blue tree --- */
 
-bool CircuitCocircuit::isBlueTreeDisconnected(edge c, node u)
+bool CircuitCocircuit::isBlueTreeDisconnected(GraphColoring &coloring, edge c, node u)
 {
     // We will test whether adding c to X would disconnect the blue tree
     edge e;
@@ -319,7 +339,7 @@ bool CircuitCocircuit::isBlueTreeDisconnected(edge c, node u)
 /**
  * Recolors only edges of course
  */
-void CircuitCocircuit::recolorBlueTreeBlack(node start, List<edge> &oldBlueTreeEdges)
+void CircuitCocircuit::recolorBlueTreeBlack(GraphColoring &coloring, node start, List<edge> &oldBlueTreeEdges)
 {
     Stack<node> Q;
     NodeArray<bool> visited(G, false);
@@ -348,8 +368,9 @@ void CircuitCocircuit::recolorBlueTreeBlack(node start, List<edge> &oldBlueTreeE
 /**
  * Returns true iff blue tree was not disconnected or if it was possible to recreate it such that it is connected
  */
-bool CircuitCocircuit::recreateBlueTreeIfDisconnected(const List<edge> &Y, const List<edge> &X, node v, edge c,
-                                                      List<edge> &oldBlueTreeEdges, List<edge> &newBlueTreeEdges)
+bool CircuitCocircuit::recreateBlueTreeIfDisconnected(GraphColoring &coloring, const List<edge> &Y, const List<edge> &X,
+                                                      node v, edge c, List<edge> &oldBlueTreeEdges,
+                                                      List<edge> &newBlueTreeEdges)
 {
     // We will colour black what is blue and start building blue tree from scratch
 
@@ -363,7 +384,7 @@ bool CircuitCocircuit::recreateBlueTreeIfDisconnected(const List<edge> &Y, const
          n, // neighbours of u
          a, b; // node currently being coloured on the path, its successor
 
-    recolorBlueTreeBlack(v, oldBlueTreeEdges); // Recolors only edges of course, note that c is used now
+    recolorBlueTreeBlack(coloring, v, oldBlueTreeEdges); // Recolors only edges of course, note that c is used now
 
     // Run BFS in G \ Y \ X \ T_r \ {c}, each time blue vertex x is found colour path v-x and increase nBlueVerticesFound
     // - if nBlueVerticesFound == coloring.nBlueVertices, return true
@@ -424,7 +445,8 @@ bool CircuitCocircuit::recreateBlueTreeIfDisconnected(const List<edge> &Y, const
 }
 
 
-void CircuitCocircuit::revertColoring(List<edge> &P, List<edge> &blueEdgesOnP,
+void CircuitCocircuit::revertColoring(GraphColoring &coloring,
+                                      List<edge> &P, List<edge> &blueEdgesOnP,
                                       node firstRed, const bond &X,
                                       List<edge> &oldBlueTreeEdges,
                                       List<edge> &newBlueTreeEdges)
