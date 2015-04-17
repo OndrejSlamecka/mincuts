@@ -29,11 +29,7 @@ class CircuitCocircuit
     CircuitCocircuit();
 
     /**
-     * Extends (possibly empty) j-1 bond Y to j-bond (which is added to bonds)
-     * @param components
-     * @param Y
-     * @param j
-     * @param bonds
+     * Extends (possibly empty) j bond Y to (j+1)-bond
      */
     void extendBond(int components, const bond &Y, int j, ogdf::List<bond> &bonds);
 
@@ -67,26 +63,7 @@ class CircuitCocircuit
     void minimalSpanningForest(int components, const bond &Y, ogdf::List<ogdf::edge> &edges);
 
 public:    
-    CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound) : G(Graph), cutSizeBound(cutSizeBound), lambda(G)
-    {
-        // Sort edges by index for use by minimalSpanningForest
-        for (ogdf::edge e = G.firstEdge(); e; e = e->succ()) {
-            allEdgesSortedByIndex.pushBack(ogdf::Prioritized<ogdf::edge,int>(e, e->index()));
-        }
-        allEdgesSortedByIndex.quicksort();
-
-        // Create map lambda : E(G) -> N (natural numbers) for selection of shortest path
-        // The map is randomized with each algorithm run in order to detect mistakes
-        // related to graph traversing order
-        std::default_random_engine generator;
-        int upper_bound = G.numberOfNodes() * G.numberOfNodes() + 10; // + 10 for small graphs
-        std::uniform_int_distribution<int> distribution(1, upper_bound);
-
-        ogdf::edge e;
-        forall_edges(e, G) {
-            lambda[e] = distribution(generator);
-        }
-    }
+    CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound);
 
     /**
      * Runs the CircuitCocircuit algorithm, stores k-bonds

@@ -37,12 +37,34 @@ ostream & operator<<(ostream &os, const bond &L)
     return os << L.edges;
 }
 
+CircuitCocircuit::CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound)
+    : G(Graph), cutSizeBound(cutSizeBound), lambda(G)
+{
+    // Sort edges by index for use by minimalSpanningForest
+    for (ogdf::edge e = G.firstEdge(); e; e = e->succ()) {
+        allEdgesSortedByIndex.pushBack(ogdf::Prioritized<ogdf::edge,int>(e, e->index()));
+    }
+    allEdgesSortedByIndex.quicksort();
+
+    // Create map lambda : E(G) -> N (natural numbers) for selection of shortest path
+    // The map is randomized with each algorithm run in order to detect mistakes
+    // related to graph traversing order
+    std::default_random_engine generator;
+    int upper_bound = G.numberOfNodes() * G.numberOfNodes() + 10; // + 10 for small graphs
+    std::uniform_int_distribution<int> distribution(1, upper_bound);
+
+    ogdf::edge e;
+    forall_edges(e, G) {
+        lambda[e] = distribution(generator);
+    }
+
+    #ifdef MEASURE_RUNTIME
+        rtm = RuntimeMeasurement();
+    #endif
+}
+
 void CircuitCocircuit::run(int k, List<bond> &bonds)
 {
-#ifdef MEASURE_RUNTIME
-    rtm = RuntimeMeasurement();
-#endif
-
     bond Y;
     extendBond(k, Y, 1, bonds);
 }
@@ -91,8 +113,6 @@ void CircuitCocircuit::genStage(GraphColoring &coloring, int components, const b
                                 List<bond> &bonds, const bond &X)
 {
     if (Y.edges.size() + X.edges.size() > cutSizeBound - components + j + 1) return;
-
-    //RTM_START
 
     // Find set P = (a short circuit C in G \ Y \ T_r, s. t. |C ∩ X| = 1) \ X
     node firstRed = NULL;
@@ -143,7 +163,8 @@ void CircuitCocircuit::genStage(GraphColoring &coloring, int components, const b
             // Color as with u and v in X
             // (the color of u has to be set red here in order to avoid being used
             // in a possible recreation of the blue tree, the color of c cannot be
-            // set here so that we can check for a blue tree disconnection)
+            // set here so that we can satisfy the input condition of the method
+            // recreateBlueTreeIfDisconnected
             coloring.set(v, Color::BLUE);
             coloring.set(u, Color::RED);
 
@@ -174,8 +195,6 @@ void CircuitCocircuit::genStage(GraphColoring &coloring, int components, const b
         // Revert coloring so that the original coloring is used in the recursion level above
         revertColoring(coloring, P, blueBefore, firstRed, X, oldBlueTreeEdges, newBlueTreeEdges);
     }
-
-    //RTM_END
 }
 
 /**
@@ -376,7 +395,8 @@ void CircuitCocircuit::recolorBlueTreeBlack(GraphColoring &coloring, node start,
 }
 
 /**
- * Returns true iff blue tree was not disconnected or if it was possible to recreate it such that it is connected
+ * Returns true iff it was possible to recreate the blue tree such that it is connected
+ * Expects graph with single blue tree as input (due to use of recolorBlueTreeBlack)
  */
 bool CircuitCocircuit::recreateBlueTreeIfDisconnected(GraphColoring &coloring, const List<edge> &Y, const List<edge> &X,
                                                       node v, edge c, List<edge> &oldBlueTreeEdges,
