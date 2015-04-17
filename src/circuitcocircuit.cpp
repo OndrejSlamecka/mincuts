@@ -20,9 +20,8 @@
 #include "runtimemeasurement.hpp"
 
 RuntimeMeasurement rtm;
-#endif
 
-#ifdef MEASURE_RUNTIME
+
 #define RTM_START RuntimeMeasurement::point start = rtm.mark(bonds);
 #define RTM_END rtm.log(j, bonds, start);
 #else
@@ -46,6 +45,13 @@ void CircuitCocircuit::run(int k, List<bond> &bonds)
 
     bond Y;
     extendBond(k, Y, 1, bonds);
+}
+
+void CircuitCocircuit::run(int k)
+{
+    List<bond> bonds;
+    outputToStdout = true;
+    run(k, bonds);
 }
 
 void CircuitCocircuit::extendBond(int components, const bond &Y, int j,
@@ -99,7 +105,11 @@ void CircuitCocircuit::genStage(GraphColoring &coloring, int components, const b
         bond XY(X); XY.edges.conc(Ycopy.edges);
 
         if (j == components - 1) {
-            bonds.pushBack(XY);
+            if (outputToStdout) {
+                cout << XY << "\n";
+            } else {
+                bonds.pushBack(XY);
+            }
         } else {
             extendBond(components, XY, j + 1, bonds);
         }
@@ -494,7 +504,7 @@ void CircuitCocircuit::revertColoring(GraphColoring &coloring,
  */
 void CircuitCocircuit::minimalSpanningForest(int components, const bond &Y, List<edge> &result)
 {
-    // A modification of OGDF's makeMinimumSpanningTree
+    // An implementation of Kruskal's algorithm take from OGDF's makeMinimumSpanningTree
 
     NodeArray<int> setID(G);
     DisjointSets<> uf(G.numberOfNodes());
@@ -506,14 +516,13 @@ void CircuitCocircuit::minimalSpanningForest(int components, const bond &Y, List
     for (ListConstIterator<Prioritized<edge,int>> it = allEdgesSortedByIndex.begin(); it.valid(); ++it) {
         const edge e = (*it).item();
 
-        if (Y.edges.search(e).valid()) continue;
-
         const int v = setID[e->source()];
         const int w = setID[e->target()];
 
         // See paper: cannonical, informal, bullet one
         if ((uf.find(v) != uf.find(w))
-         && (Y.edges.empty() || e->index() > Y.lastBondFirstEdge->index())) {
+         && (Y.edges.empty() || e->index() > Y.lastBondFirstEdge->index())
+         && !Y.edges.search(e).valid()) {
             uf.link(uf.find(v), uf.find(w));
             result.pushBack(e);
             stSize++;

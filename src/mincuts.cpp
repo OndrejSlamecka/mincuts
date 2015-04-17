@@ -72,17 +72,12 @@ int main(int argc, char* argv[])
             for(List<List<edge>>::iterator it = bonds.begin(); it != bonds.end(); ++it) {
                 cout << *it << endl;
             }
-        } else {
-            List<bond> bonds;
+        } else {            
             CircuitCocircuit alg(G, cutSizeBound);
 
             for (int i = minComponents; i <= maxComponents; ++i) {
-                alg.run(i, bonds);
+                alg.run(i);
             }            
-
-            for(List<bond>::iterator it = bonds.begin(); it != bonds.end(); ++it) {
-                cout << *it << endl;
-            }
         }
     } catch (invalid_argument &e) {
         cerr << "Error: " << e.what() << endl;

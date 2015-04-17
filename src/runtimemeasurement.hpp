@@ -66,7 +66,7 @@ public:
               << "\n";
     }
 
-    // The rule of 3 doesn't apply here, we're not doing any memory management in the destructor
+    // The rule of 5 doesn't apply here, we're not doing any memory management in the destructor
     virtual ~RuntimeMeasurement() {
         if (fout) { // if this is not being called as part of a move
             (*fout).flush();

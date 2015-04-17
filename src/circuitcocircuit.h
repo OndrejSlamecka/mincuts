@@ -19,10 +19,12 @@ std::ostream & operator<<(std::ostream &os, const bond &S);
 class CircuitCocircuit
 {
     ogdf::Graph &G;
-    //GraphColoring coloring; // if you uncomment this, don't forget to modify the constructor
     int cutSizeBound;
+
     ogdf::EdgeArray<int> lambda;
     ogdf::List<ogdf::Prioritized<ogdf::edge, int>> allEdgesSortedByIndex;
+
+    bool outputToStdout = false; // Output to stdout or store into list "bonds" given to the run method?
 
     CircuitCocircuit();
 
@@ -65,7 +67,7 @@ class CircuitCocircuit
     void minimalSpanningForest(int components, const bond &Y, ogdf::List<ogdf::edge> &edges);
 
 public:    
-    CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound) : G(Graph), /*coloring(G),*/ cutSizeBound(cutSizeBound), lambda(G)
+    CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound) : G(Graph), cutSizeBound(cutSizeBound), lambda(G)
     {
         // Sort edges by index for use by minimalSpanningForest
         for (ogdf::edge e = G.firstEdge(); e; e = e->succ()) {
@@ -87,11 +89,21 @@ public:
     }
 
     /**
-     * Runs the CircuitCocircuit algorithm, stores k-way bonds
-     * @param components
-     * @param bonds
+     * Runs the CircuitCocircuit algorithm, stores k-bonds
+     * If you expect a lot of bonds then your "bonds" list might run out of
+     * memory. Use the other run method which outputs them to stdout directly
+     *
+     * @param k     The number of components you want your bonds to have
+     * @param bonds List to store the bonds
      */
-    void run(int components, ogdf::List<bond> &bonds);
+    void run(int k, ogdf::List<bond> &bonds);
+
+    /**
+     * Runs the CircuitCocircuit algorithm, prints k-bonds to stdout
+     *
+     * @param k     The number of components you want your bonds to have
+     */
+    void run(int components);
 
     ~CircuitCocircuit();
 };
