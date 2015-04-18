@@ -36,9 +36,9 @@ class CircuitCocircuit
     void genStage(GraphColoring &coloring, int components, const bond &Y, int j,
                   ogdf::List<bond> &stageBonds, const bond &X);
 
-    ogdf::node lexicographicallyMinimalPathStartNode(GraphColoring &coloring,
-                                                     ogdf::NodeArray<ogdf::edge> &accessEdge,
-                                                     ogdf::node s1, ogdf::node s2);
+    ogdf::node getStartNodeOfIotaMinimalPath(GraphColoring &coloring,
+                                             ogdf::NodeArray<ogdf::edge> &accessEdge,
+                                             ogdf::node s1, ogdf::node s2);
     void shortestPath(GraphColoring &coloring, const ogdf::List<ogdf::edge> &Y,
                       const ogdf::List<ogdf::edge> &X, ogdf::node &lastRed,
                       ogdf::List<ogdf::edge> &path);

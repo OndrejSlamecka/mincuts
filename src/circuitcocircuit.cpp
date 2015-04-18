@@ -198,10 +198,16 @@ void CircuitCocircuit::genStage(GraphColoring &coloring, int components, const b
 }
 
 /**
- * Returns the starting node of path P which lexicographically minimizes the vector (P[0].index, P[1].index,...)
- * Note that by the start node we actually mean the blue node
+ * Iota minimal path P_u,v is a path between vertices u,v which minimizes the vector of its indicies
+ * (P_u,v[0].index, P_u,v[1].index,...)
+ *
+ * This function selects such path from two paths starting in s1 or s2, respectivelly (note s1 and s2
+ * are blue) and returns one of s1 or s2.
+ *
+ * We expect both paths to be equally long
  */
-node CircuitCocircuit::lexicographicallyMinimalPathStartNode(GraphColoring &coloring, NodeArray<edge> &accessEdge, node s1, node s2)
+node CircuitCocircuit::getStartNodeOfIotaMinimalPath(GraphColoring &coloring, NodeArray<edge> &accessEdge,
+                                                     node s1, node s2)
 {
     // Alternatively we could enumerate P1 and P2 and use lexicographical_compare on list of their indicies
 
@@ -224,17 +230,10 @@ node CircuitCocircuit::lexicographicallyMinimalPathStartNode(GraphColoring &colo
         }
     }
 
-    // TODO: This shouldn't happen, both parts are equally long
-    // One path hits red -> it is shorter -> lexicographically less than the longer one
+    // One path hits red sooner -> they're not both equaly long which shows an error shortestPath
     if (lexMinStartNode == NULL) {
-        if (coloring[n] == Color::RED) {
-            lexMinStartNode = s1;
-        } else if (coloring[m] == Color::RED) {
-            lexMinStartNode = s2;
-        } else {
-            // This should never happen if this implementation is correct
-            throw logic_error("Could not lexicographically compare two paths with equal lambda length.");
-        }
+        // This should never happen if this implementation is correct
+        throw logic_error("Comparing index vector of two paths which are not of equal length");
     }
 
     return lexMinStartNode;
@@ -302,11 +301,11 @@ void CircuitCocircuit::shortestPath(GraphColoring &coloring, const List<edge> &Y
                 foundBlue = u;
             } else if (lambdaDistance[u] == lambdaDistance[foundBlue]) {
                 // Compare path P1 = v-u and path P2 = v-foundBlue, and choose the one which
-                // lexicographically minimizes its edgeindicies vector
+                // lexicographically minimizes its edge indicies vector
                 // (P[0].index, P[1].index, P[2].index,...)
 
                 // Note that by the start node we actually mean the blue node
-                foundBlue = lexicographicallyMinimalPathStartNode(coloring, accessEdge, u, foundBlue);
+                foundBlue = getStartNodeOfIotaMinimalPath(coloring, accessEdge, u, foundBlue);
             }
         }
 
