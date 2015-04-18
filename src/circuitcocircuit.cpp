@@ -21,9 +21,8 @@
 
 RuntimeMeasurement rtm;
 
-
-#define RTM_START RuntimeMeasurement::point start = rtm.mark(bonds);
-#define RTM_END rtm.log(j, bonds, start);
+#define RTM_START RuntimeMeasurement::point start(rtm.mark(nBondsOutput));
+#define RTM_END if (j <= measurementDepth) rtm.log(j, nBondsOutput, start);
 #else
 #define RTM_START
 #define RTM_END
@@ -37,8 +36,13 @@ ostream & operator<<(ostream &os, const bond &L)
     return os << L.edges;
 }
 
+#ifdef MEASURE_RUNTIME
+CircuitCocircuit::CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound, int md)
+    : G(Graph), cutSizeBound(cutSizeBound), lambda(G), measurementDepth(md)
+#else
 CircuitCocircuit::CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound)
     : G(Graph), cutSizeBound(cutSizeBound), lambda(G)
+#endif
 {
     // Sort edges by index for use by minimalSpanningForest
     for (ogdf::edge e = G.firstEdge(); e; e = e->succ()) {
@@ -58,9 +62,9 @@ CircuitCocircuit::CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound)
         lambda[e] = distribution(generator);
     }
 
-    #ifdef MEASURE_RUNTIME
-        rtm = RuntimeMeasurement();
-    #endif
+#ifdef MEASURE_RUNTIME
+    rtm = RuntimeMeasurement();
+#endif
 }
 
 void CircuitCocircuit::run(int k, List<bond> &bonds)
@@ -121,7 +125,7 @@ void CircuitCocircuit::genStage(GraphColoring &coloring, int components, const b
 
     if (P.empty()) {
         // If there is no such path P, then return ‘(j + 1) bond: Y union X’
-		bond Ycopy(Y);
+        bond Ycopy(Y);
         bond XY(X); XY.edges.conc(Ycopy.edges);
 
         if (j == components - 1) {
@@ -130,6 +134,9 @@ void CircuitCocircuit::genStage(GraphColoring &coloring, int components, const b
             } else {
                 bonds.pushBack(XY);
             }
+#ifdef MEASURE_RUNTIME
+        nBondsOutput += 1;
+#endif
         } else {
             extendBond(components, XY, j + 1, bonds);
         }

@@ -3,6 +3,8 @@ This is a proof of concept implementation of CircuitCocircuit algorithm for find
 Installation
 ------------
 
+With GCC `> 4.9`:
+
 * Install OGDF Snapshot 2014-03-07 into `~/.bin/ogdf` (or elsewhere but edit Makefile)
 * Run `make`
 

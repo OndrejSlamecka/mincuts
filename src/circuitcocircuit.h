@@ -24,6 +24,11 @@ class CircuitCocircuit
     ogdf::EdgeArray<int> lambda;
     ogdf::List<ogdf::Prioritized<ogdf::edge, int>> allEdgesSortedByIndex;
 
+#ifdef MEASURE_RUNTIME
+    int measurementDepth;
+    int nBondsOutput = 0;
+#endif
+
     bool outputToStdout = false; // Output to stdout or store into list "bonds" given to the run method?
 
     CircuitCocircuit();
@@ -63,7 +68,11 @@ class CircuitCocircuit
     void minimalSpanningForest(int components, const bond &Y, ogdf::List<ogdf::edge> &edges);
 
 public:    
+#ifdef MEASURE_RUNTIME
+    CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound, int measurementDepth);
+#else
     CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound);
+#endif
 
     /**
      * Runs the CircuitCocircuit algorithm, stores k-bonds

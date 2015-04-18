@@ -12,26 +12,34 @@ using namespace ogdf;
 void printUsage(char *name)
 {
     cerr << "Usage:\t" << name << " <edge_file.csv> " \
-         << "<cut size bound> <# of components> [-bfc] \n" \
+         << "<cut size bound> <# of components> [-b]"
+#ifdef MEASURE_RUNTIME
+         << " [-d]"
+#endif
+         << "\n" \
          << "\t<# of components> can be exact or range (e.g. 2-3)\n" \
-         << "\t-bfc --\tuse bruteforcing of all combinations instead of\n" \
+         << "\t-b --\tuse bruteforcing of all combinations instead of\n" \
             "\t\tCircuitCocircuit algorithm" << endl;
+#ifdef MEASURE_RUNTIME
+    cerr << "\t-d <depth of runtime measurement>" << endl;
+#endif
 }
 
 int main(int argc, char* argv[])
 {
     if ((argc == 5 && argv[4] != string("-bfc"))
-      || argc < 4 || argc > 5
+      || argc < 4
+#ifdef MEASURE_RUNTIME
+      || argc > 7
+#else
+      || argc > 5
+#endif
       || argv[1] == string("-h") || argv[1] == string("--help")) {
         printUsage(argv[0]);
         exit(1);
     }
 
-    int algorithm = 0; // 0 for CircuitCocircuit, 1 for bruteforce
-    if (argc == 5 && argv[4] == string("-bfc")) {
-        algorithm = 1;
-    }
-
+    // cutSizeBound, minComponents, maxComponents
     int cutSizeBound, minComponents, maxComponents;
     try {
         cutSizeBound = stoi(argv[2]);
@@ -55,6 +63,24 @@ int main(int argc, char* argv[])
         exit(1);
     };
 
+    // Algorithm to use
+    bool useCircuitCocircuit = true;
+    if (argc >= 5 && argv[4] == string("-b")) {
+        useCircuitCocircuit = false;
+    }
+
+#ifdef MEASURE_RUNTIME
+    int measurementDepth=2;
+    if (useCircuitCocircuit && argc == 6 && argv[4] == (string) "-d") {
+        measurementDepth = stoi(argv[5]);
+    } else if (!useCircuitCocircuit && argc == 7 && argv[5] == (string) "-d") {
+        measurementDepth = stoi(argv[6]);
+    } else {
+        measurementDepth = maxComponents;
+    }
+#endif
+
+    // Input data
     Graph G;
     ifstream fGraph(argv[1]);
     if (!fGraph.is_open()) {
@@ -65,19 +91,23 @@ int main(int argc, char* argv[])
     csv2graph(G, fGraph);
 
     try {
-        if (algorithm == 1) {
+        if (useCircuitCocircuit) {
+#ifdef MEASURE_RUNTIME
+            CircuitCocircuit alg(G, cutSizeBound, measurementDepth);
+#else
+            CircuitCocircuit alg(G, cutSizeBound);
+#endif
+
+            for (int i = minComponents; i <= maxComponents; ++i) {
+                alg.run(i);
+            }
+        } else {
             List<List<edge>> bonds;
             bruteforceGraphBonds(G, cutSizeBound, minComponents, maxComponents, bonds);
 
             for(List<List<edge>>::iterator it = bonds.begin(); it != bonds.end(); ++it) {
                 cout << *it << endl;
             }
-        } else {            
-            CircuitCocircuit alg(G, cutSizeBound);
-
-            for (int i = minComponents; i <= maxComponents; ++i) {
-                alg.run(i);
-            }            
         }
     } catch (invalid_argument &e) {
         cerr << "Error: " << e.what() << endl;

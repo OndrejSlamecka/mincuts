@@ -32,20 +32,17 @@ public:
         *fout << boost::chrono::symbol_format;
     }
 
-    RuntimeMeasurement(const RuntimeMeasurement &RTM) = delete;
-    RuntimeMeasurement & operator=(const RuntimeMeasurement &RTM) = delete;
-
-    RuntimeMeasurement &operator=(RuntimeMeasurement &&o)
-    {
-        fout = move(o.fout);
-        return *this;
-    }
-
-    RuntimeMeasurement::point mark(const List<bond> &bonds)
+    /**
+     * @brief Marks a point in the progress of the algorithm
+     * @param j     the current stage of the algorithm
+     * @param bonds
+     * @return
+     */
+    RuntimeMeasurement::point mark(int nBondsOutput)
     {
         RuntimeMeasurement::point p = {
             now(), // time
-            bonds.size()
+            nBondsOutput
         };
 
         return p;
@@ -56,21 +53,14 @@ public:
      * @param bonds
      * @param start created with the `mark` method
      */
-    void log(int j, const List<bond> &bonds, point start)
+    void log(int j, int nBondsOutput, const point &start)
     {
-        point end = mark(bonds);
+        point end = mark(nBondsOutput);
 
         *fout << j << "\t" \
               << end.nBonds - start.nBonds << "\t"  \
               << boost::chrono::duration_cast<boost::chrono::milliseconds>(end.time - start.time).count() \
               << "\n";
-    }
-
-    // The rule of 5 doesn't apply here, we're not doing any memory management in the destructor
-    virtual ~RuntimeMeasurement() {
-        if (fout) { // if this is not being called as part of a move
-            (*fout).flush();
-        }
     }
 
 };
