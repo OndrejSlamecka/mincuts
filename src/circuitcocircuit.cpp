@@ -22,7 +22,7 @@
 RuntimeMeasurement rtm;
 
 #define RTM_START RuntimeMeasurement::point start(rtm.mark(nBondsOutput));
-#define RTM_END if (j <= measurementDepth) rtm.log(j, nBondsOutput, start);
+#define RTM_END if (j <= measurementDepth) { rtm.log(j, nBondsOutput, start); }
 #else
 #define RTM_START
 #define RTM_END
