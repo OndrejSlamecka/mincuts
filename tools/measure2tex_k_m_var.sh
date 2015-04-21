@@ -1,10 +1,13 @@
 #!/bin/bash
 
-if [[ $# -ne 0 ]]; then
-	echo "Input: A file produced by measure_on_graph.sh tool"
+if [[ $# -ne 0 ]] && [[ $1 -ne "-c" ]]; then
+	echo "Input: A file produced by measure_on_graph.sh tool, add -c switch " \
+		 "to output number of bonds produced instead of time taken"
 	echo "Output: TeX table of the result"
 	exit 1
 fi
+
+argv0=$1
 
 # Process the input
 components=2
@@ -18,7 +21,11 @@ do
 		split_line=($line)
 		c=${split_line[0]}
 		e=${split_line[1]}
-		table[$c,$e]=${split_line[2]}
+		if [[ $argv0 -eq "-c" ]]; then
+			table[$c,$e]=${split_line[3]}
+		else
+			table[$c,$e]=${split_line[2]}
+		fi
 
 		if [ "$c" -gt "$components" ]; then
 			components=$c
