@@ -58,8 +58,8 @@ public:
         point end = mark(nBondsOutput);
 
         *fout << j << "\t" \
-              << end.nBonds - start.nBonds << "\t"  \
-              << boost::chrono::duration_cast<boost::chrono::milliseconds>(end.time - start.time).count() \
+              << boost::chrono::duration_cast<boost::chrono::milliseconds>(end.time - start.time).count() << "\t" \
+              << end.nBonds - start.nBonds \
               << "\n";
     }
 
