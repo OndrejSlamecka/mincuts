@@ -2,7 +2,7 @@ ogdf_path = ~/.bin/ogdf
 
 CXX=g++
 CXXFLAGS=-std=c++11 -pedantic -Wall -Wextra -O3 $(EXTRA_CXXFLAGS)
-LINKS=-I $(ogdf_path)/include -L $(ogdf_path)/_debug -lOGDF -lpthread
+LINKS=-I $(ogdf_path)/include -L $(ogdf_path)/_release -lOGDF -lpthread
 
 FAKEVAR:=$(shell mkdir -p bin)
 
