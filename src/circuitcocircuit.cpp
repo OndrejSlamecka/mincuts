@@ -50,7 +50,7 @@ CircuitCocircuit::CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound)
     }
     allEdgesSortedByIndex.quicksort();
 
-    // Create map lambda : E(G) -> N (natural numbers) for selection of shortest path
+    // Create map lambda : E(G) -> N (the natural numbers) for selection of shortest path
     // The map is randomized with each algorithm run in order to detect mistakes
     // related to graph traversing order
     std::default_random_engine generator;
@@ -118,7 +118,7 @@ void CircuitCocircuit::genStage(GraphColoring &coloring, int components, const b
 {
     if (Y.edges.size() + X.edges.size() > cutSizeBound - components + j + 1) return;
 
-    // Find set P = (a short circuit C in G \ Y \ T_r, s. t. |C ∩ X| = 1) \ X
+    // Find set P = (a short circuit C in G \ Y \ T_r, s. t. |C intersection X| = 1) \ X
     node firstRed = NULL;
     List<edge> P;
     shortestPath(coloring, Y.edges, X.edges, firstRed, P);
@@ -159,7 +159,7 @@ void CircuitCocircuit::genStage(GraphColoring &coloring, int components, const b
         // c = (u,v), u is red, v is blue
         node u, v = firstRed; // we're doing u = v at the begining of each step
 
-        // for each c ∈ P, recursively call GenCocircuits(X ∪ {c}).
+        // for each c in P, recursively call GenCocircuits(X union {c}).
         forall_listiterators(edge, iterator, P) {
             edge c = *iterator;
 
