@@ -11,7 +11,7 @@ argv0=$1
 
 # Process the input
 components=2
-edges=2
+edges=1
 declare -A table
 
 while read line
@@ -45,13 +45,13 @@ function cellend {
 	if [[ $1 != $2 ]]; then
 		printf "&"
 	else
-		printf '\\\\'	
+		printf '\\\\'
 	fi
 }
 
 # Table header
 printf "            &"
-for ((j=2;j<=edges;j++)) do
+for ((j=1;j<=edges;j++)) do
 	cell $j
 	cellend $j $edges
 done
@@ -61,7 +61,7 @@ echo ""
 for ((i=2;i<=components;i++)) do
 	cell $i
 	printf " &"
-	for ((j=2;j<=edges;j++)) do
+	for ((j=1;j<=edges;j++)) do
 		cell ${table[$i,$j]}
 		cellend $j $edges
 	done
