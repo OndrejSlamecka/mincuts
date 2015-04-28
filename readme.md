@@ -3,10 +3,17 @@ This is a proof of concept implementation of CircuitCocircuit algorithm for find
 Installation
 ------------
 
-With GCC `> 4.9`:
+With GCC `>= 4.9`:
 
 * Install OGDF Snapshot 2014-03-07 into `~/.bin/ogdf` (or elsewhere but edit Makefile)
-* Run `make`
+
+	mkdir ./bin
+	git clone git@github.com:ogdf/ogdf.git
+	cd ogdf
+	./makeMakefile.sh
+	make
+
+* Run `make` in the directory with this program
 
 Input/output file specification
 -------------------------------
@@ -115,7 +122,7 @@ This excludes edges which have 0 or 1 in the fifth column and thus are forbidden
 Measure runtime
 ---------------
 
-One can measure the runtime of the algorithm implementation by building the program with `make mincuts-rtm` (this required the `boost` C++ library to be installed). All runs will then produce `mincuts_rtm.log` file. Each line of that file contains information about change of state when some edge `e` is added to `X` in an `extendBond` call (note that if your `k`-bonds have `k > 2` then `extendBond` calls are nested). Line contents (tab separated):
+One can measure the runtime of the algorithm implementation by building the program with `make mincuts-rtm` (this requires the `boost` C++ library to be installed). All runs will then produce `mincuts_rtm.log` file. Each line of that file contains information about change of state when some edge `e` is added to `X` in an `extendBond` call (note that if your `k`-bonds have `k > 2` then `extendBond` calls are nested). Line contents (tab separated):
 
 * current stage of the algorithm (note `j`-bonds are created in stage `j-1`)
 * time spent in the `genStage` call in milliseconds
