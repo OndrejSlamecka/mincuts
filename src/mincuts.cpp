@@ -21,7 +21,7 @@ void printUsage(char *name)
          << "\t-b --\tuse bruteforcing of all combinations instead of\n" \
             "\t\tCircuitCocircuit algorithm" << endl;
 #ifdef MEASURE_RUNTIME
-    cerr << "\t-d <depth of runtime measurement>" << endl;
+    cerr << "\t-d --\t<depth of runtime measurement>" << endl;
 #endif
 }
 

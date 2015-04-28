@@ -7,7 +7,7 @@ if [[ $# -ne 3 ]]; then
 fi
 
 # Parse input
-min_e=2
+min_e=1
 max_e=$2
 if [[ $2 == *"-"* ]]; then
 	parts=(${2//-/ })
@@ -25,7 +25,8 @@ fi
 
 # Run
 for c in $(seq $min_c $max_c); do # seq is GNU only...
-	edges_start=$(($c>$min_e?$c:$min_e))
+	cm1=$(($c - 1))
+	edges_start=$(($cm1>$min_e?$cm1:$min_e))
 	for e in $(seq $edges_start $max_e); do
 		echo "# Running mincuts: $c-bonds with at max $e edges (`date`)"
 		exec 3>&2

@@ -5,15 +5,15 @@ Installation
 
 With GCC `>= 4.9`:
 
-* Install OGDF Snapshot 2014-03-07 into `~/.bin/ogdf` (or elsewhere but edit Makefile)
-
-	mkdir ./bin
-	git clone git@github.com:ogdf/ogdf.git
-	cd ogdf
-	./makeMakefile.sh
-	make
-
+* Install OGDF into `~/.bin/ogdf` (or elsewhere but edit Makefile)
 * Run `make` in the directory with this program
+
+To install OGDF you can do:
+
+	mkdir ~/.bin && cd ~/.bin
+	git clone git@github.com:ogdf/ogdf.git && cd ogdf
+	./makeMakefile.sh && make
+
 
 Input/output file specification
 -------------------------------
@@ -118,6 +118,8 @@ You will probably want to select just data relevant to you. For example extract 
 	$ awk -F',' 'NR > 1 {if ($5 > "1") { print $1";"$2";"$3 }}' edges_raw.csv
 
 This excludes edges which have 0 or 1 in the fifth column and thus are forbidden for cars or they are residential streets. See osm4routing page for detailed information.
+
+**Note** that if you want to analyze the road network of anything bigger than few cities than the OSM data has the problem that each small road junction has its own node which makes analysis of anything bigger impossible. (If you solve the problem and extract a graph where each node represents a single city then let me know!)
 
 Measure runtime
 ---------------
