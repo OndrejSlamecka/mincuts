@@ -6,7 +6,7 @@
 #include <ogdf/basic/Graph.h>
 #include <ogdf/basic/simple_graph_alg.h>
 #include <set>
-#include "graphcoloring.h"
+#include "graphcolouring.h"
 
 /**
  * Reads a csv file with lines "<id>;<source>;<target>;..." and transforms it
@@ -20,9 +20,9 @@ std::ostream & operator<<(std::ostream &os, const std::set<int> &S);
 std::ostream & operator<<(std::ostream &os, const std::set<ogdf::edge> &S);
 std::ostream & operator<<(std::ostream &os, const ogdf::List<ogdf::edge> &L);
 
-string nameColor(Color c);
+string nameColor(Colour c);
 
-string coloring2str(const ogdf::Graph &G, const GraphColoring &c);
+string coloring2str(const ogdf::Graph &G, const GraphColouring &c);
 string edgelist2str(const ogdf::List<ogdf::edge> &edges);
 
 ogdf::edge edgeByIndex(const ogdf::List<ogdf::edge> &edges, int index);

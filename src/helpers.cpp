@@ -90,17 +90,17 @@ ostream & operator<<(ostream &os, const List<edge> &L)
     return os;
 }
 
-string nameColor(Color c)
+string nameColor(Colour c)
 {
     switch(c) {
-        case Color::BLACK: return "black";
-        case Color::RED: return "red";
-        case Color::BLUE: return "blue";
+        case Colour::BLACK: return "black";
+        case Colour::RED: return "red";
+        case Colour::BLUE: return "blue";
         default: return "ERROR";
     }
 }
 
-string nodesByColor2str(const Graph &G, const GraphColoring &coloring, Color c)
+string nodesByColor2str(const Graph &G, const GraphColouring &coloring, Colour c)
 {
     stringstream s;
     node n;
@@ -126,7 +126,7 @@ string nodesByColor2str(const Graph &G, const GraphColoring &coloring, Color c)
 }
 
 
-string edgesByColor2str(const Graph &G, const GraphColoring &coloring, Color c)
+string edgesByColor2str(const Graph &G, const GraphColouring &coloring, Colour c)
 {
     stringstream s;
     edge e;
@@ -151,19 +151,19 @@ string edgesByColor2str(const Graph &G, const GraphColoring &coloring, Color c)
     return s.str();
 }
 
-string coloring2str(const Graph &G, const GraphColoring &c)
+string coloring2str(const Graph &G, const GraphColouring &c)
 {
     stringstream s;
 
     s << "Nodes: "
-      << "(blue) " << nodesByColor2str(G, c, Color::BLUE) << "; "
-      << "(red) " << nodesByColor2str(G, c, Color::RED) << "; "
-      << "(black) " << nodesByColor2str(G, c, Color::BLACK) << "; ";
+      << "(blue) " << nodesByColor2str(G, c, Colour::BLUE) << "; "
+      << "(red) " << nodesByColor2str(G, c, Colour::RED) << "; "
+      << "(black) " << nodesByColor2str(G, c, Colour::BLACK) << "; ";
 
     s << "Edges: "
-      << "(blue) " << edgesByColor2str(G, c, Color::BLUE) << "; "
-      << "(red) " << edgesByColor2str(G, c, Color::RED) << "; "
-      << "(black) " << edgesByColor2str(G, c, Color::BLACK) << "; ";
+      << "(blue) " << edgesByColor2str(G, c, Colour::BLUE) << "; "
+      << "(red) " << edgesByColor2str(G, c, Colour::RED) << "; "
+      << "(black) " << edgesByColor2str(G, c, Colour::BLACK) << "; ";
 
     return s.str();
 }

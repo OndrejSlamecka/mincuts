@@ -7,11 +7,13 @@
 #include <ogdf/basic/Queue.h>
 #include <ogdf/basic/Stack.h>
 #include <ogdf/basic/DisjointSets.h>
-#include "graphcoloring.h"
+#include "graphcolouring.h"
 
 typedef struct bond {
     ogdf::List<ogdf::edge> edges;
-    ogdf::edge lastBondFirstEdge; // c_s(j) where j is the largest index s.t. c_s(j) has been added to bond
+
+    /** c_s(j) where j is the largest index s.t. c_s(j) has been added to bond */
+    ogdf::edge lastBondFirstEdge;
 } bond;
 
 std::ostream & operator<<(std::ostream &os, const bond &S);
@@ -29,36 +31,34 @@ class CircuitCocircuit
     int nBondsOutput = 0;
 #endif
 
-    bool outputToStdout = false; // Output to stdout or store into list "bonds" given to the run method?
+    /** Output to stdout or store into list "bonds" given to the run method? */
+    bool outputToStdout = false;
 
     CircuitCocircuit();
 
-    /**
-     * Extends (possibly empty) j bond Y to (j+1)-bond
-     */
     void extendBond(int components, const bond &Y, int j, ogdf::List<bond> &bonds);
 
-    void genStage(GraphColoring &coloring, int components, const bond &Y, int j,
+    void genStage(GraphColouring &colouring, int components, const bond &Y, int j,
                   ogdf::List<bond> &stageBonds, const bond &X);
 
-    ogdf::node getStartNodeOfIotaMinimalPath(GraphColoring &coloring,
+    ogdf::node getStartNodeOfIotaMinimalPath(GraphColouring &colouring,
                                              ogdf::NodeArray<ogdf::edge> &accessEdge,
                                              ogdf::node s1, ogdf::node s2);
-    void shortestPath(GraphColoring &coloring, const ogdf::List<ogdf::edge> &Y,
+    void shortestPath(GraphColouring &colouring, const ogdf::List<ogdf::edge> &Y,
                       const ogdf::List<ogdf::edge> &X, ogdf::node &lastRed,
                       ogdf::List<ogdf::edge> &path);
 
-    void revertColoring(GraphColoring &coloring, ogdf::List<ogdf::edge> &P,
+    void revertColouring(GraphColouring &colouring, ogdf::List<ogdf::edge> &P,
                         ogdf::List<ogdf::edge> &blueEdges,
                         ogdf::node firstRed, const bond &X,
                         ogdf::List<ogdf::edge> &oldBlueTreeEdges,
                         ogdf::List<ogdf::edge> &newBlueTreeEdges);
 
-    bool isBlueTreeDisconnected(GraphColoring &coloring, ogdf::edge c, ogdf::node u);
+    bool isBlueTreeDisconnected(GraphColouring &colouring, ogdf::edge c, ogdf::node u);
 
-    void recolorBlueTreeBlack(GraphColoring &coloring, ogdf::node start, ogdf::List<ogdf::edge> &oldBlueTreeEdges);
+    void recolourBlueTreeBlack(GraphColouring &colouring, ogdf::node start, ogdf::List<ogdf::edge> &oldBlueTreeEdges);
 
-    bool recreateBlueTreeIfDisconnected(GraphColoring &coloring,
+    bool reCreateBlueTreeIfDisconnected(GraphColouring &colouring,
                                         const ogdf::List<ogdf::edge> &Y,
                                         const ogdf::List<ogdf::edge> &X,
                                         ogdf::node v, ogdf::edge c,
