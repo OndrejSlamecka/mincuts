@@ -21,7 +21,7 @@ class CircuitCocircuit
     ogdf::Graph &G;
     int cutSizeBound;
 
-    ogdf::EdgeArray<int> lambda;
+    ogdf::EdgeArray<unsigned long int> lambda;
     ogdf::List<ogdf::Prioritized<ogdf::edge, int>> allEdgesSortedByIndex;
 
 #ifdef MEASURE_RUNTIME

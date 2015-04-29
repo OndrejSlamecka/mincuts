@@ -15,6 +15,7 @@
 
 #include "circuitcocircuit.h"
 #include "helpers.h"
+#include <limits>
 
 #ifdef MEASURE_RUNTIME
 #include "runtimemeasurement.hpp"
@@ -50,18 +51,6 @@ CircuitCocircuit::CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound)
     }
     allEdgesSortedByIndex.quicksort();
 
-    // Create map lambda : E(G) -> N (the natural numbers) for selection of shortest path
-    // The map is randomized with each algorithm run in order to detect mistakes
-    // related to graph traversing order
-    std::default_random_engine generator;
-    int upper_bound = G.numberOfNodes() * G.numberOfNodes() + 10; // + 10 for small graphs
-    std::uniform_int_distribution<int> distribution(1, upper_bound);
-
-    ogdf::edge e;
-    forall_edges(e, G) {
-        lambda[e] = distribution(generator);
-    }
-
 #ifdef MEASURE_RUNTIME
     rtm = RuntimeMeasurement();
 #endif
@@ -69,6 +58,21 @@ CircuitCocircuit::CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound)
 
 void CircuitCocircuit::run(int k, List<bond> &bonds)
 {
+    // Create map lambda : E(G) -> N (the natural numbers) for selection of the shortest
+    // path. The map is randomized with each algorithm run in order to detect mistakes
+    // related to graph traversing order.
+    // |V| - k + 2 is the maximum length of a cycle, thus the maximum possible upper
+    // bound on random numbers is such that (|V| - k + 2) * UB == max. long int
+    std::default_random_engine engine(std::random_device{}());
+    unsigned long int upper_bound = numeric_limits<unsigned long int>::max() / (G.numberOfNodes() - k + 2);
+    std::uniform_int_distribution<unsigned long int> distribution(1, upper_bound);
+
+    ogdf::edge e;
+    forall_edges(e, G) {
+        lambda[e] = distribution(engine);
+    }
+
+    // Run
     bond Y;
     extendBond(k, Y, 1, bonds);
 }
@@ -171,7 +175,7 @@ void CircuitCocircuit::genStage(GraphColoring &coloring, int components, const b
             // (the color of u has to be set red here in order to avoid being used
             // in a possible recreation of the blue tree, the color of c cannot be
             // set here so that we can satisfy the input condition of the method
-            // recreateBlueTreeIfDisconnected
+            // reCreateBlueTreeIfDisconnected
             coloring.set(v, Color::BLUE);
             coloring.set(u, Color::RED);
 
@@ -183,7 +187,7 @@ void CircuitCocircuit::genStage(GraphColoring &coloring, int components, const b
 
             // Do we still have a hyperplane?
             if (   isBlueTreeDisconnected(coloring, c, u)
-                && !recreateBlueTreeIfDisconnected(coloring, Y.edges, X.edges, v, c, oldBlueTreeEdges, newBlueTreeEdges)) {
+                && !reCreateBlueTreeIfDisconnected(coloring, Y.edges, X.edges, v, c, oldBlueTreeEdges, newBlueTreeEdges)) {
                 // Revert coloring and end
                 break;
             }
@@ -192,7 +196,9 @@ void CircuitCocircuit::genStage(GraphColoring &coloring, int components, const b
             bond newX(X);
             newX.edges.pushBack(c);
 
-            coloring[c] = Color::BLACK; // Color has to be set after we check for a hyperplane
+            // Don't set colour before we check for a hyperplane (this line is actually redundant and can be omitted,
+            // but we keep it to stick well with the theory)
+            coloring[c] = Color::BLACK;
 
             genStage(coloring, components, Y, j, bonds, newX);
 
@@ -237,7 +243,7 @@ node CircuitCocircuit::getStartNodeOfIotaMinimalPath(GraphColoring &coloring, No
         }
     }
 
-    // One path hits red sooner -> they're not both equaly long which shows an error shortestPath
+    // One path hits red sooner -> they're not both equaly long which shows an error in shortestPath
     if (lexMinStartNode == NULL) {
         // This should never happen if this implementation is correct
         throw logic_error("Comparing index vector of two paths which are not of equal length");
@@ -276,8 +282,8 @@ void CircuitCocircuit::shortestPath(GraphColoring &coloring, const List<edge> &Y
 
     Queue<node> Q;
     NodeArray<bool> visited(G, false);
-    NodeArray<int> lambdaDistance(G, -1);
-    NodeArray<int> vertexDistance(G, -1);
+    NodeArray<unsigned long int> lambdaDistance(G, 0);
+    NodeArray<int> vertexDistance(G, 0);
     NodeArray<edge> accessEdge(G);
 
     node no;
@@ -352,7 +358,7 @@ void CircuitCocircuit::shortestPath(GraphColoring &coloring, const List<edge> &Y
 }
 
 
-/* --- Coloring, recreating the blue tree --- */
+/* --- Coloring, re-creating the blue tree --- */
 
 bool CircuitCocircuit::isBlueTreeDisconnected(GraphColoring &coloring, edge c, node u)
 {
@@ -401,10 +407,10 @@ void CircuitCocircuit::recolorBlueTreeBlack(GraphColoring &coloring, node start,
 }
 
 /**
- * Returns true iff it was possible to recreate the blue tree such that it is connected
+ * Returns true iff it was possible to re-create the blue tree such that it is connected
  * Expects graph with single blue tree as input (due to use of recolorBlueTreeBlack)
  */
-bool CircuitCocircuit::recreateBlueTreeIfDisconnected(GraphColoring &coloring, const List<edge> &Y, const List<edge> &X,
+bool CircuitCocircuit::reCreateBlueTreeIfDisconnected(GraphColoring &coloring, const List<edge> &Y, const List<edge> &X,
                                                       node v, edge c, List<edge> &oldBlueTreeEdges,
                                                       List<edge> &newBlueTreeEdges)
 {

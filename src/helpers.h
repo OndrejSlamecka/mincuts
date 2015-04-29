@@ -9,7 +9,8 @@
 #include "graphcoloring.h"
 
 /**
- * Reads a csv file with lines "<id>;<source>;<target>;..." and transforms it into a graph
+ * Reads a csv file with lines "<id>;<source>;<target>;..." and transforms it
+ * into a graph
  */
 void csv2graph(ogdf::Graph &G, std::ifstream &fEdges);
 void graph2csv(const ogdf::Graph &G, std::ostream &fGraph);
@@ -27,7 +28,8 @@ string edgelist2str(const ogdf::List<ogdf::edge> &edges);
 ogdf::edge edgeByIndex(const ogdf::List<ogdf::edge> &edges, int index);
 std::string edgeInfo(const ogdf::Graph &G, int index);
 
-void indicies2edges(const ogdf::List<ogdf::edge> &graphEdges, const string &str, ogdf::List<ogdf::edge> &l);
+void indicies2edges(const ogdf::List<ogdf::edge> &graphEdges, const string &str,
+                    ogdf::List<ogdf::edge> &l);
 
 /**
  * Helper function to determine whether given set of edges really is a cut
@@ -35,8 +37,10 @@ void indicies2edges(const ogdf::List<ogdf::edge> &graphEdges, const string &str,
 bool isCut(ogdf::Graph &G, const ogdf::List<ogdf::edge> &cut);
 
 /**
- * Helper function todetermine whether given set of edges really is a minimal cut, w.r.t. # of components of G\cut
- * Returns 0 on success, -1 if # of components is 1. Otherwise, the # of components of G\cut
+ * Helper function todetermine whether given set of edges really is a minimal
+ * cut, w.r.t. # of components of G\cut
+ * Returns 0 on success, -1 if # of components is 1. Otherwise, the # of
+ * components of G\cut
  */
 int isMinCut(ogdf::Graph &G, const ogdf::List<ogdf::edge> &cut, int &ncomponents);
 
