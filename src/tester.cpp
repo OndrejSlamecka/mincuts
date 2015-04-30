@@ -150,7 +150,10 @@ class RandomGraphSource : public AbstractGraphSource
 
 public:
 	RandomGraphSource(int nodes, int minE, int maxE)
-		: nodes(nodes), minEdges(minE), maxEdges(maxE) {}
+		: nodes(nodes), minEdges(minE), maxEdges(maxE) 
+	{
+		srand (time(NULL)); // OGDF uses rand()
+	}
 
 	/**
 	 * OGDF's solution is probably biased,
