@@ -29,10 +29,10 @@ In `bin/`:
 
 **mincuts**
 
-	Usage:	mincuts <edge_file.csv> <cut size bound> <# of components> [-bfc]
+	Usage:	mincuts <edge_file.csv> <cut size bound> <# of components> [-b]
 
 		<# of components> can be exact or range (e.g. 2-3)
-		-bfc --	use bruteforcing of all combinations instead of
+		-b --	use bruteforcing of all combinations instead of
 			CircuitCocircuit algorithm
 
 

@@ -16,7 +16,7 @@ void printUsage(char *name)
 #ifdef MEASURE_RUNTIME
          << " [-d]"
 #endif
-         << "\n" \
+         << "\n\n" \
          << "\t<# of components> can be exact or range (e.g. 2-3)\n" \
          << "\t-b --\tuse bruteforcing of all combinations instead of\n" \
             "\t\tCircuitCocircuit algorithm" << endl;

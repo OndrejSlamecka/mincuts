@@ -11,12 +11,12 @@ using ogdf::List;
 
 class RuntimeMeasurement
 {
-    typedef boost::chrono::time_point<boost::chrono::thread_clock> time_point;
+    typedef boost::chrono::time_point<boost::chrono::process_user_cpu_clock> time_point;
 
     std::unique_ptr<ofstream> fout;
 
     time_point now() {
-        return boost::chrono::thread_clock::now();
+        return boost::chrono::process_user_cpu_clock::now();
     }
 
 public:
