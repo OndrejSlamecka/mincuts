@@ -5,12 +5,12 @@ if [[ $# -ne 1 ]]; then
 	exit 1
 fi
 
-if [ ! -f $1 ]; then
+if [[ ! -f "$1" ]]; then
 	echo "File '$1' not found"
 	exit 2
 fi
 
-NAME=$(basename $1 | sed 's/\.csv$//')
+NAME=$(basename "$1" | sed 's/\.csv$//')
 
 echo "graph $NAME {"
 

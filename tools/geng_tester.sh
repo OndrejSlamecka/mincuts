@@ -15,7 +15,7 @@ if [[ $# -eq 3 ]]; then
 	threads="-t$3"
 fi
 
-for i in {2..32}; do
+for ((i=2; i<= 32; i++)); do
 	echo "Generating graphs on $i nodes"
 	geng -cq "$i" | ./bin/tester "$1" "$2" "$threads"
 done
