@@ -8,7 +8,7 @@
  *  Cocircuit - minimal edge-cut
  *  Hyperplane - maximal set not containing any basis (= complement of a min-cut)
  *
- * Note about coloring:
+ * Note about colouring:
  *  Vertices: Red go all red, but vertices are blue only if they are in X
  *  Edges: All red or blue in red or blue subgraph respectively
  */
@@ -171,9 +171,9 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components, const
             u = v;
             v = c->opposite(u);
 
-            // Color as with u and v in X
-            // (the color of u has to be set red here in order to avoid being used
-            // in a possible recreation of the blue tree, the color of c cannot be
+            // Colour as with u and v in X
+            // (the colour of u has to be set red here in order to avoid being used
+            // in a possible recreation of the blue tree, the colour of c cannot be
             // set here so that we can satisfy the input condition of the method
             // reCreateBlueTreeIfDisconnected
             colouring.set(v, Colour::BLUE);
@@ -188,7 +188,7 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components, const
             // Do we still have a hyperplane?
             if (   isBlueTreeDisconnected(colouring, c, u)
                 && !reCreateBlueTreeIfDisconnected(colouring, Y.edges, X.edges, v, c, oldBlueTreeEdges, newBlueTreeEdges)) {
-                // Revert coloring and end
+                // Revert colouring and end
                 break;
             }
 
@@ -196,8 +196,8 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components, const
             bond newX(X);
             newX.edges.pushBack(c);
 
-            // Don't set colour before we check for a hyperplane (this line is actually redundant and can be omitted,
-            // but we keep it to stick well with the theory)
+            // Don't set colour before we check for a hyperplane (this line could
+            // actually be omitted, but we keep it to stick well with the theory)
             colouring[c] = Colour::BLACK;
 
             genStage(colouring, components, Y, j, bonds, newX);
@@ -205,7 +205,7 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components, const
             colouring[c] = Colour::RED;
         }
 
-        // Revert coloring so that the original coloring is used in the recursion level above
+        // Revert colouring so that the original colouring is used in the recursion level above
         revertColouring(colouring, P, blueBefore, firstRed, X, oldBlueTreeEdges, newBlueTreeEdges);
     }
 }
@@ -416,9 +416,9 @@ bool CircuitCocircuit::reCreateBlueTreeIfDisconnected(GraphColouring &colouring,
 {
     // We will colour black what is blue and start building blue tree from scratch
 
-    // * recolor both components of T_b \ c black
+    // * recolour both components of T_b \ c black
     // * run bfs from one blue vertex
-    // * - for each found blue vertex color the path to it blue, increase counter of found blue vertices
+    // * - for each found blue vertex colour the path to it blue, increase counter of found blue vertices
     // * - if all blue vertices weren't found then fail
 
     edge e;
@@ -426,11 +426,11 @@ bool CircuitCocircuit::reCreateBlueTreeIfDisconnected(GraphColouring &colouring,
          n, // neighbours of u
          a, b; // node currently being coloured on the path, its successor
 
-    recolourBlueTreeBlack(colouring, v, oldBlueTreeEdges); // Recolors only edges of course, note that c is used now
+    recolourBlueTreeBlack(colouring, v, oldBlueTreeEdges); // Recolours only edges of course, note that c is used now
 
     // Run BFS in G \ Y \ X \ T_r \ {c}, each time blue vertex x is found colour path v-x and increase nBlueVerticesFound
-    // - if nBlueVerticesFound == coloring.nBlueVertices, return true
-    // - if BFS ends and nBlueVerticesFound < coloring.nBlueVertices, then return true
+    // - if nBlueVerticesFound == colouring.nBlueVertices, return true
+    // - if BFS ends and nBlueVerticesFound < colouring.nBlueVertices, then return true
 
     forall_listiterators(edge, it, Y) {
         G.hideEdge(*it);
@@ -454,7 +454,7 @@ bool CircuitCocircuit::reCreateBlueTreeIfDisconnected(GraphColouring &colouring,
         if (colouring[m] == Colour::BLUE) {
             nBlueVerticesFound++;
 
-            // Color path from v to u
+            // Colour path from v to u
             for (a = m; a != v; a = b) {
                 e = accessEdge[a];
                 b = e->opposite(a);

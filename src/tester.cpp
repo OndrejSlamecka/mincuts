@@ -153,15 +153,18 @@ public:
 		: nodes(nodes), minEdges(minE), maxEdges(maxE) {}
 
 	/**
-	 * OGDF's solution is probably biased... TODO
-	 * http://stackoverflow.com/a/14618505/247532
+	 * OGDF's solution is probably biased,
+	 * (see http://stackoverflow.com/a/14618505/247532) but we don't care
+	 * since other solutions are way slower
 	 */
 	bool get(Graph &G)
 	{
 		int edges = randomNumber(minEdges, maxEdges);
+
 		randomSimpleGraph(G, nodes, edges);
 		List<edge> added;
 		makeConnected(G, added);
+
 		updateOnGraphRetrieval();
 		return true;
 	}
