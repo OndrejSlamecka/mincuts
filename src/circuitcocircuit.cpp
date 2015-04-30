@@ -536,7 +536,7 @@ void CircuitCocircuit::revertColouring(GraphColouring &colouring,
  */
 void CircuitCocircuit::minimalSpanningForest(int components, const bond &Y, List<edge> &result)
 {
-    // An implementation of Kruskal's algorithm take from OGDF's makeMinimumSpanningTree
+    // An implementation of Kruskal's algorithm taken from OGDF's makeMinimumSpanningTree
 
     NodeArray<int> setID(G);
     DisjointSets<> uf(G.numberOfNodes());
