@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2015, Ondrej Slamecka <ondrej@slamecka.cz>
+ * See the LICENSE file in the root folder of this repository.
+ */
+
 #ifndef CIRCUITCOCIRCUIT_H
 #define CIRCUITCOCIRCUIT_H
 
@@ -67,7 +72,7 @@ class CircuitCocircuit
 
     void minimalSpanningForest(int components, const bond &Y, ogdf::List<ogdf::edge> &edges);
 
-public:    
+public:
 #ifdef MEASURE_RUNTIME
     CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound, int measurementDepth);
 #else

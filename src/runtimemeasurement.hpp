@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2015, Ondrej Slamecka <ondrej@slamecka.cz>
+ * See the LICENSE file in the root folder of this repository.
+ */
+
 #ifndef RUNTIMEMEASUREMENT_HPP
 #define RUNTIMEMEASUREMENT_HPP
 

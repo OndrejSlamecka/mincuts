@@ -1,13 +1,9 @@
 /*
- * Following the definitions from (yet unpublished) paper,
- * the matroid terms below correspond to the graph
- * terms right next to them.
- *
- *  Base - Spanning forest
- *  Circuit - either graph cycle or spanning forest formed by <# of components> - 2 trees
- *  Cocircuit - minimal edge-cut
- *  Hyperplane - maximal set not containing any basis (= complement of a min-cut)
- *
+ * Copyright (c) 2015, Ondrej Slamecka <ondrej@slamecka.cz>
+ * See the LICENSE file in the root folder of this repository.
+ */
+
+/*
  * Note about colouring:
  *  Vertices: Red go all red, but vertices are blue only if they are in X
  *  Edges: All red or blue in red or blue subgraph respectively

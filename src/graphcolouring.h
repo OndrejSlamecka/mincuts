@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2015, Ondrej Slamecka <ondrej@slamecka.cz>
+ * See the LICENSE file in the root folder of this repository.
+ */
+
 #ifndef GRAPHCCOLOURING_H
 #define GRAPHCCOLOURING_H
 
@@ -19,7 +24,7 @@ class GraphColouring
 
     GraphColouring();
 
-public:    
+public:
     int nBlueVertices;
 
     GraphColouring(const ogdf::Graph &G)
@@ -27,7 +32,7 @@ public:
         edges.init(G, Colour::BLACK);
         vertices.init(G, Colour::BLACK);
         nBlueVertices = 0;
-    } 
+    }
 
     // TODO: Measure the speed difference when setBlue, setRed, setBlack are separated
     void set(ogdf::node v, Colour c)

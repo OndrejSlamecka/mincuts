@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2015, Ondrej Slamecka <ondrej@slamecka.cz>
+ * See the LICENSE file in the root folder of this repository.
+ */
+
 #include <iostream>
 #include <stdexcept>
 #include <memory>
@@ -150,7 +155,7 @@ class RandomGraphSource : public AbstractGraphSource
 
 public:
 	RandomGraphSource(int nodes, int minE, int maxE)
-		: nodes(nodes), minEdges(minE), maxEdges(maxE) 
+		: nodes(nodes), minEdges(minE), maxEdges(maxE)
 	{
 		srand (time(NULL)); // OGDF uses rand()
 	}
