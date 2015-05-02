@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 if [[ $# -ne 0 ]] && [[ $1 != "-c" ]]; then
 	echo "Input: A file produced by measure_on_graph.sh tool, add -c switch " \

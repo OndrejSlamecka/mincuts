@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 command -v geng >/dev/null 2>&1 || { echo >&2 "\`geng\` from nauty" \
 	   "(http://cs.anu.edu.au/~bdm/nauty/) is required for this program to run.";

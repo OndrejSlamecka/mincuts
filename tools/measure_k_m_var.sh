@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 if [[ $# -ne 3 ]]; then
 	echo "Usage: $0 <edge_file.csv> <min>-<max cut size bound> <min>-<max # of components>"
@@ -30,7 +30,7 @@ for ((c=$min_c; c <= $max_c; c++)); do
 	for ((e=$edges_start; e <= $max_e; e++)); do
 		echo "# Running mincuts: $c-bonds with at max $e edges (`date`)"
 		exec 3>&2
-		t=$( { { /usr/bin/time -f "%U" mincuts "$1" "$e" "$c" 2>&3; } | wc -l; } 2>&1 3>&1 )
+		t=$( { { /usr/bin/time -f "%U" ./bin/mincuts "$1" "$e" "$c" 2>&3; } | wc -l; } 2>&1 3>&1 )
 		echo "$c $e" ${t[0]} ${t[1]}
 		exec 3>&-
 	done
