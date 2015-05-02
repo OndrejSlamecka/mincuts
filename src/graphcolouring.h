@@ -3,8 +3,8 @@
  * See the LICENSE file in the root folder of this repository.
  */
 
-#ifndef GRAPHCCOLOURING_H
-#define GRAPHCCOLOURING_H
+#ifndef SRC_GRAPHCOLOURING_H_
+#define SRC_GRAPHCOLOURING_H_
 
 #include <ogdf/basic/Graph.h>
 
@@ -14,9 +14,9 @@ enum class Colour {
     BLUE
 };
 
-class GraphColouring
-{
-    // TODO: Check whether map wouldn't be a better choice. (As these arrays might consume a lot of memory for uncoloured vertices/edges)
+class GraphColouring {
+    // TODO: Check whether map wouldn't be a better choice. (As these arrays
+    // might consume a lot of memory for uncoloured vertices/edges)
     ogdf::NodeArray<Colour> vertices;
     ogdf::List<ogdf::node> redVertices;
 
@@ -24,19 +24,16 @@ class GraphColouring
 
     GraphColouring();
 
-public:
+ public:
     int nBlueVertices;
 
-    GraphColouring(const ogdf::Graph &G)
-    {
+    explicit GraphColouring(const ogdf::Graph &G) {
         edges.init(G, Colour::BLACK);
         vertices.init(G, Colour::BLACK);
         nBlueVertices = 0;
     }
 
-    // TODO: Measure the speed difference when setBlue, setRed, setBlack are separated
-    void set(ogdf::node v, Colour c)
-    {
+    void set(ogdf::node v, Colour c) {
         if (c == Colour::BLUE && vertices[v] != Colour::BLUE) {
             nBlueVertices++;
         }
@@ -64,4 +61,4 @@ public:
     const Colour& operator[](ogdf::node v) const { return vertices[v]; }
 };
 
-#endif // GRAPHCCOLOURING_H
+#endif  // SRC_GRAPHCOLOURING_H_

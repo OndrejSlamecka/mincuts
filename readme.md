@@ -3,7 +3,7 @@ This is a proof of concept implementation of CircuitCocircuit algorithm for find
 Installation
 ------------
 
-With GCC `>= 4.9`:
+With GCC `>= 4.8.2`:
 
 * Install OGDF into `~/.bin/ogdf` (or elsewhere but edit Makefile)
 * Run `make` in the directory with this program
@@ -96,9 +96,15 @@ Converts from [ClosureSim](http://www.fi.muni.cz/~xsvobo38/closuresim/) output f
 	./tools/names2ids.py data/zlin-silnice.csv < temp/closuresim/results-2.csv > ires-2
 
 
-**size_split**
+**size_split.py**
 
 Splits `mincuts` results file by cut size.
+
+**graph6toCsv.py**
+
+Reads graph in `graph6` format (used by `nauty`) and outputs a CSV to stdout. If filepath is passed as the only parameter then the output is directed into this file.
+
+This tool uses a bit of code from the [NetworkX project](https://networkx.github.io/), which is distributed under BSD license.
 
 **Runtime measurement related tools**
 

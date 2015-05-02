@@ -5,3 +5,5 @@ data/*
 temp/*
 tmp/*
 *.log
+cpplint.py
+callgrind.out.*

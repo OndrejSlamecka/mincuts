@@ -3,32 +3,33 @@
  * See the LICENSE file in the root folder of this repository.
  */
 
-#ifndef CIRCUITCOCIRCUIT_H
-#define CIRCUITCOCIRCUIT_H
+#ifndef SRC_CIRCUITCOCIRCUIT_H_
+#define SRC_CIRCUITCOCIRCUIT_H_
 
+#include <stdint.h>
 #include <stdexcept>
 #include <random>
 #include <ogdf/basic/Graph.h>
 #include <ogdf/basic/Queue.h>
 #include <ogdf/basic/Stack.h>
 #include <ogdf/basic/DisjointSets.h>
-#include "graphcolouring.h"
+#include "./graphcolouring.h"
 
 typedef struct bond {
     ogdf::List<ogdf::edge> edges;
 
-    /** c_s(j) where j is the largest index s.t. c_s(j) has been added to bond */
+    /** c_s(j) where j is the largest index s.t. c_s(j) has been added
+     *  to the bond */
     ogdf::edge lastBondFirstEdge;
 } bond;
 
 std::ostream & operator<<(std::ostream &os, const bond &S);
 
-class CircuitCocircuit
-{
+class CircuitCocircuit {
     ogdf::Graph &G;
     int cutSizeBound;
 
-    ogdf::EdgeArray<unsigned long int> lambda;
+    ogdf::EdgeArray<u_int64_t> lambda;
     ogdf::List<ogdf::Prioritized<ogdf::edge, int>> allEdgesSortedByIndex;
 
 #ifdef MEASURE_RUNTIME
@@ -41,10 +42,11 @@ class CircuitCocircuit
 
     CircuitCocircuit();
 
-    void extendBond(int components, const bond &Y, int j, ogdf::List<bond> &bonds);
+    void extendBond(int components, const bond &Y, int j,
+                    ogdf::List<bond> &bonds);
 
-    void genStage(GraphColouring &colouring, int components, const bond &Y, int j,
-                  ogdf::List<bond> &stageBonds, const bond &X);
+    void genStage(GraphColouring &colouring, int components, const bond &Y,
+                  int j, ogdf::List<bond> &stageBonds, const bond &X);
 
     ogdf::node getStartNodeOfIotaMinimalPath(GraphColouring &colouring,
                                              ogdf::NodeArray<ogdf::edge> &accessEdge,
@@ -59,9 +61,11 @@ class CircuitCocircuit
                         ogdf::List<ogdf::edge> &oldBlueTreeEdges,
                         ogdf::List<ogdf::edge> &newBlueTreeEdges);
 
-    bool isBlueTreeDisconnected(GraphColouring &colouring, ogdf::edge c, ogdf::node u);
+    bool isBlueTreeDisconnected(GraphColouring &colouring, ogdf::edge c,
+                                ogdf::node u);
 
-    void recolourBlueTreeBlack(GraphColouring &colouring, ogdf::node start, ogdf::List<ogdf::edge> &oldBlueTreeEdges);
+    void recolourBlueTreeBlack(GraphColouring &colouring, ogdf::node start,
+                               ogdf::List<ogdf::edge> &oldBlueTreeEdges);
 
     bool reCreateBlueTreeIfDisconnected(GraphColouring &colouring,
                                         const ogdf::List<ogdf::edge> &Y,
@@ -70,9 +74,10 @@ class CircuitCocircuit
                                         ogdf::List<ogdf::edge> &oldBlueTreeEdges,
                                         ogdf::List<ogdf::edge> &newBlueTreeEdges);
 
-    void minimalSpanningForest(int components, const bond &Y, ogdf::List<ogdf::edge> &edges);
+    void minimalSpanningForest(int components, const bond &Y,
+                               ogdf::List<ogdf::edge> &edges);
 
-public:
+ public:
 #ifdef MEASURE_RUNTIME
     CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound, int measurementDepth);
 #else
@@ -99,4 +104,4 @@ public:
     ~CircuitCocircuit();
 };
 
-#endif // CIRCUITCOCIRCUIT_H
+#endif  // SRC_CIRCUITCOCIRCUIT_H_

@@ -3,20 +3,21 @@
  * See the LICENSE file in the root folder of this repository.
  */
 
-#ifndef RUNTIMEMEASUREMENT_HPP
-#define RUNTIMEMEASUREMENT_HPP
+#ifndef SRC_RUNTIMEMEASUREMENT_H_
+#define SRC_RUNTIMEMEASUREMENT_H_
 
 #define BOOST_CHRONO_VERSION 2
 #include <boost/chrono.hpp>
 #include <boost/chrono/chrono_io.hpp>
-#include <memory> // Remove when GCC 5.0 is widespread (as it implements move for file streams)
-#include "circuitcocircuit.h"
+#include <memory>  // Remove when GCC 5.0 is widespread
+                   // (as it implements move for file streams)
+#include "./circuitcocircuit.h"
 
 using ogdf::List;
 
-class RuntimeMeasurement
-{
-    typedef boost::chrono::time_point<boost::chrono::process_user_cpu_clock> time_point;
+class RuntimeMeasurement {
+    typedef clock_type boost::chrono::process_user_cpu_clock;
+    typedef boost::chrono::time_point<clock_type> time_point;
 
     std::unique_ptr<ofstream> fout;
 
@@ -24,14 +25,13 @@ class RuntimeMeasurement
         return boost::chrono::process_user_cpu_clock::now();
     }
 
-public:
+ public:
     typedef struct {
         time_point time;
         int nBonds;
     } point;
 
-    RuntimeMeasurement()
-    {
+    RuntimeMeasurement() {
         // Replace with move(ofstream(..)) (see #include <memory> above)
         fout = std::unique_ptr<ofstream>(new ofstream("mincuts_rtm.log"));
         *fout << boost::chrono::symbol_format;
@@ -43,10 +43,9 @@ public:
      * @param bonds
      * @return
      */
-    RuntimeMeasurement::point mark(int nBondsOutput)
-    {
+    RuntimeMeasurement::point mark(int nBondsOutput) {
         RuntimeMeasurement::point p = {
-            now(), // time
+            now(),  // time
             nBondsOutput
         };
 
@@ -58,8 +57,7 @@ public:
      * @param bonds
      * @param start created with the `mark` method
      */
-    void log(int j, int nBondsOutput, const point &start)
-    {
+    void log(int j, int nBondsOutput, const point &start) {
         point end = mark(nBondsOutput);
 
         *fout << j << "\t" \
@@ -67,8 +65,6 @@ public:
               << end.nBonds - start.nBonds \
               << "\n";
     }
-
 };
 
-#endif // RUNTIMEMEASUREMENT_HPP
-
+#endif  // SRC_RUNTIMEMEASUREMENT_H_

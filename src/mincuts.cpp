@@ -5,17 +5,19 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <string>
+
 #include <ogdf/basic/Graph.h>
 #include <ogdf/basic/simple_graph_alg.h>
 
-#include "helpers.h"
-#include "circuitcocircuit.h"
+#include "./helpers.h"
+#include "./circuitcocircuit.h"
 
-using namespace std;
-using namespace ogdf;
+using std::string; using std::invalid_argument;
+using ogdf::edge; using ogdf::node; using ogdf::Graph; using ogdf::List;
+using ogdf::ListConstIterator;
 
-void printUsage(char *name)
-{
+void printUsage(char *name) {
     cerr << "Usage:\t" << name << " <edge_file.csv> " \
          << "<cut size bound> <# of components> [-b]"
 #ifdef MEASURE_RUNTIME
@@ -30,8 +32,7 @@ void printUsage(char *name)
 #endif
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     if ((argc == 5 && argv[4] != string("-bfc"))
       || argc < 4
 #ifdef MEASURE_RUNTIME
@@ -63,10 +64,10 @@ int main(int argc, char* argv[])
                 exit(2);
             }
         }
-    } catch (invalid_argument &_) { // stoi failed
+    } catch (invalid_argument &_) {  // stoi failed
         printUsage(argv[0]);
         exit(1);
-    };
+    }
 
     // Algorithm to use
     bool useCircuitCocircuit = true;
@@ -75,7 +76,7 @@ int main(int argc, char* argv[])
     }
 
 #ifdef MEASURE_RUNTIME
-    int measurementDepth=2;
+    int measurementDepth = 2;
     if (useCircuitCocircuit && argc == 6 && argv[4] == (string) "-d") {
         measurementDepth = stoi(argv[5]);
     } else if (!useCircuitCocircuit && argc == 7 && argv[5] == (string) "-d") {
@@ -108,9 +109,10 @@ int main(int argc, char* argv[])
             }
         } else {
             List<List<edge>> bonds;
-            bruteforceGraphBonds(G, cutSizeBound, minComponents, maxComponents, bonds);
+            bruteforceGraphBonds(G, cutSizeBound, minComponents, maxComponents,
+                                 bonds);
 
-            for(List<List<edge>>::iterator it = bonds.begin(); it != bonds.end(); ++it) {
+            forall_listiterators(List<edge>, it, bonds) {
                 cout << *it << endl;
             }
         }
