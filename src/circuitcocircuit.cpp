@@ -26,7 +26,7 @@ RuntimeMeasurement rtm;
 #define RTM_END
 #endif
 
-using std::invalid_argument; using std::logic_error;
+using std::ostream; using std::invalid_argument; using std::logic_error;
 using ogdf::edge; using ogdf::node; using ogdf::ListConstIterator;
 using ogdf::Graph; using ogdf::Stack; using ogdf::NodeArray;
 using ogdf::Queue; using ogdf::Prioritized; using ogdf::DisjointSets;
@@ -61,7 +61,8 @@ void CircuitCocircuit::run(int k, List<bond> &bonds) {
     // |V| - k + 2 is the maximum length of a cycle, thus the maximum possible
     // upper bound on random numbers UB is such that
     // (|V| - k + 2) * UB == max. long int
-    std::default_random_engine engine(std::random_device{}());
+    std::random_device rd;
+    std::default_random_engine engine(rd());
     u_int64_t max_u_int64_t = numeric_limits<u_int64_t>::max();
     u_int64_t upper_bound = max_u_int64_t / (G.numberOfNodes() - k + 2);
     std::uniform_int_distribution<u_int64_t> distribution(1, upper_bound);
