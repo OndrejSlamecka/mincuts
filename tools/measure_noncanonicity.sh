@@ -18,8 +18,7 @@ for ((c=$min_c; c <= $max_c; c++)); do
 		./bin/mincuts "$1" "$e" "$c" > tmp/measure_noncan_storage.csv
 		noncan=$(wc -l tmp/measure_noncan_storage.csv | awk '{print $1}')
 		can=$(./bin/cutdiff tmp/measure_noncan_storage.csv ~ | wc -l | awk '{print $1}')
-		d=$(($noncan - $can))
-		echo "$c $e $d"
+		echo "$c $e $noncan $can"
 	done
 done
 
