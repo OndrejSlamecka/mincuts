@@ -95,6 +95,10 @@ void CircuitCocircuit::extendBond(int components, const bond &Y, int j,
     forall_listiterators(edge, i, D) {
         edge e = *i;
 
+        if ((!Y.edges.empty() && e->index() < Y.lastBondFirstEdge->index())) {
+            continue;
+        }
+
         bond X;
         X.edges.pushBack(e);
         X.lastBondFirstEdge = e;
@@ -579,9 +583,8 @@ void CircuitCocircuit::minimalSpanningForest(int components, const bond &Y,
         const int v = setID[e->source()];
         const int w = setID[e->target()];
 
-        // See paper: cannonical, informal, bullet one
         if ((uf.find(v) != uf.find(w))
-         && (Y.edges.empty() || e->index() > Y.lastBondFirstEdge->index())
+//         && (Y.edges.empty() || e->index() > Y.lastBondFirstEdge->index())
          && !Y.edges.search(e).valid()) {
             uf.link(uf.find(v), uf.find(w));
             result.pushBack(e);

@@ -10,7 +10,7 @@
 #include <set>
 
 using std::vector; using std::ifstream; using std::set; using std::string;
-using std::invalid_argument; using std::stringstream;
+using std::stringstream;
 using ogdf::edge; using ogdf::node; using ogdf::Graph; using ogdf::List;
 using ogdf::NodeArray; using ogdf::ListConstIterator;
 
