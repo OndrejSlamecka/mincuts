@@ -12,6 +12,12 @@ fi
 
 argv0=$1
 
+# http://askubuntu.com/questions/179898/how-to-round-decimals-using-bc-in-bash
+round()
+{
+	echo $(env printf %.$2f $(echo "scale=$2;(((10^$2)*$1)+0.5)/(10^$2)" | bc))
+};
+
 # Process the input
 components=2
 edges=1
@@ -28,11 +34,15 @@ do
 		if [[ $argv0 == "-t" ]]; then
 			table[$c,$e]=${split_line[2]}
 		fi
-		if [[ $argv0 == "-c" ]]
+
+		if [[ $argv0 == "-c" ]]; then
 			table[$c,$e]=${split_line[3]}
 		fi
-		if [[ $argv0 == "-n" ]]
-			table[$c,$e]=$(echo "scale=1; ${split_line[2]} / ${split_line[3]} * 100" | bc -l)
+
+		if [[ $argv0 == "-n" ]]; then
+			r=$(echo "${split_line[2]} / ${split_line[3]} * 100 - 100" | bc -l)
+			r=$(round "$r" 3)
+			table[$c,$e]=$r
 		fi
 
 		# Save the biggest # of components and # of edges
