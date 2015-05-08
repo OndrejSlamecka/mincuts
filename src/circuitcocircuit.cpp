@@ -584,7 +584,6 @@ void CircuitCocircuit::minimalSpanningForest(int components, const bond &Y,
         const int w = setID[e->target()];
 
         if ((uf.find(v) != uf.find(w))
-//         && (Y.edges.empty() || e->index() > Y.lastBondFirstEdge->index())
          && !Y.edges.search(e).valid()) {
             uf.link(uf.find(v), uf.find(w));
             result.pushBack(e);

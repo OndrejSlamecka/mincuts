@@ -73,6 +73,14 @@ In `bin/`:
 
 One can use this tester with program `geng` from package [nauty](http://pallini.di.uniroma1.it/) to systematically test this implementation. E.g. run `geng -cq 8 | tester 4 4` to test all graphs on eight nodes. For testing bigger classes of graphs (like graphs on 10 vertices) it is recommended to use the `res/mod` option of `geng`.
 
+**cutuniq**
+
+	Usage:	cutuniq <file with cuts>
+
+			Outputs to stdout the set of cuts without permutations.
+
+Requires the `boost` C++ library. Build by `make cutuniq`. This tool is memory efficient (at the cost of being IO expensive).
+
 -----------
 
 In `tools/`:

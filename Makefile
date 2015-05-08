@@ -6,7 +6,7 @@ LINKS=-I $(ogdf_path)/include -L $(ogdf_path)/_release -lOGDF -lpthread
 
 FAKEVAR:=$(shell mkdir -p bin)
 
-.PHONY: all 
+.PHONY: all
 
 all: mincuts cutdiff cutcheck tester
 
@@ -25,4 +25,8 @@ cutcheck: src/helpers.cpp src/cutcheck.cpp
 
 tester: src/circuitcocircuit.cpp src/helpers.cpp src/tester.cpp
 	$(CXX) -o bin/$@ $(CXXFLAGS) $^ $(LINKS)
+
+cutuniq: src/cutuniq.cpp
+	$(CXX) -o bin/$@ $(CXXFLAGS) $^ -lboost_filesystem -lboost_system
+
 

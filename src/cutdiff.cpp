@@ -51,10 +51,10 @@ int main(int argc, char *argv[])
 {
 	if (argc != 3 || argv[1] == string("-h")
 		|| argv[1] == string("--help")) {
-		cout << "Usage: " << argv[0] << " <file A with cuts> " \
+		cerr << "Usage: " << argv[0] << " <file A with cuts> " \
 		   "[<file B with cuts> | ~]" << endl;
 
-		cout << "Output:" << endl << \
+		cerr << "Output:" << endl << \
 	   		"\t* Set difference A\\B (note that B\\A is not computed)\n" \
 		   	"\t* Each cut of A and B is considered a set\n" \
 			"\t* '~' replaces second file with empty set" \
