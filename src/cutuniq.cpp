@@ -2,14 +2,13 @@
  * Copyright (c) 2015, Ondrej Slamecka <ondrej@slamecka.cz>
  * See the LICENSE file in the root folder of this repository.
  *
- * Reads cuts, splits them into several files by CHUNK_SIZE lines
- * sorts this files and then merges them ignoring duplicates.
+ * Reads cuts, splits them into several files by CHUNK_SIZE lines,
+ * sorts these files and then merges them, ignoring duplicates.
  *
  * If you are seeing memory leaks, it's because of
  * ios_base::sync_with_stdio(false); (see start of main) which
- * can be disabled (but it speeds up this program significantly)
+ * can be disabled (at the cost of slowing down the program)
  */
-
 
 #if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__))
 #include <unistd.h>
