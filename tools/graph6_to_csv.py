@@ -54,16 +54,17 @@ def graph2csv(g):
     k = 0
     for i in range(n):
         for j in range(i + 1, n):
-            r += "{0};{1};{2}\n".format(k, i, j)
-            k += 1
+            if g[i][j]:
+                r += "{0};{1};{2}\n".format(k, i, j)
+                k += 1
 
     return r.rstrip() # strip the trailing \n
 
 if __name__ == "__main__":
     if (len(sys.argv) == 2 and sys.argv[1] == "-h") or len(sys.argv) > 2:
         print("Reads graph in graph6 format and outputs it in CSV.\n"\
-              "First argument (if provided and other than -h) is used as the"\
-              " output.", file=sys.stderr)
+              "First argument (if provided and other than -h) is used as a"\
+              " path to a file where the output is saved", file=sys.stderr)
         sys.exit(1)
 
     line = input().rstrip()

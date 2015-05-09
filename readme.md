@@ -25,6 +25,16 @@ Input/output file specification
 Run
 ---
 
+Generate all 3-bonds with up to 4 edges of the road network of Zlin Region:
+
+
+	./bin/mincuts sample-data/zlin.csv 4 3
+
+
+
+Overview of tools
+-----------------
+
 In `bin/`:
 
 **mincuts**
@@ -33,7 +43,7 @@ In `bin/`:
 
 		<# of components> can be exact or range (e.g. 2-3)
 		-b --	use bruteforcing of all combinations instead of
-			CircuitCocircuit algorithm
+				CircuitCocircuit algorithm
 
 
 **cutcheck**
@@ -108,7 +118,7 @@ Converts from [ClosureSim](http://www.fi.muni.cz/~xsvobo38/closuresim/) output f
 
 Splits `mincuts` results file by cut size.
 
-**graph6toCsv.py**
+**graph6_to_csv.py**
 
 Reads graph in `graph6` format (used by `nauty`) and outputs a CSV to stdout. If filepath is passed as the only parameter then the output is directed into this file.
 

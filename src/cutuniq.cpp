@@ -27,7 +27,7 @@
 #include <string>
 #include <algorithm>
 
-#define CHUNK_SIZE 100000
+#define CHUNK_SIZE 1000000
 
 using namespace std;
 

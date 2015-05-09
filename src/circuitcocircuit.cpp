@@ -11,6 +11,7 @@
 
 #include "./circuitcocircuit.h"
 #include <limits>
+#include <cstdint>
 #include <algorithm>  // swap
 #include "./helpers.h"
 
@@ -63,9 +64,9 @@ void CircuitCocircuit::run(int k, List<bond> &bonds) {
     // (|V| - k + 2) * UB == max. long int
     std::random_device rd;
     std::default_random_engine engine(rd());
-    u_int64_t max_u_int64_t = numeric_limits<u_int64_t>::max();
-    u_int64_t upper_bound = max_u_int64_t / (G.numberOfNodes() - k + 2);
-    std::uniform_int_distribution<u_int64_t> distribution(1, upper_bound);
+    constexpr uint64_t max_uint64_t = numeric_limits<uint64_t>::max();
+    uint64_t upper_bound = max_uint64_t / (G.numberOfNodes() - k + 2);
+    std::uniform_int_distribution<uint64_t> distribution(1, upper_bound);
 
     edge e;
     forall_edges(e, G) {
@@ -206,7 +207,7 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
             newX.edges.pushBack(c);
 
             // Don't set colour before we check for a hyperplane -- this line
-            // could actually be omitted but this way it's easier to understand
+            // could actually be omitted but this way it sticks with the theory
             colouring[c] = Colour::BLACK;
 
             genStage(colouring, components, Y, j, bonds, newX);
@@ -222,13 +223,12 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
 }
 
 /**
- * Iota minimal path P_u,v is a path between vertices u,v which minimizes the vector of its indicies
- * (P_u,v[0].index, P_u,v[1].index,...)
+ * Iota minimal path P_u,v is a path between vertices u,v which minimizes the
+ * vector of its indicies (P_u,v[0].index, P_u,v[1].index,...)
+ * This function selects such path from two paths starting in s1 or s2,
+ * respectivelly (note s1 and s2 are blue) and returns one of s1 or s2.
  *
- * This function selects such path from two paths starting in s1 or s2, respectivelly (note s1 and s2
- * are blue) and returns one of s1 or s2.
- *
- * We expect both paths to be equally long
+ * Both paths are expected to be equally long
  */
 node CircuitCocircuit::getStartNodeOfIotaMinimalPath(GraphColouring &colouring,
                                                      NodeArray<edge> &accessEdge,
