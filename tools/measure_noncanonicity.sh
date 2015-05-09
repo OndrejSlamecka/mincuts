@@ -17,7 +17,7 @@ for ((c=$min_c; c <= $max_c; c++)); do
 		echo "# Running mincuts: $c-bonds with at max $e edges (`date`)"
 		./bin/mincuts "$1" "$e" "$c" > tmp/measure_noncan_storage.csv
 		noncan=$(wc -l tmp/measure_noncan_storage.csv | awk '{print $1}')
-		can=$(./bin/cutdiff tmp/measure_noncan_storage.csv ~ | wc -l | awk '{print $1}')
+		can=$(./bin/cutuniq tmp/measure_noncan_storage.csv | wc -l | awk '{print $1}')
 		echo "$c $e $noncan $can"
 	done
 done

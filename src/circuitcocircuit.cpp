@@ -134,8 +134,10 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
 
     if (P.empty()) {
         // If there is no such path P, then return ‘(j + 1) bond: Y union X’
-        bond Ycopy(Y);
-        bond XY(X); XY.edges.conc(Ycopy.edges);
+        bond XY;
+        XY.lastBondFirstEdge = X.lastBondFirstEdge;
+        List<edge> Yedges(Y.edges); XY.edges.conc(Yedges);
+        List<edge> Xedges(X.edges); XY.edges.conc(Xedges);
 
         if (j == components - 1) {
             if (outputToStdout) {
@@ -184,12 +186,6 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
             colouring.set(v, Colour::BLUE);
             colouring.set(u, Colour::RED);
 
-            // Check this condition before the slower hyperplane test
-            if (c->index() <= X.lastBondFirstEdge->index()) {
-                colouring[c] = Colour::RED;
-                continue;
-            }
-
             // Do we still have a hyperplane?
             if (   isBlueTreeDisconnected(colouring, c, u)
                 && !reCreateBlueTreeIfDisconnected(colouring, Y.edges, X.edges,
@@ -197,6 +193,12 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
                                                    newBlueTreeEdges)) {
                 // Revert colouring and end
                 break;
+            }
+
+            // This condition has to be checked after the hyperplane test!
+            if (c->index() <= X.lastBondFirstEdge->index()) {
+                colouring[c] = Colour::RED;
+                continue;
             }
 
             // all went fine, add c to X
@@ -450,7 +452,7 @@ bool CircuitCocircuit::reCreateBlueTreeIfDisconnected(
          n,     // neighbours of u
          a, b;  // node currently being coloured on the path, its successor
 
-    // Next line recolours only edges of course, note that c is used now
+    // This recolours only edges of course, note that c is used too
     recolourBlueTreeBlack(colouring, v, oldBlueTreeEdges);
 
     // Run BFS in G \ Y \ X \ T_r \ {c}, each time blue vertex x is found colour
