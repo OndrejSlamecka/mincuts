@@ -33,6 +33,13 @@ void printUsage(char *name) {
 }
 
 int main(int argc, char* argv[]) {
+#ifdef MEASURE_RUNTIME
+    cerr << "Built with MEASURE_RUNTIME!" << endl;
+#endif
+#ifdef MEASURE_PATHS_LENGTHS
+    cerr << "Built with MEASURE_PATHS_LENGTHS!" << endl;
+#endif
+
     if ((argc == 5 && argv[4] != string("-bfc"))
       || argc < 4
 #ifdef MEASURE_RUNTIME

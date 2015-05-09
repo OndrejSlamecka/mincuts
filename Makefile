@@ -14,6 +14,9 @@ mincuts-rtm: CXXFLAGS += -DMEASURE_RUNTIME
 mincuts-rtm: LINKS	  += -lboost_chrono -lboost_system
 mincuts-rtm: mincuts
 
+mincuts-pathslengths: CXXFLAGS += -DMEASURE_PATHS_LENGTHS
+mincuts-pathslengths: mincuts
+
 mincuts: src/helpers.cpp src/circuitcocircuit.cpp src/mincuts.cpp
 	$(CXX) -o bin/$@ $(CXXFLAGS) $^ $(LINKS)
 

@@ -11,15 +11,18 @@ min_e=3
 max_e=$2
 max_c=$3
 
+storage_file=tmp/measure_noncan_storage_$(basename $1)
+
 for ((c=$min_c; c <= $max_c; c++)); do
 	edges_start=$(( $c > $min_e ? $c : $min_e ))
 	for ((e=$edges_start; e <= $max_e; e++)); do
 		echo "# Running mincuts: $c-bonds with at max $e edges (`date`)"
-		./bin/mincuts "$1" "$e" "$c" > tmp/measure_noncan_storage.csv
-		noncan=$(wc -l tmp/measure_noncan_storage.csv | awk '{print $1}')
-		can=$(./bin/cutuniq tmp/measure_noncan_storage.csv | wc -l | awk '{print $1}')
+		./bin/mincuts "$1" "$e" "$c" > "$storage_file"
+		noncan=$(wc -l "$storage_file" | awk '{print $1}')
+		can=$(./bin/cutuniq $storage_file | wc -l | awk '{print $1}')
 		echo "$c $e $noncan $can"
 	done
 done
 
-rm tmp/measure_noncan_storage.csv
+rm $storage_file
+

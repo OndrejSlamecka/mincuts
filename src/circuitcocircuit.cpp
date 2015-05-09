@@ -133,6 +133,10 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
     List<edge> P;
     shortestPath(colouring, Y.edges, X.edges, firstRed, P);
 
+#ifdef MEASURE_PATHS_LENGTHS
+    cout << j << " " << X.edges.size() << " " << P.size() << endl;
+#endif
+
     if (P.empty()) {
         // If there is no such path P, then return ‘(j + 1) bond: Y union X’
         bond XY;
@@ -142,7 +146,9 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
 
         if (j == components - 1) {
             if (outputToStdout) {
+#ifndef MEASURE_PATHS_LENGTHS
                 cout << XY << "\n";
+#endif
             } else {
                 bonds.pushBack(XY);
             }

@@ -163,3 +163,8 @@ One can measure the runtime of the algorithm implementation by building the prog
 * current stage of the algorithm (note `j`-bonds are created in stage `j-1`)
 * time spent in the `genStage` call in milliseconds
 * number of bonds generated with given `X` union `{e}`
+
+Measure lengths of paths
+------------------------
+
+Compile with `make mincurs-pathslengths`. `mincuts` will output stage number, level of `genStage` in the stage and length of the path between `V(T_r)` and `V_b` found by `shortestPath` on each line, all separated by spaces.
