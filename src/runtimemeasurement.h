@@ -16,7 +16,7 @@
 using ogdf::List;
 
 class RuntimeMeasurement {
-    typedef clock_type boost::chrono::process_user_cpu_clock;
+    typedef boost::chrono::process_user_cpu_clock clock_type;
     typedef boost::chrono::time_point<clock_type> time_point;
 
     std::unique_ptr<ofstream> fout;
