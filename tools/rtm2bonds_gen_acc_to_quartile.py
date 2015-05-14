@@ -24,8 +24,8 @@ def make_table(records):
     boundaries_indicies = [p for p in linspace(0,1,parts+1)]
     boundaries = [percentile(durations, p*100) for p in boundaries_indicies]
 
-    sums = [0] * parts # for _ in range(parts)]
-    counts = [0 for _ in range(parts)]
+    sums = [0] * parts
+    counts = [0] * parts
     q = 0 # which quarter we're in
     for r in records:
         if r[0] > boundaries[q + 1]:
