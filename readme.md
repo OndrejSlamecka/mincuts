@@ -8,7 +8,7 @@ Installation
 With GCC `>= 4.8.2`:
 
 * Install OGDF into `~/.bin/ogdf` (or elsewhere but edit Makefile)
-* Run git clone git@github.com:OndrejSlamecka/mincuts.git && cd mincuts
+* Run `git clone git@github.com:OndrejSlamecka/mincuts.git && cd mincuts`
 * Run `make`
 
 To install OGDF you can do:

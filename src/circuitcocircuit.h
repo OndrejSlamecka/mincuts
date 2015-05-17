@@ -6,13 +6,13 @@
 #ifndef SRC_CIRCUITCOCIRCUIT_H_
 #define SRC_CIRCUITCOCIRCUIT_H_
 
-#include <stdint.h>
-#include <stdexcept>
-#include <random>
 #include <ogdf/basic/Graph.h>
 #include <ogdf/basic/Queue.h>
 #include <ogdf/basic/Stack.h>
 #include <ogdf/basic/DisjointSets.h>
+#include <stdint.h>
+#include <stdexcept>
+#include <random>
 #include "./graphcolouring.h"
 
 typedef struct bond {

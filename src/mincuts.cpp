@@ -3,12 +3,12 @@
  * See the LICENSE file in the root folder of this repository.
  */
 
+#include <ogdf/basic/Graph.h>
+#include <ogdf/basic/simple_graph_alg.h>
+
 #include <iostream>
 #include <stdexcept>
 #include <string>
-
-#include <ogdf/basic/Graph.h>
-#include <ogdf/basic/simple_graph_alg.h>
 
 #include "./helpers.h"
 #include "./circuitcocircuit.h"

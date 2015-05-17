@@ -16,7 +16,7 @@
 #include "./helpers.h"
 
 #ifdef MEASURE_RUNTIME
-#include "runtimemeasurement.h"
+#include "./runtimemeasurement.h"
 
 RuntimeMeasurement rtm;
 
@@ -44,7 +44,7 @@ CircuitCocircuit::CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound, int md)
 CircuitCocircuit::CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound)
     : G(Graph), cutSizeBound(cutSizeBound), lambda(G) {
 #endif
-    // Sort edges by index for use by minimalSpanningForest
+    // Sort edges by index for use in minimalSpanningForest
     for (edge e = G.firstEdge(); e; e = e->succ()) {
         allEdgesSortedByIndex.pushBack(Prioritized<edge, int>(e, e->index()));
     }
@@ -57,15 +57,15 @@ CircuitCocircuit::CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound)
 
 void CircuitCocircuit::run(int k, List<bond> &bonds) {
     // Create map lambda : E(G) -> N (the natural numbers) for selection of
-    // the shortest path. The map is randomized with each algorithm run in
-    // order to detect mistakes related to graph traversing order.
+    // the unique shortest path. The map is randomized with each algorithm run
+    // in order to detect mistakes related to graph traversing order.
     // |V| - k + 2 is the maximum length of a cycle, thus the maximum possible
-    // upper bound on random numbers UB is such that
-    // (|V| - k + 2) * UB == max. long int
+    // length of a path is |V| - k + 1
+    // (|V| - k + 1) * UB == max. long int
     std::random_device rd;
     std::default_random_engine engine(rd());
     constexpr uint64_t max_uint64_t = numeric_limits<uint64_t>::max();
-    uint64_t upper_bound = max_uint64_t / (G.numberOfNodes() - k + 2);
+    uint64_t upper_bound = max_uint64_t / (G.numberOfNodes() - k + 1);
     std::uniform_int_distribution<uint64_t> distribution(1, upper_bound);
 
     edge e;
@@ -86,12 +86,11 @@ void CircuitCocircuit::run(int k) {
 
 void CircuitCocircuit::extendBond(int components, const bond &Y, int j,
                                   List<bond> &bonds) {
+    GraphColouring colouring(G);
+
     // D is an arbitrary matroid base
     List<edge> D;
     minimalSpanningForest(components, Y, D);
-    // Set D = E(F) \ Y... but it's already done, we've already forbidden Y
-
-    GraphColouring colouring(G);
 
     forall_listiterators(edge, i, D) {
         edge e = *i;
@@ -105,7 +104,7 @@ void CircuitCocircuit::extendBond(int components, const bond &Y, int j,
         X.lastBondFirstEdge = e;
 
         node u = e->source(), v = e->target();
-        if (u->index() > v->index()) swap(u, v);  // Def 4.3, i.
+        if (u->index() > v->index()) swap(u, v);  // Definition 4.1.a
 
         colouring.set(u, Colour::RED);
         colouring.set(v, Colour::BLUE);
@@ -127,7 +126,7 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
         return;
     }
 
-    // Find path P minimizing (|P|, lambda_length(P), index_vector(P))
+    // Find the path P minimizing (|P|, lambda_length(P), index_vector(P))
     // See shortestPath for more info
     node firstRed = NULL;
     List<edge> P;
@@ -187,7 +186,7 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
 
             // Colour as with u and v in X
             // (the colour of u has to be set red here in order to avoid being
-            // used in a possible recreation of the blue tree, the colour of c
+            // used in a possible re-creation of the blue tree, the colour of c
             // cannot be set here so that we can satisfy the input condition of
             // the method reCreateBlueTreeIfDisconnected
             colouring.set(v, Colour::BLUE);
@@ -212,8 +211,7 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
             bond newX(X);
             newX.edges.pushBack(c);
 
-            // Don't set colour before we check for a hyperplane -- this line
-            // could actually be omitted but this way it sticks with the theory
+            // Don't set colour before we check for a hyperplane
             colouring[c] = Colour::BLACK;
 
             genStage(colouring, components, Y, j, bonds, newX);
@@ -229,12 +227,12 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
 }
 
 /**
- * Iota minimal path P_u,v is a path between vertices u,v which minimizes the
- * vector of its indicies (P_u,v[0].index, P_u,v[1].index,...)
+ * Iota minimal path P_{u,v} is a path between vertices u,v which minimizes
+ * the vector of its indicies (P_{u,v}[0].index, P_{u,v}[1].index,...)
  * This function selects such path from two paths starting in s1 or s2,
  * respectivelly (note s1 and s2 are blue) and returns one of s1 or s2.
  *
- * Both paths are expected to be equally long
+ * Both paths are expected to be equally long.
  */
 node CircuitCocircuit::getStartNodeOfIotaMinimalPath(GraphColouring &colouring,
                                                      NodeArray<edge> &accessEdge,
@@ -262,11 +260,11 @@ node CircuitCocircuit::getStartNodeOfIotaMinimalPath(GraphColouring &colouring,
     }
 
     // One path hits red sooner -> they're not both equaly long which shows
-    // an error in shortestPath
+    // an error in shortestPath implementation
     if (lexMinStartNode == NULL) {
         // This should never happen if this implementation is correct
         throw logic_error("Comparing index vector of two paths which are " \
-                          "not of equal length");
+                          "not of equal length.");
     }
 
     return lexMinStartNode;
@@ -299,8 +297,8 @@ void CircuitCocircuit::shortestPath(GraphColouring &colouring,
     // it from path P1 and if we find an edge from P2 to the node then we only
     // update the lambda distance if it would decrease and if |P1| = |P2|. This
     // is because we don't care about the lambda distance primarily, our
-    // approach only computes the lambda length correctly for the shortest (wrt.
-    // # of edges) paths currently discovered by BFS.
+    // approach only computes the lambda length correctly for the shortest
+    // (wrt. # of edges) paths currently discovered by BFS.
 
     path.clear();
 
@@ -310,6 +308,16 @@ void CircuitCocircuit::shortestPath(GraphColouring &colouring,
     NodeArray<int> vertexDistance(G, 0);
     NodeArray<edge> accessEdge(G);
 
+    // Hide Y and X
+    forall_listiterators(edge, it, Y) {
+        G.hideEdge(*it);
+    }
+
+    forall_listiterators(edge, it, X) {
+        G.hideEdge(*it);
+    }
+
+    // Init
     node no;
     forall_listiterators(node, it, colouring.getRedVertices()) {
         no = *it;
@@ -319,14 +327,7 @@ void CircuitCocircuit::shortestPath(GraphColouring &colouring,
         vertexDistance[no] = 0;
     }
 
-    forall_listiterators(edge, it, Y) {
-        G.hideEdge(*it);
-    }
-
-    forall_listiterators(edge, it, X) {
-        G.hideEdge(*it);
-    }
-
+    // Start BFS
     node foundBlue = NULL;
     node u, v;
     edge e;
@@ -377,7 +378,8 @@ void CircuitCocircuit::shortestPath(GraphColouring &colouring,
             e = accessEdge[n];
             v = e->opposite(n);
 
-            // Note that lastRed is set red only when colouring[n] == RED
+            // Note that lastRed is set correctly only in the iteration
+            // when colouring[n] == RED is satisfied (which is the last iter.)
             lastRed = v;  // In reverse direction it is the first red...
 
             path.pushFront(e);
@@ -592,7 +594,7 @@ void CircuitCocircuit::minimalSpanningForest(int components, const bond &Y,
         const int w = setID[e->target()];
 
         if ((uf.find(v) != uf.find(w))
-         && !Y.edges.search(e).valid()) {
+         && !Y.edges.search(e).valid()) {  // Faster than characteristic vector
             uf.link(uf.find(v), uf.find(w));
             result.pushBack(e);
             stSize++;
