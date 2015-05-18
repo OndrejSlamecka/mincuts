@@ -25,15 +25,17 @@ def make_table(records):
     boundaries = [percentile(durations, p*100) for p in boundaries_indicies]
 
     sums = [0] * parts
-    counts = [0] * parts
+    counts = [0] * parts    
     q = 0 # which quarter we're in
+
+    # Go through records, keep track of what quarter we're in
     for r in records:
-        if r[0] > boundaries[q + 1]:
+        # If this r belongs to a different quarter, increment q
+        while r[0] > boundaries[q + 1]:
             q += 1
 
-        if boundaries[q] <= r[0]:
-            sums[q] += r[1]
-            counts[q] += 1
+        sums[q] += r[1]
+        counts[q] += 1
 
     # Create a neat table for TeX
     for i in range(parts):
@@ -44,11 +46,13 @@ def make_table(records):
 
 def usage():
     print("Usage:\t" + sys.argv[0] + " <path to data file> [-a]\n\n" \
-          "\t-a -- include those records which have zero time and zero bonds",
+          "\t-a -- include those records which have zero time and zero bonds\n" \
+          "\n\tSplits the timeline of given rtm file by quartiles " \
+          "\n\tand reports sums of # of bonds in each quarter.",
           file=sys.stderr)
 
 if __name__ == "__main__":
-    if 3 < len(sys.argv) < 1 or (len(sys.argv) == 3 and sys.argv[2] != "-a"):
+    if len(sys.argv) < 2 or len(sys.argv) > 3 or (len(sys.argv) == 3 and sys.argv[2] != "-a"):
         usage()
         sys.exit(1)
 
