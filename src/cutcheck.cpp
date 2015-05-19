@@ -82,17 +82,17 @@ void visualize_randomizedCutsCheck(Graph &G, const List<List<edge>> &cuts)
 
 void printUsage(char *name)
 {
-	cout << "Usage:\t" << name << " <edge_file.csv> " \
+	cerr << "Usage:\t" << name << " <edge_file.csv> " \
 		 << "[-imc, --ismincut <list>] [-cc <list>]\n\t[-rcc <cuts file>] " \
 		 << "[-tcc[f] <cuts file>]" << endl;
 
-	cout << endl \
-		<< "\t-imc    -- verifies if <list> is cut and minimal one" << endl \
-		<< "\t-cc     -- computes # of components of G\\<list>" << endl \
-		<< "\t-rcc    -- randomized cuts check" << endl \
-		<< "\t-tcc[f] -- total cuts check, 'f' counts all failures" << endl;
+	cerr << endl \
+		<< "\t-imc    -- verifies whether <list> is a cut and a minimal one" << endl \
+		<< "\t-cc     -- computes the number of components of G\\<list>" << endl \
+		<< "\t-rcc    -- randomized cut checker" << endl \
+		<< "\t-tcc[f] -- total cut checker, 'f' counts all failures" << endl;
 
-	cout << endl << "*list* is comma separated list of edge indicies." << endl;
+	cerr << endl << "*list* is a comma separated list of edge indicies." << endl;
 }
 
 int main(int argc, char *argv[])

@@ -51,15 +51,17 @@ In `bin/`:
 
 **cutcheck**
 
+
 	Usage:	cutcheck <edge_file.csv> [-imc, --ismincut <list>] [-cc <list>]
-			[-rcc <cuts file>] [-tcc[f] <cuts file>]
+		[-rcc <cuts file>] [-tcc[f] <cuts file>]
 
-			-imc    -- verifies if <list> is cut and minimal one
-			-cc     -- computes # of components of G\<list>
-			-rcc    -- randomized cuts check
-			-tcc[f] -- total cuts check, 'f' counts all failures
+		-imc    -- verifies whether <list> is a cut and a minimal one
+		-cc     -- computes the number of components of G\<list>
+		-rcc    -- randomized cut checker
+		-tcc[f] -- total cut checker, 'f' counts all failures
 
-	*list* is comma separated list of edge indicies.
+	*list* is a comma separated list of edge indicies.
+
 
 **cutdiff**
 
@@ -170,4 +172,4 @@ One can measure the runtime of the algorithm implementation by building the prog
 Measure lengths of paths
 ------------------------
 
-Compile with `make mincurs-pathslengths`. `mincuts` will output stage number, level of `genStage` in the stage and length of the path between `V(T_r)` and `V_b` found by `shortestPath` on each line, all separated by spaces.
+Compile with `make mincuts-pathslengths`. `mincuts` will output stage number, level of `genStage` in the stage and length of the path between `V(T_r)` and `V_b` found by `shortestPath` on each line, all separated by spaces.
