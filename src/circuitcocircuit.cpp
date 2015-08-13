@@ -92,9 +92,7 @@ void CircuitCocircuit::extendBond(int components, const bond &Y, int j,
     List<edge> D;
     minimalSpanningForest(components, Y, D);
 
-    forall_listiterators(edge, i, D) {
-        edge e = *i;
-
+    for (edge e : D) {
         if ((!Y.edges.empty() && e->index() < Y.lastBondFirstEdge->index())) {
             continue;
         }
@@ -165,8 +163,7 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
         List<edge> oldBlueTreeEdges;
 
         // Colour the path blue but remember the previous colours
-        forall_listiterators(edge, iterator, P) {
-            edge e = *iterator;
+        for (edge e : P) {
             if (colouring[e] == Colour::BLUE) {
                 blueBefore.pushBack(e);
             }
@@ -177,9 +174,7 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
         node u, v = firstRed;  // we're doing u = v at the begining of each step
 
         // for each c in P, recursively call GenCocircuits(X union {c}).
-        forall_listiterators(edge, iterator, P) {
-            edge c = *iterator;
-
+        for (edge c : P) {
             // We're traversing P in order, so we can do this:
             u = v;
             v = c->opposite(u);
@@ -309,22 +304,22 @@ void CircuitCocircuit::shortestPath(GraphColouring &colouring,
     NodeArray<edge> accessEdge(G);
 
     // Hide Y and X
-    forall_listiterators(edge, it, Y) {
-        G.hideEdge(*it);
+	Graph::HiddenEdgeSetHandle hidden_xy(G.newHiddenEdgeSet());
+
+	for (edge e : Y) {
+        G.hideEdge(hidden_xy, e);
     }
 
-    forall_listiterators(edge, it, X) {
-        G.hideEdge(*it);
+    for (edge e : X) {
+        G.hideEdge(hidden_xy, e);
     }
 
     // Init
-    node no;
-    forall_listiterators(node, it, colouring.getRedVertices()) {
-        no = *it;
-        Q.append(no);
-        visited[no] = true;
-        lambdaDistance[no] = 0;
-        vertexDistance[no] = 0;
+	for (node n : colouring.getRedVertices()) {
+        Q.append(n);
+        visited[n] = true;
+        lambdaDistance[n] = 0;
+        vertexDistance[n] = 0;
     }
 
     // Start BFS
@@ -386,7 +381,7 @@ void CircuitCocircuit::shortestPath(GraphColouring &colouring,
         }
     }
 
-    G.restoreAllEdges();
+    G.restoreEdges(hidden_xy);
 }
 
 
@@ -397,15 +392,16 @@ bool CircuitCocircuit::isBlueTreeDisconnected(GraphColouring &colouring,
     // We will test whether adding c to X would disconnect the blue tree
     edge e;
 
-    G.hideEdge(c);  // Don't consider c to be part of blue subgraph
+	Graph::HiddenEdgeSetHandle hidden_edges(G.newHiddenEdgeSet());
+    G.hideEdge(hidden_edges, c);  // Don't consider c to be part of blue subgraph
     forall_adj_edges(e, u) {
         if (colouring[e] == Colour::BLUE) {
-            G.restoreEdge(c);
+            G.restoreEdge(hidden_edges, c);
             return true;
         }
     }
 
-    G.restoreEdge(c);
+    G.restoreEdge(hidden_edges, c);
     return false;
 }
 
@@ -455,7 +451,6 @@ bool CircuitCocircuit::reCreateBlueTreeIfDisconnected(
     //         increase the counter of found blue vertices
     // * - if all blue vertices weren't found then fail
 
-    edge e;
     node m,     // m is node currently being examined in BFS
          n,     // neighbours of u
          a, b;  // node currently being coloured on the path, its successor
@@ -463,21 +458,26 @@ bool CircuitCocircuit::reCreateBlueTreeIfDisconnected(
     // This recolours only edges of course, note that c is used too
     recolourBlueTreeBlack(colouring, v, oldBlueTreeEdges);
 
-    // Run BFS in G \ Y \ X \ T_r \ {c}, each time blue vertex x is found colour
-    // path v-x and increase nBlueVerticesFound:
+    // Run BFS in G \ Y \ X \ T_r \ {c}.
+	// Each time blue vertex x is found, colour path v-x blue
+	// and increase nBlueVerticesFound:
     // - if nBlueVerticesFound == colouring.nBlueVertices, return true
     // - if BFS ends and nBlueVerticesFound < colouring.nBlueVertices,
     //      return false
+	Graph::HiddenEdgeSetHandle hidden_xyc(G.newHiddenEdgeSet());
 
-    forall_listiterators(edge, it, Y) {
-        G.hideEdge(*it);
+    for (edge e : Y) {
+        G.hideEdge(hidden_xyc, e);
     }
 
-    forall_listiterators(edge, it, X) {
-        G.hideEdge(*it);
+    for (edge e : X) {
+        G.hideEdge(hidden_xyc, e);
     }
-    G.hideEdge(c);
 
+    G.hideEdge(hidden_xyc, c);
+
+	// Declare variables for use in the BFS
+    edge e;
     Queue<node> Q;
     Q.append(v);
     int nBlueVerticesFound = 0;  // v will be counted in the first iteration
@@ -515,7 +515,7 @@ bool CircuitCocircuit::reCreateBlueTreeIfDisconnected(
         }
     }
 
-    G.restoreAllEdges();
+    G.restoreEdges(hidden_xyc);
     if (nBlueVerticesFound == colouring.nBlueVertices) {
         return true;
     } else {
@@ -530,27 +530,21 @@ void CircuitCocircuit::revertColouring(GraphColouring &colouring,
                                       List<edge> &oldBlueTreeEdges,
                                       List<edge> &newBlueTreeEdges) {
     // The order is important here!
-    forall_listiterators(edge, iterator, newBlueTreeEdges) {
-        edge e = *iterator;
+    for (edge e : newBlueTreeEdges) {
         colouring[e] = Colour::BLACK;
     }
 
-    forall_listiterators(edge, iterator, oldBlueTreeEdges) {
-        edge e = *iterator;
+	for (edge e : oldBlueTreeEdges) {
         colouring[e] = Colour::BLUE;
     }
 
-    forall_listiterators(edge, iterator, P) {
-        edge e = *iterator;
-
+	for (edge e : P) {
         colouring.set(e->source(), Colour::BLACK);
         colouring.set(e->target(), Colour::BLACK);
         colouring[e] = Colour::BLACK;
     }
 
-    forall_listiterators(edge, iterator, X.edges) {
-        edge e = *iterator;
-
+	for (edge e : X.edges) {
         if (colouring[e->source()] != Colour::RED) {
             colouring.set(e->source(), Colour::BLUE);
         }

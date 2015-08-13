@@ -178,7 +178,7 @@ string coloring2str(const Graph &G, const GraphColouring &c) {
 
 string edgelist2str(const ogdf::List<edge> &edges) {
     stringstream s;
-    forall_listiterators(edge, it, edges) {
+    for (auto it = edges.begin(); it != edges.end(); ++it) {
         s << (*it)->index();
         if (*it != edges.back()) {
             s << ", ";
@@ -211,36 +211,42 @@ void indicies2edges(const List<edge> &graphEdges, const string &str,
  * Helper function to determine whether given set of edges really is a cut
  */
 bool isCut(Graph &G, const List<edge> &cut) {
+	Graph::HiddenEdgeSetHandle hidden_cut(G.newHiddenEdgeSet());
+
     for (auto e : cut) {
-        G.hideEdge(e);
+        G.hideEdge(hidden_cut, e);
     }
 
     bool r = isConnected(G);
 
-    G.restoreAllEdges();
+    G.restoreEdges(hidden_cut);
     return !r;
 }
 
 /**
  * Helper function to determine whether given set of edges really is a minimal
- *  cut, w.r.t. # of components of G\cut
- * Returns 0 on success, -1 if # of components is 1. Otherwise, the # of components of G\cut
+ *  cut, w.r.t. # of components of (G \ cut)
+ * Returns
+ * 		0 on success,
+ * 		-1 if # of components is 1,
+ * 		the number of components of (G \ cut) otherwise
  */
 int isMinCut(Graph &G, const List<edge> &cut, int &ncomponents) {
     NodeArray<int> component(G);
+	Graph::HiddenEdgeSetHandle hidden_edges(G.newHiddenEdgeSet());
 
     for (auto e : cut) {
-        G.hideEdge(e);
+        G.hideEdge(hidden_edges, e);
     }
     ncomponents = connectedComponents(G, component);
 
     if (ncomponents == 1) {
-        G.restoreAllEdges();
+        G.restoreEdges(hidden_edges);
         return -1;
     }
 
     for (auto e : cut) {
-        G.restoreEdge(e);
+        G.restoreEdge(hidden_edges, e);
 
         // Count # of components of smaller cut
         int nSmallerCutComponents = connectedComponents(G, component);
@@ -248,13 +254,13 @@ int isMinCut(Graph &G, const List<edge> &cut, int &ncomponents) {
         // If numbers of components is the same and it's still a cut then
         // obviously the original cut was not minimal
         if (nSmallerCutComponents == ncomponents) {
-            G.restoreAllEdges();
+			G.restoreEdges(hidden_edges);
             return ncomponents;
         }
-        G.hideEdge(e);
+        G.hideEdge(hidden_edges, e);
     }
 
-    G.restoreAllEdges();
+    G.restoreEdges(hidden_edges);
 
     return 0;
 }

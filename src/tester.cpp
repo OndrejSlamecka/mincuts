@@ -123,13 +123,16 @@ class StdinGraphSource : public AbstractGraphSource {
 
  public:
     /**
-     * Locks cin!
+     * Grabs a graph from stdin. Locks cin!
      */
     bool get(Graph &G) {
         string s;
         unique_lock<mutex> lock(cin_mtx);
-        bool r = getline(cin, s);
-        updateOnGraphRetrieval();
+        getline(cin, s);
+        bool r = !cin.fail() && !s.empty();
+		if (r) {
+            updateOnGraphRetrieval();
+        }
         lock.unlock();
 
         if (r) {

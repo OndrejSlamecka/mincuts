@@ -119,8 +119,8 @@ int main(int argc, char* argv[]) {
             bruteforceGraphBonds(G, cutSizeBound, minComponents, maxComponents,
                                  bonds);
 
-            forall_listiterators(List<edge>, it, bonds) {
-                cout << *it << endl;
+            for (const List<edge>& edgelist : bonds) {
+                cout << edgelist << endl;
             }
         }
     } catch (invalid_argument &e) {
