@@ -304,9 +304,9 @@ void CircuitCocircuit::shortestPath(GraphColouring &colouring,
     NodeArray<edge> accessEdge(G);
 
     // Hide Y and X
-	Graph::HiddenEdgeSetHandle hidden_xy(G.newHiddenEdgeSet());
+    Graph::HiddenEdgeSetHandle hidden_xy(G.newHiddenEdgeSet());
 
-	for (edge e : Y) {
+    for (edge e : Y) {
         G.hideEdge(hidden_xy, e);
     }
 
@@ -315,7 +315,7 @@ void CircuitCocircuit::shortestPath(GraphColouring &colouring,
     }
 
     // Init
-	for (node n : colouring.getRedVertices()) {
+    for (node n : colouring.getRedVertices()) {
         Q.append(n);
         visited[n] = true;
         lambdaDistance[n] = 0;
@@ -392,7 +392,7 @@ bool CircuitCocircuit::isBlueTreeDisconnected(GraphColouring &colouring,
     // We will test whether adding c to X would disconnect the blue tree
     edge e;
 
-	Graph::HiddenEdgeSetHandle hidden_edges(G.newHiddenEdgeSet());
+    Graph::HiddenEdgeSetHandle hidden_edges(G.newHiddenEdgeSet());
     G.hideEdge(hidden_edges, c);  // Don't consider c to be part of blue subgraph
     forall_adj_edges(e, u) {
         if (colouring[e] == Colour::BLUE) {
@@ -459,12 +459,12 @@ bool CircuitCocircuit::reCreateBlueTreeIfDisconnected(
     recolourBlueTreeBlack(colouring, v, oldBlueTreeEdges);
 
     // Run BFS in G \ Y \ X \ T_r \ {c}.
-	// Each time blue vertex x is found, colour path v-x blue
-	// and increase nBlueVerticesFound:
+    // Each time blue vertex x is found, colour path v-x blue
+    // and increase nBlueVerticesFound:
     // - if nBlueVerticesFound == colouring.nBlueVertices, return true
     // - if BFS ends and nBlueVerticesFound < colouring.nBlueVertices,
     //      return false
-	Graph::HiddenEdgeSetHandle hidden_xyc(G.newHiddenEdgeSet());
+    Graph::HiddenEdgeSetHandle hidden_xyc(G.newHiddenEdgeSet());
 
     for (edge e : Y) {
         G.hideEdge(hidden_xyc, e);
@@ -476,7 +476,7 @@ bool CircuitCocircuit::reCreateBlueTreeIfDisconnected(
 
     G.hideEdge(hidden_xyc, c);
 
-	// Declare variables for use in the BFS
+    // Declare variables for use in the BFS
     edge e;
     Queue<node> Q;
     Q.append(v);
@@ -534,17 +534,17 @@ void CircuitCocircuit::revertColouring(GraphColouring &colouring,
         colouring[e] = Colour::BLACK;
     }
 
-	for (edge e : oldBlueTreeEdges) {
+    for (edge e : oldBlueTreeEdges) {
         colouring[e] = Colour::BLUE;
     }
 
-	for (edge e : P) {
+    for (edge e : P) {
         colouring.set(e->source(), Colour::BLACK);
         colouring.set(e->target(), Colour::BLACK);
         colouring[e] = Colour::BLACK;
     }
 
-	for (edge e : X.edges) {
+    for (edge e : X.edges) {
         if (colouring[e->source()] != Colour::RED) {
             colouring.set(e->source(), Colour::BLUE);
         }

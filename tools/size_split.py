@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-import sys, os
+import sys
+import os
+
 
 def size_split(source, dest):
     def edges(line):
         n = 0
-        p = False # inside parentheses
+        p = False  # inside parentheses
         for i in range(len(line)):
             if line[i] == '(':
                 p = True
@@ -16,8 +18,9 @@ def size_split(source, dest):
 
     # File object cache
     files = {}
+
     def getfile(n):
-        if not n in files:
+        if n not in files:
             files[n] = open(dest + "/" + str(n), "w+")
 
         return files[n]
@@ -30,7 +33,8 @@ def size_split(source, dest):
             print(line, file=f, end="")
 
     for i in range(len(files)):
-        files[i+1].close()
+        files[i + 1].close()
+
 
 def main():
     if len(sys.argv) < 2:
@@ -47,4 +51,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

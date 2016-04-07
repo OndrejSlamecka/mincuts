@@ -11,7 +11,7 @@ FAKEVAR:=$(shell mkdir -p bin)
 all: mincuts cutdiff cutcheck tester
 
 mincuts-rtm: CXXFLAGS += -DMEASURE_RUNTIME
-mincuts-rtm: LINKS	  += -lboost_chrono -lboost_system
+mincuts-rtm: LINKS    += -lboost_chrono -lboost_system
 mincuts-rtm: mincuts
 
 mincuts-pathslengths: CXXFLAGS += -DMEASURE_PATHS_LENGTHS

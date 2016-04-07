@@ -211,7 +211,7 @@ void indicies2edges(const List<edge> &graphEdges, const string &str,
  * Helper function to determine whether given set of edges really is a cut
  */
 bool isCut(Graph &G, const List<edge> &cut) {
-	Graph::HiddenEdgeSetHandle hidden_cut(G.newHiddenEdgeSet());
+    Graph::HiddenEdgeSetHandle hidden_cut(G.newHiddenEdgeSet());
 
     for (auto e : cut) {
         G.hideEdge(hidden_cut, e);
@@ -227,13 +227,13 @@ bool isCut(Graph &G, const List<edge> &cut) {
  * Helper function to determine whether given set of edges really is a minimal
  *  cut, w.r.t. # of components of (G \ cut)
  * Returns
- * 		0 on success,
- * 		-1 if # of components is 1,
- * 		the number of components of (G \ cut) otherwise
+ *     0 on success,
+ *     -1 if # of components is 1,
+ *     the number of components of (G \ cut) otherwise
  */
 int isMinCut(Graph &G, const List<edge> &cut, int &ncomponents) {
     NodeArray<int> component(G);
-	Graph::HiddenEdgeSetHandle hidden_edges(G.newHiddenEdgeSet());
+    Graph::HiddenEdgeSetHandle hidden_edges(G.newHiddenEdgeSet());
 
     for (auto e : cut) {
         G.hideEdge(hidden_edges, e);
@@ -254,7 +254,7 @@ int isMinCut(Graph &G, const List<edge> &cut, int &ncomponents) {
         // If numbers of components is the same and it's still a cut then
         // obviously the original cut was not minimal
         if (nSmallerCutComponents == ncomponents) {
-			G.restoreEdges(hidden_edges);
+            G.restoreEdges(hidden_edges);
             return ncomponents;
         }
         G.hideEdge(hidden_edges, e);

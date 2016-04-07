@@ -9,15 +9,15 @@ def parse_input(f):
     r = {}
     for line in f:
         line = line.strip()
-        if line: # empty string is evaluated as false
+        if line:  # empty string is evaluated as false
             s, rec_level, l = tuple(map(int, line.split()))
-            if not s in r:
+            if s not in r:
                 r[s] = {}
 
-            if not rec_level in r[s]:
+            if rec_level not in r[s]:
                 r[s][rec_level] = []
 
-            if l != 0: # don't count empty "paths" (when bond is created)
+            if l != 0:  # don't count empty "paths" (when bond is created)
                 r[s][rec_level].append(l)
     return r
 
@@ -38,7 +38,8 @@ if __name__ == "__main__":
 
     for s in data:
         for level in data[s]:
-            print("{} {} {}".format(s, level, sum(data[s][level]) / len(data[s][level])))
+            avg = sum(data[s][level]) / len(data[s][level])
+            print("{} {} {}".format(s, level, avg))
 
     # Bye
     f.close()

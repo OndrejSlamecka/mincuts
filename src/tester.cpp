@@ -130,7 +130,7 @@ class StdinGraphSource : public AbstractGraphSource {
         unique_lock<mutex> lock(cin_mtx);
         getline(cin, s);
         bool r = !cin.fail() && !s.empty();
-		if (r) {
+        if (r) {
             updateOnGraphRetrieval();
         }
         lock.unlock();
