@@ -14,6 +14,8 @@
 #include "./circuitcocircuit.h"
 
 using std::string; using std::invalid_argument;
+using std::cout; using std::cerr; using std::endl;
+using std::ifstream; using std::stoi;
 using ogdf::edge; using ogdf::node; using ogdf::Graph; using ogdf::List;
 using ogdf::ListConstIterator;
 

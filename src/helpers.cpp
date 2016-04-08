@@ -9,8 +9,10 @@
 #include <vector>
 #include <set>
 
-using std::vector; using std::ifstream; using std::set; using std::string;
-using std::stringstream;
+using std::ifstream; using std::ostream; using std::stringstream;
+using std::vector; using std::set; using std::string;
+using std::cout; using std::cerr; using std::endl;
+using std::min;
 using ogdf::edge; using ogdf::node; using ogdf::Graph; using ogdf::List;
 using ogdf::NodeArray; using ogdf::ListConstIterator;
 
@@ -50,8 +52,7 @@ void csv2graph(Graph &G, ifstream &fEdges) {
 }
 
 void graph2csv(const Graph &G, ostream &fGraph) {
-    edge e;
-    forall_edges(e, G) {
+    for (edge e : G.edges) {
         fGraph << e->index() << ";" << e->source() << ";" << e->target()
                << endl;
     }
@@ -60,8 +61,7 @@ void graph2csv(const Graph &G, ostream &fGraph) {
 void graph2dot(const Graph &G, ostream &fGraph) {
     fGraph << "graph G {" << endl;
 
-    edge e;
-    forall_edges(e, G) {
+    for (edge e : G.edges) {
         fGraph << "\t" << e->source() << " -- " << e->target()
                << " [label \"" << e->index() << "\"]" << endl;
     }
@@ -112,16 +112,15 @@ string nameColor(Colour c) {
 string nodesByColor2str(const Graph &G, const GraphColouring &coloring,
                         Colour c) {
     stringstream s;
-    node n;
 
     int x = 0;
-    forall_nodes(n, G) {
+    for (node n : G.nodes) {
         if (coloring[n] == c) {
             x++;
         }
     }
 
-    forall_nodes(n, G) {
+    for (node n : G.nodes) {
         if (coloring[n] == c) {
             s << n->index();
             x--;
@@ -138,16 +137,15 @@ string nodesByColor2str(const Graph &G, const GraphColouring &coloring,
 string edgesByColor2str(const Graph &G, const GraphColouring &coloring,
                         Colour c) {
     stringstream s;
-    edge e;
 
     int x = 0;
-    forall_edges(e, G) {
+    for (edge e : G.edges) {
         if (coloring[e] == c) {
             x++;
         }
     }
 
-    forall_edges(e, G) {
+    for (edge e : G.edges) {
         if (coloring[e] == c) {
             s << e->index();
             x--;
@@ -211,15 +209,15 @@ void indicies2edges(const List<edge> &graphEdges, const string &str,
  * Helper function to determine whether given set of edges really is a cut
  */
 bool isCut(Graph &G, const List<edge> &cut) {
-    Graph::HiddenEdgeSetHandle hidden_cut(G.newHiddenEdgeSet());
+    Graph::HiddenEdgeSet hidden_cut(G);
 
     for (auto e : cut) {
-        G.hideEdge(hidden_cut, e);
+        hidden_cut.hide(e);
     }
 
     bool r = isConnected(G);
 
-    G.restoreEdges(hidden_cut);
+    hidden_cut.restore();
     return !r;
 }
 
@@ -233,20 +231,20 @@ bool isCut(Graph &G, const List<edge> &cut) {
  */
 int isMinCut(Graph &G, const List<edge> &cut, int &ncomponents) {
     NodeArray<int> component(G);
-    Graph::HiddenEdgeSetHandle hidden_edges(G.newHiddenEdgeSet());
+    Graph::HiddenEdgeSet hidden_edges(G);
 
     for (auto e : cut) {
-        G.hideEdge(hidden_edges, e);
+        hidden_edges.hide(e);
     }
     ncomponents = connectedComponents(G, component);
 
     if (ncomponents == 1) {
-        G.restoreEdges(hidden_edges);
+        hidden_edges.restore();
         return -1;
     }
 
     for (auto e : cut) {
-        G.restoreEdge(hidden_edges, e);
+        hidden_edges.restore(e);
 
         // Count # of components of smaller cut
         int nSmallerCutComponents = connectedComponents(G, component);
@@ -254,13 +252,13 @@ int isMinCut(Graph &G, const List<edge> &cut, int &ncomponents) {
         // If numbers of components is the same and it's still a cut then
         // obviously the original cut was not minimal
         if (nSmallerCutComponents == ncomponents) {
-            G.restoreEdges(hidden_edges);
+            hidden_edges.restore();
             return ncomponents;
         }
-        G.hideEdge(hidden_edges, e);
+        hidden_edges.hide(e);
     }
 
-    G.restoreEdges(hidden_edges);
+    hidden_edges.restore();
 
     return 0;
 }

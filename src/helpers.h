@@ -33,8 +33,8 @@ std::string edgelist2str(const ogdf::List<ogdf::edge> &edges);
 ogdf::edge edgeByIndex(const ogdf::List<ogdf::edge> &edges, int index);
 std::string edgeInfo(const ogdf::Graph &G, int index);
 
-void indicies2edges(const ogdf::List<ogdf::edge> &graphEdges, const string &str,
-                    ogdf::List<ogdf::edge> &l);
+void indicies2edges(const ogdf::List<ogdf::edge> &graphEdges,
+        const std::string &str, ogdf::List<ogdf::edge> &l);
 
 /**
  * Helper function to determine whether given set of edges really is a cut

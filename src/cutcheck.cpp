@@ -27,13 +27,13 @@ void visualize_isMinCut(Graph &G, const List<edge> &edges)
 void visualize_countComponents(Graph &G, const List<edge> &edges)
 {
     NodeArray<int> component(G);
-    Graph::HiddenEdgeSetHandle hidden_edges(G.newHiddenEdgeSet());
+    Graph::HiddenEdgeSet hidden_edges(G);
 
     for (auto e : edges) {
-        G.hideEdge(hidden_edges, e);
+        hidden_edges.hide(e);
     }
     int ncomponents = connectedComponents(G, component);
-    G.restoreEdges(hidden_edges);
+    hidden_edges.restore();
 
     cout << ncomponents << endl;
 }

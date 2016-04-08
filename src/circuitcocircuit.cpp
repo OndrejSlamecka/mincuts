@@ -28,7 +28,9 @@ RuntimeMeasurement rtm;
 #endif
 
 using std::ostream; using std::invalid_argument; using std::logic_error;
-using ogdf::edge; using ogdf::node; using ogdf::ListConstIterator;
+using std::cout; using std::cerr; using std::endl;
+using ogdf::edge; using ogdf::node; using ogdf::adjEntry;
+using ogdf::ListConstIterator;
 using ogdf::Graph; using ogdf::Stack; using ogdf::NodeArray;
 using ogdf::Queue; using ogdf::Prioritized; using ogdf::DisjointSets;
 using ogdf::List; using ogdf::ListConstIterator;
@@ -45,7 +47,7 @@ CircuitCocircuit::CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound)
     : G(Graph), cutSizeBound(cutSizeBound), lambda(G) {
 #endif
     // Sort edges by index for use in minimalSpanningForest
-    for (edge e = G.firstEdge(); e; e = e->succ()) {
+    for (edge e : G.edges) {
         allEdgesSortedByIndex.pushBack(Prioritized<edge, int>(e, e->index()));
     }
     allEdgesSortedByIndex.quicksort();
@@ -64,12 +66,11 @@ void CircuitCocircuit::run(int k, List<bond> &bonds) {
     // (|V| - k + 1) * UB == max. long int
     std::random_device rd;
     std::default_random_engine engine(rd());
-    constexpr uint64_t max_uint64_t = numeric_limits<uint64_t>::max();
+    constexpr uint64_t max_uint64_t = std::numeric_limits<uint64_t>::max();
     uint64_t upper_bound = max_uint64_t / (G.numberOfNodes() - k + 1);
     std::uniform_int_distribution<uint64_t> distribution(1, upper_bound);
 
-    edge e;
-    forall_edges(e, G) {
+    for (edge e : G.edges) {
         lambda[e] = distribution(engine);
     }
 
@@ -304,14 +305,14 @@ void CircuitCocircuit::shortestPath(GraphColouring &colouring,
     NodeArray<edge> accessEdge(G);
 
     // Hide Y and X
-    Graph::HiddenEdgeSetHandle hidden_xy(G.newHiddenEdgeSet());
+    Graph::HiddenEdgeSet hidden_xy(G);
 
     for (edge e : Y) {
-        G.hideEdge(hidden_xy, e);
+        hidden_xy.hide(e);
     }
 
     for (edge e : X) {
-        G.hideEdge(hidden_xy, e);
+        hidden_xy.hide(e);
     }
 
     // Init
@@ -325,7 +326,6 @@ void CircuitCocircuit::shortestPath(GraphColouring &colouring,
     // Start BFS
     node foundBlue = NULL;
     node u, v;
-    edge e;
     while (!Q.empty()) {
         u = Q.pop();
 
@@ -344,7 +344,8 @@ void CircuitCocircuit::shortestPath(GraphColouring &colouring,
             }
         }
 
-        forall_adj_edges(e, u) {
+        for (adjEntry adj : u->adjEntries) {
+            edge e = adj->theEdge();
             v = e->opposite(u);
             // The vertexDistance[u] == vertexDistance[v] - 1 condition is
             // required in order to prevent setting a wrong accessEdge
@@ -370,7 +371,7 @@ void CircuitCocircuit::shortestPath(GraphColouring &colouring,
 
     if (foundBlue) {
         for (node n = foundBlue; colouring[n] != Colour::RED; n = v) {
-            e = accessEdge[n];
+            edge e = accessEdge[n];
             v = e->opposite(n);
 
             // Note that lastRed is set correctly only in the iteration
@@ -381,7 +382,7 @@ void CircuitCocircuit::shortestPath(GraphColouring &colouring,
         }
     }
 
-    G.restoreEdges(hidden_xy);
+    hidden_xy.restore();
 }
 
 
@@ -390,18 +391,17 @@ void CircuitCocircuit::shortestPath(GraphColouring &colouring,
 bool CircuitCocircuit::isBlueTreeDisconnected(GraphColouring &colouring,
                                               edge c, node u) {
     // We will test whether adding c to X would disconnect the blue tree
-    edge e;
-
-    Graph::HiddenEdgeSetHandle hidden_edges(G.newHiddenEdgeSet());
-    G.hideEdge(hidden_edges, c);  // Don't consider c to be part of blue subgraph
-    forall_adj_edges(e, u) {
+    Graph::HiddenEdgeSet hidden_edges(G);
+    hidden_edges.hide(c);  // Don't consider c to be part of blue subgraph
+    for (adjEntry adj : u->adjEntries) {
+        edge e = adj->theEdge();
         if (colouring[e] == Colour::BLUE) {
-            G.restoreEdge(hidden_edges, c);
+            hidden_edges.restore(c);
             return true;
         }
     }
 
-    G.restoreEdge(hidden_edges, c);
+    hidden_edges.restore(c);
     return false;
 }
 
@@ -417,10 +417,10 @@ void CircuitCocircuit::recolourBlueTreeBlack(GraphColouring &colouring,
     Q.push(start);
 
     node u, v;
-    edge e;
     while (!Q.empty()) {
         u = Q.pop();
-        forall_adj_edges(e, u) {
+        for (adjEntry adj : u->adjEntries) {
+            edge e = adj->theEdge();
             if (colouring[e] != Colour::BLUE) {
                 continue;
             }
@@ -464,20 +464,19 @@ bool CircuitCocircuit::reCreateBlueTreeIfDisconnected(
     // - if nBlueVerticesFound == colouring.nBlueVertices, return true
     // - if BFS ends and nBlueVerticesFound < colouring.nBlueVertices,
     //      return false
-    Graph::HiddenEdgeSetHandle hidden_xyc(G.newHiddenEdgeSet());
+    Graph::HiddenEdgeSet hidden_xyc(G);
 
     for (edge e : Y) {
-        G.hideEdge(hidden_xyc, e);
+        hidden_xyc.hide(e);
     }
 
     for (edge e : X) {
-        G.hideEdge(hidden_xyc, e);
+        hidden_xyc.hide(e);
     }
 
-    G.hideEdge(hidden_xyc, c);
+    hidden_xyc.hide(c);
 
     // Declare variables for use in the BFS
-    edge e;
     Queue<node> Q;
     Q.append(v);
     int nBlueVerticesFound = 0;  // v will be counted in the first iteration
@@ -493,7 +492,7 @@ bool CircuitCocircuit::reCreateBlueTreeIfDisconnected(
 
             // Colour path from v to u
             for (a = m; a != v; a = b) {
-                e = accessEdge[a];
+                edge e = accessEdge[a];
                 b = e->opposite(a);
 
                 colouring[e] = Colour::BLUE;
@@ -505,7 +504,8 @@ bool CircuitCocircuit::reCreateBlueTreeIfDisconnected(
             }
         }
 
-        forall_adj_edges(e, m) {
+        for (adjEntry adj : m->adjEntries) {
+            edge e = adj->theEdge();
             n = e->opposite(m);
             if (!visited[n] && colouring[n] != Colour::RED) {
                 visited[n] = true;
@@ -515,7 +515,7 @@ bool CircuitCocircuit::reCreateBlueTreeIfDisconnected(
         }
     }
 
-    G.restoreEdges(hidden_xyc);
+    hidden_xyc.restore();
     if (nBlueVerticesFound == colouring.nBlueVertices) {
         return true;
     } else {

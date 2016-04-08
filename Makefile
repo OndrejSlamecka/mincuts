@@ -1,8 +1,8 @@
-ogdf_path = ~/.bin/ogdf
+ogdf_path = ~/.libs/ogdf
 
 CXX=g++
 CXXFLAGS=-std=c++11 -pedantic -Wall -Wextra -O3 $(EXTRA_CXXFLAGS)
-LINKS=-I $(ogdf_path)/include -L $(ogdf_path)/_release -lOGDF -lpthread
+LINKS=-I $(ogdf_path)/include -L $(ogdf_path) -lOGDF -lpthread
 
 FAKEVAR:=$(shell mkdir -p bin)
 
@@ -31,5 +31,4 @@ tester: src/circuitcocircuit.cpp src/helpers.cpp src/tester.cpp
 
 cutuniq: src/cutuniq.cpp
 	$(CXX) -o bin/$@ $(CXXFLAGS) $^ -lboost_filesystem -lboost_system
-
 

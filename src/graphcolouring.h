@@ -55,10 +55,17 @@ class GraphColouring {
         return redVertices;
     }
 
-    Colour& operator[](ogdf::edge e) { return edges[e]; }
+    Colour& operator[](ogdf::edge e) {
+        return edges[e];
+    }
 
-    const Colour& operator[](ogdf::edge e) const { return edges[e]; }
-    const Colour& operator[](ogdf::node v) const { return vertices[v]; }
+    const Colour& operator[](ogdf::edge e) const {
+        return edges[e];
+    }
+
+    const Colour& operator[](ogdf::node v) const {
+        return vertices[v];
+    }
 };
 
 #endif  // SRC_GRAPHCOLOURING_H_
