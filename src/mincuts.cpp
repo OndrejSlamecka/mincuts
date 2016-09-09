@@ -10,13 +10,14 @@
 #include <stdexcept>
 #include <string>
 
+#include "./dyncon/dyn_con.h"
 #include "./helpers.h"
 #include "./circuitcocircuit.h"
 
 using std::string; using std::invalid_argument;
 using std::cout; using std::cerr; using std::endl;
 using std::ifstream; using std::stoi;
-using ogdf::edge; using ogdf::node; using ogdf::Graph; using ogdf::List;
+using ogdf::edge; using ogdf::node; using ogdf::List;
 using ogdf::ListConstIterator;
 
 void printUsage(char *name) {
@@ -96,7 +97,7 @@ int main(int argc, char* argv[]) {
 #endif
 
     // Input data
-    Graph G;
+    DCGraph G;
     ifstream fGraph(argv[1]);
     if (!fGraph.is_open()) {
         cerr << "Graph file " << argv[1] << " doesn't exist or could not be " \

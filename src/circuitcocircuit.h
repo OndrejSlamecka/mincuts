@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <stdexcept>
 #include <random>
+#include "./dyncon/dyn_con.h"
 #include "./graphcolouring.h"
 
 typedef struct bond {
@@ -26,7 +27,7 @@ typedef struct bond {
 std::ostream & operator<<(std::ostream &os, const bond &S);
 
 class CircuitCocircuit {
-    ogdf::Graph &G;
+    DCGraph &G;
     int cutSizeBound;
 
     ogdf::EdgeArray<u_int64_t> lambda;
@@ -79,9 +80,9 @@ class CircuitCocircuit {
 
  public:
 #ifdef MEASURE_RUNTIME
-    CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound, int measurementDepth);
+    CircuitCocircuit(DCGraph &Graph, int cutSizeBound, int measurementDepth);
 #else
-    CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound);
+    CircuitCocircuit(DCGraph &Graph, int cutSizeBound);
 #endif
 
     /**

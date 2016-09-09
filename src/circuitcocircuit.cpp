@@ -31,7 +31,7 @@ using std::ostream; using std::invalid_argument; using std::logic_error;
 using std::cout; using std::cerr; using std::endl;
 using ogdf::edge; using ogdf::node; using ogdf::adjEntry;
 using ogdf::ListConstIterator;
-using ogdf::Graph; using ogdf::Stack; using ogdf::NodeArray;
+using ogdf::Stack; using ogdf::NodeArray;
 using ogdf::Queue; using ogdf::Prioritized; using ogdf::DisjointSets;
 using ogdf::List; using ogdf::ListConstIterator;
 
@@ -40,10 +40,10 @@ ostream & operator<<(ostream &os, const bond &L) {
 }
 
 #ifdef MEASURE_RUNTIME
-CircuitCocircuit::CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound, int md)
+CircuitCocircuit::CircuitCocircuit(DCGraph &Graph, int cutSizeBound, int md)
     : G(Graph), cutSizeBound(cutSizeBound), lambda(G), measurementDepth(md) {
 #else
-CircuitCocircuit::CircuitCocircuit(ogdf::Graph &Graph, int cutSizeBound)
+CircuitCocircuit::CircuitCocircuit(DCGraph &Graph, int cutSizeBound)
     : G(Graph), cutSizeBound(cutSizeBound), lambda(G) {
 #endif
     // Sort edges by index for use in minimalSpanningForest
@@ -305,7 +305,7 @@ void CircuitCocircuit::shortestPath(GraphColouring &colouring,
     NodeArray<edge> accessEdge(G);
 
     // Hide Y and X
-    Graph::HiddenEdgeSet hidden_xy(G);
+    DCGraph::HiddenEdgeSet hidden_xy(G);
 
     for (edge e : Y) {
         hidden_xy.hide(e);
@@ -391,7 +391,7 @@ void CircuitCocircuit::shortestPath(GraphColouring &colouring,
 bool CircuitCocircuit::isBlueTreeDisconnected(GraphColouring &colouring,
                                               edge c, node u) {
     // We will test whether adding c to X would disconnect the blue tree
-    Graph::HiddenEdgeSet hidden_edges(G);
+    DCGraph::HiddenEdgeSet hidden_edges(G);
     hidden_edges.hide(c);  // Don't consider c to be part of blue subgraph
     for (adjEntry adj : u->adjEntries) {
         edge e = adj->theEdge();
@@ -464,7 +464,7 @@ bool CircuitCocircuit::reCreateBlueTreeIfDisconnected(
     // - if nBlueVerticesFound == colouring.nBlueVertices, return true
     // - if BFS ends and nBlueVerticesFound < colouring.nBlueVertices,
     //      return false
-    Graph::HiddenEdgeSet hidden_xyc(G);
+    DCGraph::HiddenEdgeSet hidden_xyc(G);
 
     for (edge e : Y) {
         hidden_xyc.hide(e);
