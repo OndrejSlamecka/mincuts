@@ -25,15 +25,26 @@ using ogdf::List;
 
 std::mt19937 dyn_con::random_generator;  // define the static member
 
-edge dyn_con::ins(node u, node v)
-// create an edge connecting u and v and return it
+/**
+ * Insert edge into dyn_con structure.
+ * This differs from Alberts' implementation: this function does not
+ * create the edge in the graph, it expects it to already exist.
+ */
+edge dyn_con::ins(edge e)
 {
+  if (Gp->tree_occ[e] != nullptr) {
+    return e; // already in the graph
+  }
+
 #ifdef STATISTICS
   n_ins++;
 #endif
   // create the new edge
-  edge e = Gp->newEdge(u,v);
+  node u = e->source();
+  node v = e->target();
   Gp->tree_occ[e] = nullptr;
+  Gp->non_tree_occ[e][0] = nullptr;
+  Gp->non_tree_occ[e][1] = nullptr;
 
   // test whether u and v are already connected
   if(!connected(u,v,max_level))
@@ -81,6 +92,11 @@ edge dyn_con::ins(node u, node v)
   return e;
 }
 
+/**
+ * Delete edge from dyn_con structure.
+ * This differs from Alberts' implementation: this function does not
+ * delete the edge from the graph, it expects it to be deleted elsewhere.
+ */
 void dyn_con::del(edge e)
 // delete the edge e
 {
@@ -105,13 +121,11 @@ void dyn_con::del(edge e)
     // delete specific information for tree edges stored at e
     for(int j=0; j<=max_level; j++) delete[] Gp->tree_occ[e][j];
     delete[] Gp->tree_occ[e];
+    Gp->tree_occ[e] = nullptr;
 
     // look for a replacement edge
     replace(u,v,e_level);
   }
-
-  // delete information stored at e
-  Gp->delEdge(e);
 }
 
 bool dyn_con::connected(node u, node v)
@@ -459,6 +473,9 @@ void dyn_con::insert_non_tree(edge e, int i)
 
   // update non_tree_edges[i]
   Gp->non_tree_item[e] = non_tree_edges[i].pushBack(e);
+  if (Gp->non_tree_item[e] == (ogdf::List<edge>::iterator) nullptr) {
+      std::cout << "FAIL3" << std::endl;
+  }
 
   // increase the weight of the active occurrences of u and v at level i
   Gp->act_occ[u][i]->add_weight(1);
@@ -471,6 +488,9 @@ void dyn_con::delete_non_tree(edge e)
 #ifdef STATISTICS
   n_del_non_tree++;
 #endif
+  if (tree_edge(e)) { // TODO: REMOVE
+      std::cout << "FAIL" << std::endl;
+  }
 
   // find the endpoints and the level of e
   node u = e->source();
@@ -489,6 +509,9 @@ void dyn_con::delete_non_tree(edge e)
   Gp->non_tree_occ[e][1] = nullptr;
 
   // remove e from the list of non-tree edges at level i
+  if (Gp->non_tree_item[e] == (ogdf::List<edge>::iterator) nullptr) {
+      std::cout << "FAIL2" << std::endl;
+  }
   non_tree_edges[i].del(Gp->non_tree_item[e]);
   Gp->non_tree_item[e] = nullptr;
 
@@ -644,9 +667,11 @@ dyn_con::dyn_con(DCGraph& G, int ml_reb_bound, int n_levels,
 #endif
 
   // --- initialize the edges ---
-  for (edge e : G.edges)
+  for(edge e : G.edges)
   {
     Gp->tree_occ[e] = nullptr;
+    Gp->non_tree_occ[e][0] = nullptr;
+    Gp->non_tree_occ[e][1] = nullptr;
     if(!connected(e->source(),e->target(),0)) {
         insert_tree(e,0,true);
     } else {
@@ -681,7 +706,7 @@ dyn_con::dyn_con(DCGraph& G, int ml_reb_bound, int n_levels,
 dyn_con::~dyn_con()
 {
   // first delete all edges in the data structure (not in G)
-  for (edge e : Gp->edges)
+  for(edge e : Gp->edges)
   {
     if(tree_edge(e))
     {

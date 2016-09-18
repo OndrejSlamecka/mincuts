@@ -136,7 +136,7 @@ public:
   ~dyn_con();
   // destructor
 
-  ogdf::edge ins(ogdf::node u, ogdf::node v);
+  ogdf::edge ins(ogdf::edge e);
   // create an edge connecting u and v and return it
 
   void del(ogdf::edge e);

@@ -28,6 +28,8 @@ std::ostream & operator<<(std::ostream &os, const bond &S);
 
 class CircuitCocircuit {
     DCGraph &G;
+    // Red edges and X are removed from dyncon, the rest stays
+    dyn_con dyncon;
     int cutSizeBound;
 
     ogdf::EdgeArray<u_int64_t> lambda;
@@ -44,10 +46,11 @@ class CircuitCocircuit {
     CircuitCocircuit();
 
     void extendBond(int components, const bond &Y, int j,
-                    ogdf::List<bond> &bonds);
+                    ogdf::List<bond> &bonds, ogdf::List<ogdf::edge> &redEdges);
 
     void genStage(GraphColouring &colouring, int components, const bond &Y,
-                  int j, ogdf::List<bond> &stageBonds, const bond &X);
+                  int j, ogdf::List<bond> &stageBonds, const bond &X,
+                  ogdf::List<ogdf::edge> &redEdges);
 
     ogdf::node getStartNodeOfIotaMinimalPath(GraphColouring &colouring,
                                              ogdf::NodeArray<ogdf::edge> &accessEdge,
@@ -57,23 +60,7 @@ class CircuitCocircuit {
                       ogdf::List<ogdf::edge> &path);
 
     void revertColouring(GraphColouring &colouring, ogdf::List<ogdf::edge> &P,
-                        ogdf::List<ogdf::edge> &blueEdges,
-                        ogdf::node firstRed, const bond &X,
-                        ogdf::List<ogdf::edge> &oldBlueTreeEdges,
-                        ogdf::List<ogdf::edge> &newBlueTreeEdges);
-
-    bool isBlueTreeDisconnected(GraphColouring &colouring, ogdf::edge c,
-                                ogdf::node u);
-
-    void recolourBlueTreeBlack(GraphColouring &colouring, ogdf::node start,
-                               ogdf::List<ogdf::edge> &oldBlueTreeEdges);
-
-    bool reCreateBlueTreeIfDisconnected(GraphColouring &colouring,
-                                        const ogdf::List<ogdf::edge> &Y,
-                                        const ogdf::List<ogdf::edge> &X,
-                                        ogdf::node v, ogdf::edge c,
-                                        ogdf::List<ogdf::edge> &oldBlueTreeEdges,
-                                        ogdf::List<ogdf::edge> &newBlueTreeEdges);
+                        ogdf::node firstRed, const bond &X);
 
     void minimalSpanningForest(int components, const bond &Y,
                                ogdf::List<ogdf::edge> &edges);

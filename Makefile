@@ -1,6 +1,5 @@
 ogdf_path = ~/.libs/ogdf
 
-CXX=g++
 CXXFLAGS=-std=c++11 -pedantic -Wall -Wextra -O3 $(EXTRA_CXXFLAGS)
 LINKS=-I $(ogdf_path)/include -L $(ogdf_path) -lOGDF -lpthread
 DYNCON_FILES=src/dyncon/rnb_tree.c src/dyncon/rnbw_tree.c src/dyncon/ed_tree.c src/dyncon/et_tree.c src/dyncon/dyn_con.c

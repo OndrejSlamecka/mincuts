@@ -11,6 +11,7 @@
 #include <ogdf/basic/Graph.h>
 #include <ogdf/basic/simple_graph_alg.h>
 #include <set>
+#include "./dyncon/dyn_con.h"
 #include "./graphcolouring.h"
 
 /**
