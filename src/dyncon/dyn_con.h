@@ -117,6 +117,18 @@ public:
         tree_item(*this),
         non_tree_occ(*this),
         tree_occ(*this) {}
+
+    /**
+     * Meant for internal use. Proper way would be to make this private
+     * and dyn_con a friend.
+     */
+    void clear_edge_info(ogdf::edge e) {
+      tree_occ[e] = nullptr;
+      non_tree_occ[e][0] = nullptr;
+      non_tree_occ[e][1] = nullptr;
+      non_tree_item[e] = nullptr;
+      tree_item[e] = nullptr;
+    }
 };
 
 class dyn_con{
@@ -136,7 +148,7 @@ public:
   ~dyn_con();
   // destructor
 
-  ogdf::edge ins(ogdf::node u, ogdf::node v);
+  ogdf::edge ins(ogdf::edge e);
   // create an edge connecting u and v and return it
 
   void del(ogdf::edge e);

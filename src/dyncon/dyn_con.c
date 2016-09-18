@@ -25,15 +25,24 @@ using ogdf::List;
 
 std::mt19937 dyn_con::random_generator;  // define the static member
 
-edge dyn_con::ins(node u, node v)
-// create an edge connecting u and v and return it
+/**
+ * Insert edge into dyn_con structure.
+ * This differs from Alberts' implementation: this function does not
+ * create the edge in the graph, it expects it to already exist.
+ */
+edge dyn_con::ins(edge e)
 {
+  if (Gp->tree_occ[e] != nullptr) {
+    return e; // already in the graph
+  }
+
 #ifdef STATISTICS
   n_ins++;
 #endif
   // create the new edge
-  edge e = Gp->newEdge(u,v);
-  Gp->tree_occ[e] = nullptr;
+  node u = e->source();
+  node v = e->target();
+  Gp->clear_edge_info(e);
 
   // test whether u and v are already connected
   if(!connected(u,v,max_level))
@@ -81,6 +90,11 @@ edge dyn_con::ins(node u, node v)
   return e;
 }
 
+/**
+ * Delete edge from dyn_con structure.
+ * This differs from Alberts' implementation: this function does not
+ * delete the edge from the graph, it expects it to be deleted elsewhere.
+ */
 void dyn_con::del(edge e)
 // delete the edge e
 {
@@ -110,8 +124,7 @@ void dyn_con::del(edge e)
     replace(u,v,e_level);
   }
 
-  // delete information stored at e
-  Gp->delEdge(e);
+  Gp->clear_edge_info(e);
 }
 
 bool dyn_con::connected(node u, node v)
@@ -231,7 +244,7 @@ void dyn_con::delete_tree(edge e)
 #endif
 
   // get the level of e
-  int i = level(e);
+  int i = Gp->level[e];
 
 #ifdef DEBUG
   std::cout << "(" << e->source()->index() << "," << e->target()->index() << ") tree del ";
@@ -275,7 +288,7 @@ void dyn_con::replace(node u, node v, int i)
       if(e) not_done = false;
     }
 
-    if(e != nullptr)
+    if(e)
     {
       // sampling was successful, insert e as a tree edge at level i
       delete_non_tree(e);
@@ -385,7 +398,7 @@ edge dyn_con::sample_and_test(et_tree T, int i)
 
   // pick a random one
   std::uniform_int_distribution<std::mt19937::result_type> uniform(1, no_of_adj);
-  int rnd_adj = uniform(random_generator);;
+  int rnd_adj = uniform(random_generator);
 
   // locate the et_node representing this adjacency and get the corr. node
   int offset;
@@ -644,9 +657,9 @@ dyn_con::dyn_con(DCGraph& G, int ml_reb_bound, int n_levels,
 #endif
 
   // --- initialize the edges ---
-  for (edge e : G.edges)
+  for(edge e : G.edges)
   {
-    Gp->tree_occ[e] = nullptr;
+    Gp->clear_edge_info(e);
     if(!connected(e->source(),e->target(),0)) {
         insert_tree(e,0,true);
     } else {
@@ -681,7 +694,7 @@ dyn_con::dyn_con(DCGraph& G, int ml_reb_bound, int n_levels,
 dyn_con::~dyn_con()
 {
   // first delete all edges in the data structure (not in G)
-  for (edge e : Gp->edges)
+  for(edge e : Gp->edges)
   {
     if(tree_edge(e))
     {

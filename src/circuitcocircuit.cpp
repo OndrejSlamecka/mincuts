@@ -13,6 +13,7 @@
 #include <limits>
 #include <cstdint>
 #include <algorithm>  // swap
+#include <utility>  // TODO: remove!
 #include "./helpers.h"
 
 #ifdef MEASURE_RUNTIME
@@ -41,16 +42,28 @@ ostream & operator<<(ostream &os, const bond &L) {
 
 #ifdef MEASURE_RUNTIME
 CircuitCocircuit::CircuitCocircuit(DCGraph &Graph, int cutSizeBound, int md)
-    : G(Graph), cutSizeBound(cutSizeBound), lambda(G), measurementDepth(md) {
+    : G(Graph), dyncon(G), cutSizeBound(cutSizeBound), lambda(G),
+    measurementDepth(md) {
 #else
 CircuitCocircuit::CircuitCocircuit(DCGraph &Graph, int cutSizeBound)
-    : G(Graph), cutSizeBound(cutSizeBound), lambda(G) {
+    : G(Graph), dyncon(G), cutSizeBound(cutSizeBound), lambda(G),
+    hiddenInT(T), GtoT(G), GtoTnodes(G) {
 #endif
     // Sort edges by index for use in minimalSpanningForest
     for (edge e : G.edges) {
         allEdgesSortedByIndex.pushBack(Prioritized<edge, int>(e, e->index()));
     }
     allEdgesSortedByIndex.quicksort();
+
+    // Map from G to T
+    for (node u : G.nodes) {
+        GtoTnodes[u] = T.newNode(u->index());
+    }
+
+    for (edge e : G.edges) {
+        GtoT[e] = T.newEdge(GtoTnodes[e->source()], GtoTnodes[e->target()], e->index());
+    }
+
 
 #ifdef MEASURE_RUNTIME
     rtm = RuntimeMeasurement();
@@ -72,11 +85,13 @@ void CircuitCocircuit::run(int k, List<bond> &bonds) {
 
     for (edge e : G.edges) {
         lambda[e] = distribution(engine);
+        //cerr << "edge " << e->index() << " value " << lambda[e] << endl;
     }
 
     // Run
     bond Y;
-    extendBond(k, Y, 1, bonds);
+    List<edge> redEdges;
+    extendBond(k, Y, 1, bonds, redEdges);
 }
 
 void CircuitCocircuit::run(int k) {
@@ -86,8 +101,13 @@ void CircuitCocircuit::run(int k) {
 }
 
 void CircuitCocircuit::extendBond(int components, const bond &Y, int j,
-                                  List<bond> &bonds) {
+                                  List<bond> &bonds, List<edge> &redEdgesLevelAbove) {
     GraphColouring colouring(G);
+
+    for (edge e : redEdgesLevelAbove) {
+        dyncon.ins(e);
+        hiddenInT.restore(GtoT[e]);
+    }
 
     // D is an arbitrary matroid base
     List<edge> D;
@@ -101,6 +121,8 @@ void CircuitCocircuit::extendBond(int components, const bond &Y, int j,
         bond X;
         X.edges.pushBack(e);
         X.lastBondFirstEdge = e;
+        dyncon.del(e);
+        hiddenInT.hide(GtoT[e]);
 
         node u = e->source(), v = e->target();
         if (u->index() > v->index()) swap(u, v);  // Definition 4.1.a
@@ -108,19 +130,30 @@ void CircuitCocircuit::extendBond(int components, const bond &Y, int j,
         colouring.set(u, Colour::RED);
         colouring.set(v, Colour::BLUE);
 
+        List<edge> redEdges; // New for each started branch of computation
+
         RTM_START
-        genStage(colouring, components, Y, j, bonds, X);
+        genStage(colouring, components, Y, j, bonds, X, redEdges);
         RTM_END
 
         colouring.set(u, Colour::BLACK);
         colouring.set(v, Colour::BLACK);
+        dyncon.ins(e);
+        hiddenInT.restore(GtoT[e]);
+        // Here e is removed from X (as new X is created with each
+        // iteration there does not have to be X.del(e))
+    }
+
+    for (edge e : redEdgesLevelAbove) {
+        hiddenInT.hide(GtoT[e]);
+        dyncon.del(e);
     }
 }
 
 
 void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
                                 const bond &Y, int j, List<bond> &bonds,
-                                const bond &X) {
+                                const bond &X, List<edge> &redEdges) {
     if (Y.edges.size() + X.edges.size() > cutSizeBound - components + j + 1) {
         return;
     }
@@ -154,31 +187,21 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
         nBondsOutput += 1;
 #endif
         } else {
-            extendBond(components, XY, j + 1, bonds);
+            extendBond(components, XY, j + 1, bonds, redEdges);
         }
     } else {
         // Try adding each c in P to X.
-
-        List<edge> blueBefore;
-        List<edge> newBlueTreeEdges;
-        List<edge> oldBlueTreeEdges;
-
-        // Colour the path blue but remember the previous colours
-        for (edge e : P) {
-            if (colouring[e] == Colour::BLUE) {
-                blueBefore.pushBack(e);
-            }
-            colouring[e] = Colour::BLUE;
-        }
 
         // c = (u,v), u is red, v is blue
         node u, v = firstRed;  // we're doing u = v at the begining of each step
 
         // for each c in P, recursively call GenCocircuits(X union {c}).
+        List<edge> traversed;
         for (edge c : P) {
             // We're traversing P in order, so we can do this:
             u = v;
             v = c->opposite(u);
+            //cout << "Path edge: " << c->index() << " of path: " << edgelist2str(P) << endl;
 
             // Colour as with u and v in X
             // (the colour of u has to be set red here in order to avoid being
@@ -188,12 +211,52 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
             colouring.set(v, Colour::BLUE);
             colouring.set(u, Colour::RED);
 
+            // c is lost for connectivity in this branch of computation
+            // (now it will be in X, then red)
+            dyncon.del(c);
+            hiddenInT.hide(GtoT[c]);
+
+            traversed.pushBack(c);
+            redEdges.pushBack(c); // this is lying, c will be in X first
+
+            bool blue_subgraph_conn = true;
+
+            //ogdf::NodeArray<int> component(T);
+            //connectedComponents(T, component);
+
+            edge firstedge = X.edges.front();
+            node prev;
+            if (colouring[firstedge->source()] == Colour::BLUE) {
+                prev = firstedge->source();
+            } else {
+                prev = firstedge->target();
+            }
+
+            for (List<edge>::const_iterator it = ++X.edges.begin();
+                it != X.edges.end(); ++it) {
+                node cur;
+                if (colouring[(*it)->source()] == Colour::BLUE) {
+                    cur = (*it)->source();
+                } else {
+                    cur = (*it)->target();
+                }
+
+                //if (component[GtoTnodes[prev]] != component[GtoTnodes[cur]]) {
+                if (!dyncon.connected(prev, cur)) {
+                    blue_subgraph_conn = false;
+                    break;
+                }
+
+                prev = cur;
+            }
+
+            //if (dyncon.connected(u, v) != hyperplane_byT) {
+                //std::cout << "FAILURE MAN" << std::endl;
+            //}
+
             // Do we still have a hyperplane?
-            if (   isBlueTreeDisconnected(colouring, c, u)
-                && !reCreateBlueTreeIfDisconnected(colouring, Y.edges, X.edges,
-                                                   v, c, oldBlueTreeEdges,
-                                                   newBlueTreeEdges)) {
-                // Revert colouring and end
+            //if (!dyncon.connected(u, v)) {
+            if (!blue_subgraph_conn) {
                 break;
             }
 
@@ -210,15 +273,27 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
             // Don't set colour before we check for a hyperplane
             colouring[c] = Colour::BLACK;
 
-            genStage(colouring, components, Y, j, bonds, newX);
+            genStage(colouring, components, Y, j, bonds, newX, redEdges);
 
             colouring[c] = Colour::RED;
+            //redEdges.pushBack(c);
         }
 
         // Revert colouring so that the original colouring is used in the
         // recursion level above
-        revertColouring(colouring, P, blueBefore, firstRed, X,
-                        oldBlueTreeEdges, newBlueTreeEdges);
+        revertColouring(colouring, P, firstRed, X);
+
+        // Put the path back to dyncon (the path cannot contain edges in
+        // X or red so this is safe to do)
+        // TODO: How about multigraphs being created here?
+        // E.g. dyncon replaces tree edge with some e in P and then we
+        // again add it here as non-tree -- isn't it causing problems
+        // for the dyncon alg?
+        for (edge e : traversed) {
+            redEdges.popBack();
+            dyncon.ins(e);
+            hiddenInT.restore(GtoT[e]);
+        }
     }
 }
 
@@ -386,175 +461,27 @@ void CircuitCocircuit::shortestPath(GraphColouring &colouring,
 }
 
 
-/* --- Colouring, re-creating the blue tree --- */
-
-bool CircuitCocircuit::isBlueTreeDisconnected(GraphColouring &colouring,
-                                              edge c, node u) {
-    // We will test whether adding c to X would disconnect the blue tree
-    DCGraph::HiddenEdgeSet hidden_edges(G);
-    hidden_edges.hide(c);  // Don't consider c to be part of blue subgraph
-    for (adjEntry adj : u->adjEntries) {
-        edge e = adj->theEdge();
-        if (colouring[e] == Colour::BLUE) {
-            hidden_edges.restore(c);
-            return true;
-        }
-    }
-
-    hidden_edges.restore(c);
-    return false;
-}
-
-/**
- * Recolours only edges of course
- */
-void CircuitCocircuit::recolourBlueTreeBlack(GraphColouring &colouring,
-                                             node start,
-                                             List<edge> &oldBlueTreeEdges) {
-    Stack<node> Q;
-    NodeArray<bool> visited(G, false);
-
-    Q.push(start);
-
-    node u, v;
-    while (!Q.empty()) {
-        u = Q.pop();
-        for (adjEntry adj : u->adjEntries) {
-            edge e = adj->theEdge();
-            if (colouring[e] != Colour::BLUE) {
-                continue;
-            }
-            v = e->opposite(u);
-            if (!visited[v]) {
-                visited[v] = true;
-                Q.push(v);
-            }
-            colouring[e] = Colour::BLACK;
-            oldBlueTreeEdges.pushBack(e);
-        }
-    }
-}
-
-/**
- * Returns true iff it was possible to re-create the blue tree such that it is connected
- * Expects graph with single blue tree as input (due to use of recolourBlueTreeBlack)
- */
-bool CircuitCocircuit::reCreateBlueTreeIfDisconnected(
-        GraphColouring &colouring, const List<edge> &Y, const List<edge> &X,
-        node v, edge c, List<edge> &oldBlueTreeEdges,
-        List<edge> &newBlueTreeEdges) {
-    // We will colour black what is blue and start building blue tree from scratch
-
-    // * recolour both components of T_b \ c black
-    // * run bfs from one blue vertex
-    // * - for each found blue vertex colour the path to it blue,
-    //         increase the counter of found blue vertices
-    // * - if all blue vertices weren't found then fail
-
-    node m,     // m is node currently being examined in BFS
-         n,     // neighbours of u
-         a, b;  // node currently being coloured on the path, its successor
-
-    // This recolours only edges of course, note that c is used too
-    recolourBlueTreeBlack(colouring, v, oldBlueTreeEdges);
-
-    // Run BFS in G \ Y \ X \ T_r \ {c}.
-    // Each time blue vertex x is found, colour path v-x blue
-    // and increase nBlueVerticesFound:
-    // - if nBlueVerticesFound == colouring.nBlueVertices, return true
-    // - if BFS ends and nBlueVerticesFound < colouring.nBlueVertices,
-    //      return false
-    DCGraph::HiddenEdgeSet hidden_xyc(G);
-
-    for (edge e : Y) {
-        hidden_xyc.hide(e);
-    }
-
-    for (edge e : X) {
-        hidden_xyc.hide(e);
-    }
-
-    hidden_xyc.hide(c);
-
-    // Declare variables for use in the BFS
-    Queue<node> Q;
-    Q.append(v);
-    int nBlueVerticesFound = 0;  // v will be counted in the first iteration
-    NodeArray<bool> visited(G, false);
-    visited[v] = true;
-    NodeArray<edge> accessEdge(G, NULL);
-
-    while (!Q.empty()) {
-        m = Q.pop();
-
-        if (colouring[m] == Colour::BLUE) {
-            nBlueVerticesFound++;
-
-            // Colour path from v to u
-            for (a = m; a != v; a = b) {
-                edge e = accessEdge[a];
-                b = e->opposite(a);
-
-                colouring[e] = Colour::BLUE;
-                newBlueTreeEdges.pushBack(e);
-            }
-
-            if (nBlueVerticesFound == colouring.nBlueVertices) {
-                break;
-            }
-        }
-
-        for (adjEntry adj : m->adjEntries) {
-            edge e = adj->theEdge();
-            n = e->opposite(m);
-            if (!visited[n] && colouring[n] != Colour::RED) {
-                visited[n] = true;
-                accessEdge[n] = e;
-                Q.append(n);
-            }
-        }
-    }
-
-    hidden_xyc.restore();
-    if (nBlueVerticesFound == colouring.nBlueVertices) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
+/* --- Colouring --- */
 
 void CircuitCocircuit::revertColouring(GraphColouring &colouring,
-                                      List<edge> &P, List<edge> &blueEdgesOnP,
-                                      node firstRed, const bond &X,
-                                      List<edge> &oldBlueTreeEdges,
-                                      List<edge> &newBlueTreeEdges) {
+                                      List<edge> &P, node firstRed,
+                                      const bond &X) {
     // The order is important here!
-    for (edge e : newBlueTreeEdges) {
-        colouring[e] = Colour::BLACK;
-    }
-
-    for (edge e : oldBlueTreeEdges) {
-        colouring[e] = Colour::BLUE;
-    }
-
     for (edge e : P) {
         colouring.set(e->source(), Colour::BLACK);
         colouring.set(e->target(), Colour::BLACK);
         colouring[e] = Colour::BLACK;
     }
 
+    // TODO: Is the rest necessary?
+
     for (edge e : X.edges) {
-        if (colouring[e->source()] != Colour::RED) {
+        if (colouring[e->source()] == Colour::BLACK) {
             colouring.set(e->source(), Colour::BLUE);
         }
-        if (colouring[e->target()] != Colour::RED) {
+        if (colouring[e->target()] == Colour::BLACK) {
             colouring.set(e->target(), Colour::BLUE);
         }
-    }
-
-    for (edge e : blueEdgesOnP) {
-        colouring[e] = Colour::BLUE;
     }
 
     colouring.set(firstRed, Colour::RED);

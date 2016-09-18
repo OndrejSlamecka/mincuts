@@ -8,8 +8,9 @@ fi
 EDGES=$2
 COMPONENTS=$3
 
-./bin/mincuts "$1" "$EDGES" "$COMPONENTS"      > tmp/tester_mincuts
-./bin/mincuts "$1" "$EDGES" "$COMPONENTS" -bfc > tmp/tester_bf
+mkdir -p tmp
+./bin/mincuts "$1" "$EDGES" "$COMPONENTS"    > tmp/tester_mincuts
+./bin/mincuts "$1" "$EDGES" "$COMPONENTS" -b > tmp/tester_bf
 
 echo "mincuts / bf"
 ./bin/cutdiff tmp/tester_mincuts tmp/tester_bf

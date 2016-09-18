@@ -55,7 +55,7 @@ class AbstractGraphSource {
     }
 
  public:
-    virtual bool get(Graph &G) = 0;
+    virtual bool get(DCGraph &G) = 0;
     virtual ~AbstractGraphSource() {}
 };
 
@@ -94,7 +94,7 @@ class StdinGraphSource : public AbstractGraphSource {
     /**
      * Convert string in graph6 format to graph.
      */
-    static void stringtograph(const char *s, Graph &G) {
+    static void stringtograph(const char *s, DCGraph &G) {
         int n = graphsize(s), x = 0;
 
         const char *p = s + 1;
@@ -125,7 +125,7 @@ class StdinGraphSource : public AbstractGraphSource {
     /**
      * Grabs a graph from stdin. Locks cin!
      */
-    bool get(Graph &G) {
+    bool get(DCGraph &G) {
         string s;
         unique_lock<mutex> lock(cin_mtx);
         getline(cin, s);
@@ -159,7 +159,7 @@ class RandomGraphSource : public AbstractGraphSource {
      * (see http://stackoverflow.com/a/14618505/247532) but we don't care
      * since other solutions are way slower
      */
-    bool get(Graph &G) {
+    bool get(DCGraph &G) {
         int edges = randomNumber(minEdges, maxEdges);
 
         randomSimpleGraph(G, nodes, edges);
@@ -184,7 +184,7 @@ class TestRunner {
     int minComponents, maxComponents,
         cutSizeBound;
 
-    void reportProblem(const Graph &G, const set<set<int>> &AmB,
+    void reportProblem(const DCGraph &G, const set<set<int>> &AmB,
                        const set<set<int>> &BmA) {
         unique_lock<mutex> lock(errorOutputMutex, defer_lock);
         if (errorFound || !lock.try_lock()) {
@@ -212,7 +212,7 @@ class TestRunner {
         cout << "Input graph written to tmp/tester_in.csv" << endl;
     }
 
-    bool testGraph(Graph &G) {
+    bool testGraph(DCGraph &G) {
         // run circuitcocircuit and bfc
         List<bond> bonds;
         CircuitCocircuit alg(G, cutSizeBound);
@@ -259,7 +259,7 @@ class TestRunner {
 
     virtual void run() final {
         while (!errorFound) {
-            Graph G;
+            DCGraph G;
 
             // Exhausted input?
             if (!graphs->get(G)) {

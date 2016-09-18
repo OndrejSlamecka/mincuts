@@ -25,22 +25,13 @@ class GraphColouring {
     GraphColouring();
 
  public:
-    int nBlueVertices;
 
     explicit GraphColouring(const ogdf::Graph &G) {
         edges.init(G, Colour::BLACK);
         vertices.init(G, Colour::BLACK);
-        nBlueVertices = 0;
     }
 
     void set(ogdf::node v, Colour c) {
-        if (c == Colour::BLUE && vertices[v] != Colour::BLUE) {
-            nBlueVertices++;
-        }
-        if (c != Colour::BLUE && vertices[v] == Colour::BLUE) {
-            nBlueVertices--;
-        }
-
         if (vertices[v] == Colour::RED && c != Colour::RED) {
             redVertices.popBack();
         }
