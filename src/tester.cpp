@@ -213,7 +213,7 @@ class TestRunner {
     }
 
     bool testGraph(Graph &G) {
-        // run circuitcocircuit and bfc
+        // run circuitcocircuit and bruteforce alg
         List<bond> bonds;
         CircuitCocircuit alg(G, cutSizeBound);
         for (int i = minComponents; i <= maxComponents; ++i) {

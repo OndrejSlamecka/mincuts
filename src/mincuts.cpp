@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     cerr << "Built with MEASURE_PATHS_LENGTHS!" << endl;
 #endif
 
-    if ((argc == 5 && argv[4] != string("-bfc"))
+    if ((argc == 5 && argv[4] != string("-b"))
       || argc < 4
 #ifdef MEASURE_RUNTIME
       || argc > 7
