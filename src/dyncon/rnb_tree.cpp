@@ -15,8 +15,8 @@
 
 #include"rnb_tree.h"
 
-std::mt19937 rnb_node_struct::random_generator;  // define the static member
-std::uniform_int_distribution<std::mt19937::result_type>
+thread_local std::mt19937 rnb_node_struct::random_generator;  // define the static member
+thread_local std::uniform_int_distribution<std::mt19937::result_type>
   rnb_node_struct::uniform(std::numeric_limits<int>::min(),
     std::numeric_limits<int>::max());
 

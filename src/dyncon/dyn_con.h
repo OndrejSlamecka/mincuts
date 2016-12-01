@@ -171,7 +171,7 @@ private:
   et_node      et_dummy;        // dummy nodes for splitting and joining trees
   ed_node      ed_dummy;
 
-  static std::mt19937 random_generator;  // for choosing random adjacent edges
+  static thread_local std::mt19937 random_generator;  // for choosing random adjacent edges
                                          // in replace
 
   // some statistics - these counters are only maintained with

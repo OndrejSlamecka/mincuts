@@ -159,7 +159,6 @@ et_tree et_link(node u, node v, edge e, int i, dyn_con* dc)
     {
       // replace u_act by new_u_occ
       int k;
-      if(dc->Gp->tree_occ[after_e] == nullptr) { std::cout << "SHOULD NOT HAPPEN" << std::endl; };
       for(k=0; u_act != dc->Gp->tree_occ[after_e][i][k]; k++);
       dc->Gp->tree_occ[after_e][i][k] = new_u_occ;
     }
@@ -274,7 +273,6 @@ void et_cut(edge e, int i, dyn_con* dc)
     {
       // replace ea2 by ea1
       int k;
-      if(dc->Gp->tree_occ[after_e] == nullptr) { std::cout << "SHOULD NOT HAPPEN" << std::endl; };
       for(k=0; ea2 != dc->Gp->tree_occ[after_e][i][k]; k++);
       dc->Gp->tree_occ[after_e][i][k] = ea1;
     }

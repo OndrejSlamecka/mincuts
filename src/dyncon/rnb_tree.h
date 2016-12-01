@@ -121,8 +121,8 @@ protected:
   // Make this node an isolated node.
   // Prec.: this != nullptr
 
-  static std::mt19937 random_generator;  // for computing random priorities
-  static std::uniform_int_distribution<std::mt19937::result_type> uniform;
+  thread_local static std::mt19937 random_generator;  // for computing random priorities
+  thread_local static std::uniform_int_distribution<std::mt19937::result_type> uniform;
 };
 
 #endif

@@ -23,7 +23,7 @@ using ogdf::edge;
 using ogdf::node;
 using ogdf::List;
 
-std::mt19937 dyn_con::random_generator;  // define the static member
+thread_local std::mt19937 dyn_con::random_generator;  // define the thread local static member
 
 /**
  * Insert edge into dyn_con structure.
@@ -473,9 +473,6 @@ void dyn_con::insert_non_tree(edge e, int i)
 
   // update non_tree_edges[i]
   Gp->non_tree_item[e] = non_tree_edges[i].pushBack(e);
-  if (Gp->non_tree_item[e] == (ogdf::List<edge>::iterator) nullptr) {
-      std::cout << "FAIL3" << std::endl;
-  }
 
   // increase the weight of the active occurrences of u and v at level i
   Gp->act_occ[u][i]->add_weight(1);
@@ -488,9 +485,6 @@ void dyn_con::delete_non_tree(edge e)
 #ifdef STATISTICS
   n_del_non_tree++;
 #endif
-  if (tree_edge(e)) { // TODO: REMOVE
-      std::cout << "FAIL" << std::endl;
-  }
 
   // find the endpoints and the level of e
   node u = e->source();
@@ -509,9 +503,6 @@ void dyn_con::delete_non_tree(edge e)
   Gp->non_tree_occ[e][1] = nullptr;
 
   // remove e from the list of non-tree edges at level i
-  if (Gp->non_tree_item[e] == (ogdf::List<edge>::iterator) nullptr) {
-      std::cout << "FAIL2" << std::endl;
-  }
   non_tree_edges[i].del(Gp->non_tree_item[e]);
   Gp->non_tree_item[e] = nullptr;
 

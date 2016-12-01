@@ -47,4 +47,3 @@ void ed_node_struct::print()
   // output new fields
   std::cout << "  ed_edge:     " << ed_edge << "\n";
 }
-
