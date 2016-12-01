@@ -13,6 +13,7 @@
 #include <limits>
 #include <cstdint>
 #include <algorithm>  // swap
+#include <utility>  // TODO: remove!
 #include "./helpers.h"
 
 #ifdef MEASURE_RUNTIME
@@ -73,6 +74,7 @@ void CircuitCocircuit::run(int k, List<bond> &bonds) {
 
     for (edge e : G.edges) {
         lambda[e] = distribution(engine);
+        //cerr << "edge " << e->index() << " value " << lambda[e] << endl;
     }
 
     // Run
@@ -124,6 +126,7 @@ void CircuitCocircuit::extendBond(int components, const bond &Y, int j,
         colouring.set(u, Colour::BLACK);
         colouring.set(v, Colour::BLACK);
         dyncon.ins(e);
+
         // Here e is removed from X (as new X is created with each
         // iteration there does not have to be X.del(e))
     }
@@ -184,28 +187,55 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
             // We're traversing P in order, so we can do this:
             u = v;
             v = c->opposite(u);
-            //cout << "Path edge: " << c->index() << " of path: " << edgelist2str(P) << endl;
 
             // Colour as with u and v in X
-            // (the colour of u has to be set red here in order to avoid being
-            // used in a possible re-creation of the blue tree, the colour of c
-            // cannot be set here so that we can satisfy the input condition of
-            // the method reCreateBlueTreeIfDisconnected
             colouring.set(v, Colour::BLUE);
             colouring.set(u, Colour::RED);
 
-            // Do we still have a hyperplane?
-            if (!dyncon.connected(u, v)) {
-                break;
-            }
+            // c is lost for connectivity in this branch of computation
+            // (now it will be in X, then red)
+            dyncon.del(c);
 
             traversed.pushBack(c);
+            redEdges.pushBack(c); // this is a small lie, c will be in X first
+
+            // Iterate through the blue vertices in X
+            // and check whether they are all in the same component
+            bool blue_subgraph_conn = true;
+
+            edge firstedge = X.edges.front();
+            node prev;
+            if (colouring[firstedge->source()] == Colour::BLUE) {
+                prev = firstedge->source();
+            } else {
+                prev = firstedge->target();
+            }
+
+            for (List<edge>::const_iterator it = ++X.edges.begin();
+                it != X.edges.end(); ++it) {
+                node cur;
+                if (colouring[(*it)->source()] == Colour::BLUE) {
+                    cur = (*it)->source();
+                } else {
+                    cur = (*it)->target();
+                }
+
+                if (!dyncon.connected(prev, cur)) {
+                    blue_subgraph_conn = false;
+                    break;
+                }
+
+                prev = cur;
+            }
+
+            // Do we still have a hyperplane?
+            if (!blue_subgraph_conn) {
+                break;
+            }
 
             // This condition has to be checked after the hyperplane test!
             if (c->index() <= X.lastBondFirstEdge->index()) {
                 colouring[c] = Colour::RED;
-                redEdges.pushBack(c);
-                dyncon.del(c);
                 continue;
             }
 
@@ -216,14 +246,9 @@ void CircuitCocircuit::genStage(GraphColouring &colouring, int components,
             // Don't set colour before we check for a hyperplane
             colouring[c] = Colour::BLACK;
 
-            // c is lost for connectivity in this branch of computation
-            // (now it will be in X, then red)
-            dyncon.del(c);
-
             genStage(colouring, components, Y, j, bonds, newX, redEdges);
 
             colouring[c] = Colour::RED;
-            redEdges.pushBack(c);
         }
 
         // Revert colouring so that the original colouring is used in the
@@ -422,10 +447,10 @@ void CircuitCocircuit::revertColouring(GraphColouring &colouring,
     // TODO: Is the rest necessary?
 
     for (edge e : X.edges) {
-        if (colouring[e->source()] != Colour::RED) {
+        if (colouring[e->source()] == Colour::BLACK) {
             colouring.set(e->source(), Colour::BLUE);
         }
-        if (colouring[e->target()] != Colour::RED) {
+        if (colouring[e->target()] == Colour::BLACK) {
             colouring.set(e->target(), Colour::BLUE);
         }
     }

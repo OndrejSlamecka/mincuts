@@ -32,3 +32,5 @@ tester: src/helpers.cpp src/circuitcocircuit.cpp $(DYNCON_FILES) src/tester.cpp
 cutuniq: src/cutuniq.cpp
 	$(CXX) -o bin/$@ $(CXXFLAGS) $^ -lboost_filesystem -lboost_system
 
+dyncontest: $(DYNCON_FILES) src/dyncon_test.cpp
+	$(CXX) -o bin/$@ $(CXXFLAGS) $^ $(LINKS)
